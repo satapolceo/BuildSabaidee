@@ -1,0 +1,14558 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { 
+  CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
+  BarChart3, Users, FileText, MessageSquare, Clock, 
+  WifiOff, Package, Receipt, CloudRain, HardHat, 
+  Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
+  LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
+  UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
+  Send, Database, Eye, Printer, Percent, Download
+} from 'lucide-react';
+
+// ========================================================
+// 🔥 1. FIREBASE CONFIGURATION (ใส่ข้อมูลของคุณที่นี่) 🔥
+// ========================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAiDxPMjsedFPk_gs99ffcCmUVEcJ0J00A",
+  authDomain: "buildsabaidee.firebaseapp.com",
+  projectId: "buildsabaidee",
+  storageBucket: "buildsabaidee.firebasestorage.app",
+  messagingSenderId: "73014561990",
+  appId: "1:73014561990:web:aaa4a49711bfa1a2911bc7",
+  measurementId: "G-0W0D1457PR"
+};
+
+// ตรวจสอบว่ามีการใส่ Config หรือยัง
+const isFirebaseConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+const db = isFirebaseConfigured ? getFirestore(app) : null;
+
+// ==========================================
+// 🌟 CUSTOM HOOK: ระบบบันทึกเสียง (แปลงเสียงเป็น Base64 เพื่อเก็บลง Firebase)
+// ==========================================
+function useAudioRecorder(onAudioReady) {
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
+  const startRecording = async (e) => {
+    if(e) e.preventDefault(); 
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // แปลงไฟล์เสียงเป็น Base64 String เพื่อเก็บลง Firebase (ง่ายกว่า Storage สำหรับการเริ่มต้น)
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+           if (onAudioReady) onAudioReady(reader.result);
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing mic:", err);
+      alert("ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาตรวจสอบการอนุญาต (Permissions) ในเบราว์เซอร์ของคุณ");
+    }
+  };
+
+  const stopRecording = (e) => {
+    if(e) e.preventDefault();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  return { isRecording, startRecording, stopRecording };
+}
+
+// ==========================================
+// TRANSLATIONS
+// ==========================================
+const translations = {
+  LA: {
+    nav_features: 'ຟັງຊັນຫຼັກ', nav_superapp: 'ສ່ວນເສີມພິເສດ', nav_pricing: 'ແພັກເກດລາຄາ', nav_login: 'ເຂົ້າສູ່ລະບົບ',
+    lang_name: '🇱🇦 ລາວ',
+    hero_badge: '#1 ແອັບກໍ່ສ້າງໃນລາວ', hero_title1: 'ຈັດການໄຊຕ໌ງານກໍ່ສ້າງງ່າຍໆ', hero_title2: 'ສະຕາຍສະບາຍດີ', hero_desc: 'ແອັບພລິເຄຊັນສຳລັບບໍລິສັດຮັບເໝົາ, ຜູ້ຮັບເໝົາອິດສະຫຼະ, ແລະເຈົ້າຂອງບ້ານ.',
+    hero_btn_try: 'ທົດລອງໃຊ້ຟຣີ', hero_btn_worker: 'ເບິ່ງແອັບຄົນງານ',
+    feat_title: 'ຟັງຊັນຫຼັກທີ່ຕອບໂຈດທຸກຝ່າຍ', feat_subtitle: 'ອອກແບບມາໃຫ້ໃຊ້ງານງ່າຍ ບໍ່ວ່າຈະເປັນຊ່າງໜ້າວຽກ ຫຼື ເຈົ້າຂອງບ້ານ',
+    feat_worker: 'ສຳລັບພະນັກງານ / ຊ່າງ', feat_manager: 'ສຳລັບຜູ້ຈັດການ / ບໍລິສັດ', feat_owner: 'ສຳລັບເຈົ້າຂອງບ້ານ',
+    worker_checkin: 'ກົດເຂົ້າວຽກ (GPS)', worker_checked: 'ລົງເວລາແລ້ວ', worker_photo: 'ຖ່າຍຮູບສົ່ງວຽກ', worker_material: 'ຂໍເບີກເຄື່ອງ', worker_voice: 'ພິມບໍ່ຖະນັດ? ອັດສຽງເລີຍ', worker_sos: 'ແຈ້ງບັນຫາ / ເຄື່ອງຂາດ (SOS)',
+    manager_overview: 'ພາບລວມໂຄງການ (Dashboard)', manager_menu_overview: 'ພາບລວມ', manager_menu_projects: 'ຈັດການໄຊຕ໌ງານ', manager_menu_workers: 'ຈັດການພະນັກງານ', manager_menu_docs: 'ເອກະສານ & ເບີກເງິນ', manager_menu_inventory: 'ສາງວັດສະດຸ', manager_logout: 'ອອກຈາກລະບົບ',
+    manager_tab_projects_title: 'ລາຍການໄຊຕ໌ງານທັງໝົດ', add_project: '+ ເພີ່ມໄຊຕ໌ງານໃໝ່', status_active: 'ກຳລັງດຳເນີນການ', status_delayed: 'ລ່າຊ້າ', status_completed: 'ສຳເລັດ', search_placeholder: 'ຄົ້ນຫາຊື່ໄຊຕ໌ງານ...',
+    modal_add_title: 'ເພີ່ມໄຊຕ໌ງານໃໝ່', modal_edit_title: 'ແກ້ໄຂໄຊຕ໌ງານ', btn_save: 'ບັນທຶກ', btn_cancel: 'ຍົກເລີກ', btn_delete: 'ລົບ', label_name: 'ຊື່ໂຄງການ', label_location: 'ສະຖານທີ່', label_progress: 'ຄວາມຄືບໜ້າ (%)', label_status: 'ສະຖານະ', label_workers: 'ຈຳນວນຄົນງານ',
+    manager_tab_workers_title: 'ລາຍຊື່ພະນັກງານ/ຊ່າງ', add_worker: '+ ເພີ່ມພະນັກງານ', worker_role_foreman: 'ຫົວໜ້າຄົນງານ', worker_role_worker: 'ຊ່າງທົ່ວໄປ', label_phone: 'ເບີໂທລະສັບ', label_role: 'ຕຳແໜ່ງ', label_wage: 'ຄ່າແຮງ (LAK/ມື້)', label_assigned_site: 'ໄຊຕ໌ງານປະຈຳ', label_attendance: 'ການເຂົ້າວຽກ', modal_add_worker: 'ເພີ່ມພະນັກງານໃໝ່', modal_edit_worker: 'ແກ້ໄຂຂໍ້ມູນພະນັກງານ', worker_search_placeholder: 'ຄົ້ນຫາຊື່ພະນັກງານ...', unassigned_site: 'ບໍ່ໄດ້ລະບຸ',
+    manager_tab_docs_title: 'ເອກະສານ ແລະ ການເບີກຈ່າຍ', add_doc: '+ ສ້າງເອກະສານໃໝ່', doc_type_invoice: 'ໃບເບີກເງິນ (Invoice)', doc_type_report: 'ລາຍງານສົ່ງວຽກ', doc_status_pending: 'ລໍຖ້າອະນຸມັດ', doc_status_approved: 'ອະນຸມັດແລ້ວ', doc_status_rejected: 'ປະຕິເສດ', label_doc_title: 'ຫົວຂໍ້ເອກະສານ', label_doc_type: 'ປະເພດເອກະສານ', label_amount: 'ຈຳນວນເງິນ (LAK)', label_date: 'ວັນທີ', search_doc_placeholder: 'ຄົ້ນຫາເອກະສານ...', filter_all: 'ເອກະສານທັງໝົດ', modal_add_doc: 'ສ້າງເອກະສານໃໝ່', modal_edit_doc: 'ແກ້ໄຂເອກະສານ',
+    docs_billing_summary: 'ສະຫຼຸບເອກະສານ ແລະ ການເງິນ', docs_billing_total_records: 'ຈຳນວນເອກະສານທັງໝົດ', docs_billing_total_value: 'ມູນຄ່າລວມ', docs_billing_pending: 'ລາຍການລໍຖ້າຕິດຕາມ', docs_billing_search_placeholder: 'ຄົ້ນຫາເລກເອກະສານ ຫຼື ລູກຄ້າ...', docs_billing_filter_all_types: 'ທຸກປະເພດ', docs_billing_filter_all_statuses: 'ທຸກສະຖານະ', docs_billing_details: 'ລາຍລະອຽດເອກະສານ', docs_billing_open_details: 'ເປີດລາຍລະອຽດ', docs_billing_record_number: 'ເລກເອກະສານ', docs_billing_customer: 'ລູກຄ້າ / ຜູ້ວ່າຈ້າງ', docs_billing_empty: 'ບໍ່ພົບເອກະສານທີ່ຕົງເງື່ອນໄຂ', doc_type_quotation: 'ໃບສະເໜີລາຄາ', doc_type_agreement: 'ສັນຍາ', docs_billing_status_draft: 'ສະບັບຮ່າງ', finance_summary_title: 'ສະຫຼຸບລາຍຮັບ / ລາຍຈ່າຍ', finance_summary_description: 'ພາບລວມລາຍຮັບ, ລາຍຈ່າຍ ແລະ ຍອດສຸດທິຈາກຂໍ້ມູນເອກະສານ, ຄຳສັ່ງຊື້ ແລະ ຄັງວັດສະດຸ', finance_total_revenue: 'ລາຍຮັບລວມ', finance_total_expense: 'ລາຍຈ່າຍລວມ', finance_net_balance: 'ຍອດສຸດທິ', finance_recent_records: 'ລາຍການຫຼ້າສຸດ', finance_summary_by_category: 'ສະຫຼຸບຕາມໝວດ', finance_revenue_category: 'ລາຍຮັບ', finance_expense_category: 'ລາຍຈ່າຍ', finance_empty: 'ຍັງບໍ່ມີຂໍ້ມູນລາຍຮັບ/ລາຍຈ່າຍ',
+    manager_tab_inv_title: 'ຄັງວັດສະດຸ & ສ້າງ BOQ', btn_add_inv: '+ ເພີ່ມວັດສະດຸ', btn_import_boq: 'ນຳເຂົ້າ BOQ', btn_scan_bill: 'ສະແກນບິນ', label_item_name: 'ຊື່ວັດສະດຸ', label_category: 'ໝວດໝູ່', label_qty: 'ຈຳນວນ', label_unit: 'ໜ່ວຍ', label_unit_price: 'ລາຄາ/ໜ່ວຍ (LAK)', label_total_price: 'ລວມລາຄາ', search_inv_placeholder: 'ຄົ້ນຫາວັດສະດຸ...', filter_project: 'ທຸກໂຄງການ', inv_summary_total: 'ມູນຄ່າວັດສະດຸລວມ', modal_add_inv: 'ເພີ່ມລາຍການວັດສະດຸ', modal_edit_inv: 'ແກ້ໄຂລາຍການ', modal_import_title: 'ນຳເຂົ້າລາຍການວັດສະດຸ (BOQ)', modal_scan_title: 'ສະແກນບິນ / ໃບເສັດ',
+    company_logo: 'ໂລໂກ້ບໍລິສັດ', company_name: 'ຊື່ບໍລິສັດ', company_address: 'ທີ່ຢູ່', company_phone: 'ເບີໂທ', company_email: 'ອີເມວ', company_tax_id: 'ເລກປະຈຳຕົວພາສີ', company_signer_name: 'ຊື່ຜູ້ລົງນາມ', company_signer_title: 'ຕຳແໜ່ງຜູ້ລົງນາມ', company_signature_image: 'ຮູບລາຍເຊັນ', company_business_details: 'ລາຍລະອຽດທຸລະກິດເພີ່ມເຕີມ',
+    company_logo_upload: 'ອັບໂຫຼດໂລໂກ້', company_logo_change: 'ປ່ຽນໂລໂກ້', company_signature_upload: 'ອັບໂຫຼດລາຍເຊັນ', company_signature_change: 'ປ່ຽນລາຍເຊັນ', company_signature_remove: 'ລຶບລາຍເຊັນ', company_profile_save: 'ບັນທຶກຂໍ້ມູນບໍລິສັດ', company_profile_saved: 'ບັນທຶກຂໍ້ມູນບໍລິສັດແລ້ວ', company_profile_preview: 'ຂໍ້ມູນນີ້ຈະຖືກນຳໄປໃຊ້ຕໍ່ໃນໃບສະເໜີລາຄາ ແລະ ສັນຍາ',
+    quotation_number: 'ເລກທີໃບສະເໜີລາຄາ', quotation_issue_date: 'ວັນອອກໃບ', quotation_expiry_date: 'ວັນໝົດອາຍຸ', quotation_customer_name: 'ຊື່ລູກຄ້າ / ບໍລິສັດ', quotation_customer_address: 'ທີ່ຢູ່ລູກຄ້າ', quotation_customer_phone: 'ເບີໂທລູກຄ້າ', quotation_customer_email: 'ອີເມວລູກຄ້າ',
+    quotation_item_rows: 'ລາຍການສິນຄ້າ/ບໍລິການ', quotation_item_name: 'ລາຍການ', quotation_quantity: 'ຈຳນວນ', quotation_unit_price: 'ລາຄາຕໍ່ໜ່ວຍ', quotation_line_total: 'ລວມລາຍການ', quotation_add_item: '+ ເພີ່ມລາຍການ', quotation_remove_item: 'ລົບ',
+    quotation_subtotal: 'ລວມຍ່ອຍ', quotation_discount: 'ສ່ວນຫຼຸດ', quotation_tax: 'ພາສີ', quotation_total: 'ລວມທັງໝົດ', quotation_notes: 'ໝາຍເຫດ', quotation_payment_terms: 'ເງື່ອນໄຂການຊຳລະ', quotation_save: 'ບັນທຶກໃບສະເໜີລາຄາ', quotation_saved: 'ບັນທຶກໃບສະເໜີລາຄາແລ້ວ',
+    agreement_contract_number: 'ເລກທີສັນຍາ', agreement_contract_date: 'ວັນທີສັນຍາ', agreement_employer_info: 'ຂໍ້ມູນຜູ້ວ່າຈ້າງ / ລູກຄ້າ', agreement_employer_name: 'ຊື່ຜູ້ວ່າຈ້າງ / ລູກຄ້າ', agreement_employer_address: 'ທີ່ຢູ່ຜູ້ວ່າຈ້າງ', agreement_employer_phone: 'ເບີໂທຜູ້ວ່າຈ້າງ', agreement_employer_email: 'ອີເມວຜູ້ວ່າຈ້າງ', agreement_contractor_info: 'ຂໍ້ມູນຜູ້ຮັບເໝົາ / ບໍລິສັດ', agreement_project_title: 'ຊື່ໂຄງການ / ຊື່ວຽກ', agreement_scope_of_work: 'ຂອບເຂດວຽກ', agreement_timeline: 'ກຳນົດເວລາ', agreement_payment_terms: 'ເງື່ອນໄຂການຈ່າຍເງິນ', agreement_warranty_terms: 'ເງື່ອນໄຂການຮັບປະກັນ', agreement_change_order_terms: 'ເງື່ອນໄຂການປ່ຽນແປງງານ', agreement_termination_terms: 'ເງື່ອນໄຂການຍົກເລີກສັນຍາ', agreement_signature_section: 'ພາກສ່ວນລາຍເຊັນ', agreement_signer_client: 'ຜູ້ລົງນາມຝ່າຍລູກຄ້າ', agreement_signer_contractor: 'ຜູ້ລົງນາມຝ່າຍຜູ້ຮັບເໝົາ', agreement_save: 'ບັນທຶກສັນຍາ', agreement_saved: 'ບັນທຶກສັນຍາແລ້ວ',
+    agreement_mode_standard: 'ແບບມາດຕະຖານ', agreement_mode_ai: 'ຮ່າງດ້ວຍ AI', agreement_ai_panel_title: 'ສ້າງຮ່າງສັນຍາຈາກຂໍ້ມູນໂຄງການ', agreement_ai_generate: 'ສ້າງຮ່າງສັນຍາ', agreement_ai_generated: 'ສ້າງຮ່າງສັນຍາແລ້ວ', agreement_client_name: 'ຊື່ລູກຄ້າ', agreement_client_requirements: 'ລາຍລະອຽດຄວາມຕ້ອງການ', agreement_project_location: 'ສະຖານທີ່ໂຄງການ', agreement_special_conditions: 'ເງື່ອນໄຂພິເສດ',
+    template_language: 'ພາສາເອກະສານ', template_quotation_heading: 'ຫົວຂໍ້ໃບສະເໜີລາຄາ', template_quotation_notes: 'ໝາຍເຫດໃບສະເໜີລາຄາ', template_payment_terms: 'ເງື່ອນໄຂການຈ່າຍເງິນ', template_agreement_clauses: 'ຂໍ້ກຳນົດມາດຕະຖານສັນຍາ', template_signature_labels: 'ປ້າຍລາຍເຊັນ', template_default_wording: 'ຂໍ້ຄວາມມາດຕະຖານເອກະສານ', template_signer_client_label: 'ປ້າຍຝ່າຍລູກຄ້າ', template_signer_contractor_label: 'ປ້າຍຝ່າຍຜູ້ຮັບເໝົາ', template_save: 'ບັນທຶກຕັ້ງຄ່າເອກະສານ', template_saved: 'ບັນທຶກຕັ້ງຄ່າເອກະສານແລ້ວ', template_used_as_default: 'ຖ້າບໍ່ກອກໃນຟອມ ລະບົບຈະໃຊ້ template ນີ້ເປັນຄ່າຕັ້ງຕົ້ນ',
+    preview_document: 'ສະແດງຕົວຢ່າງ', print_document: 'ພິມເອກະສານ', preview_title: 'ຕົວຢ່າງເອກະສານ', pdf_export_ready: 'ໂຄງສ້າງນີ້ພ້ອມສຳລັບ PDF export ໃນຂັ້ນຕໍ່ໄປ',
+    email_recipient: 'ອີເມວຜູ້ຮັບ', email_cc: 'ອີເມວ CC', email_subject: 'ຫົວຂໍ້ອີເມວ', email_body: 'ເນື້ອຫາອີເມວ', send_email: 'ສົ່ງອີເມວ', prepare_email_draft: 'ຈັດກຽມຮ່າງອີເມວ', email_draft_ready: 'ຮ່າງອີເມວພ້ອມເປີດໃນໂປຣແກຣມອີເມວ', email_draft_prepared: 'ຈັດກຽມຂໍ້ມູນຮ່າງອີເມວແລ້ວ', email_backend_pending: 'ການສົ່ງຈິງຜ່ານ backend/API ຈະເພີ່ມໃນຂັ້ນຕໍ່ໄປ',
+    owner_welcome: 'ຍິນດີຕ້ອນຮັບ,', owner_progress: 'ຄວາມຄືບໜ້າໂຄງການ', owner_timeline: 'ອັບເດດລ່າສຸດຈາກໜ້າວຽກ', owner_current_project: 'ໂຄງການປັດຈຸບັນ', owner_current_project_name: 'ສ້າງເຮືອນ 2 ຊັ້ນ ໄຊເສດຖາ', owner_current_stage: 'ງວດທີ 3/5', owner_expected_completion: 'ຄາດວ່າຈະສຳເລັດ', owner_view_all: 'ເບິ່ງທັງໝົດ', owner_latest_update_title: 'ເທພື້ນຊັ້ນ 2 ສຳເລັດແລ້ວ', owner_latest_update_time: 'ມື້ນີ້ 14:30', owner_latest_update_note: 'ທີມງານໄດ້ເທຄອນກຣີດພື້ນຊັ້ນ 2 ສຳເລັດແລ້ວ ແລະ ກຳລັງລໍຖ້າໃຫ້ແຫ້ງຕົວຕາມເວລາມາດຕະຖານ', owner_nav_project: 'ໂຄງການ', owner_nav_docs: 'ເອກະສານ', owner_nav_chat: 'ແຊັດ', owner_docs_title: 'ເອກະສານໂຄງການ', owner_docs_empty: 'ຍັງບໍ່ມີເອກະສານສຳລັບລູກຄ້າ',
+    nav_group_overview: 'ພາບລວມ', nav_group_operations: 'ການດຳເນີນງານ', nav_group_documents: 'ເອກະສານ', nav_group_procurement: 'ຈັດຊື້/ຂໍເບີກ', nav_group_inventory: 'ສາງວັດສະດຸ', nav_group_finance: 'ການເງິນ', nav_group_settings: 'ຕັ້ງຄ່າ', nav_group_admin: 'ຈັດການລະບົບ',
+    manager_menu_company_profile: 'ໂປຣໄຟລ໌ບໍລິສັດ', manager_menu_quotations: 'ໃບສະເໜີລາຄາ', manager_menu_contractor_agreements: 'ສັນຍາຜູ້ຮັບເໝົາ', manager_menu_document_settings: 'ຕັ້ງຄ່າເອກະສານ', manager_menu_email_signature: 'ອີເມວ & ລາຍເຊັນ',
+    company_profile_title: 'ໂປຣໄຟລ໌ບໍລິສັດ', quotations_title: 'ໃບສະເໜີລາຄາ', contractor_agreements_title: 'ສັນຍາຜູ້ຮັບເໝົາ', document_settings_title: 'ຕັ້ງຄ່າເອກະສານ', email_signature_title: 'ອີເມວ & ລາຍເຊັນ',
+    email_signature_description: 'ຈັດການຮ່າງອີເມວຂອງໃບສະເໜີລາຄາ ແລະ ສັນຍາ ພ້ອມກວດເບິ່ງຂໍ້ມູນຜູ້ລົງນາມກ່ອນສົ່ງ', email_for_quotation: 'ອີເມວສຳລັບໃບສະເໜີລາຄາ', email_for_agreement: 'ອີເມວສຳລັບສັນຍາ', signature_preview_title: 'ຕົວຢ່າງບລັອກລາຍເຊັນ', signature_image_missing: 'ຍັງບໍ່ມີຮູບລາຍເຊັນ', signature_reused_hint: 'ຂໍ້ມູນຊຸດນີ້ຈະຖືກ reuse ໃນ preview ແລະ ການສົ່ງເອກະສານ',
+    section_placeholder_title: 'ສ່ວນນີ້ພ້ອມສຳລັບການຂະຫຍາຍຕໍ່', section_placeholder_desc: 'ໂຄງສ້າງເມນູ ແລະ ການສະຫຼັບໜ້າຖືກເຊື່ອມໄວ້ແລ້ວ ເພື່ອເພີ່ມຟອມ ແລະ workflow ຈິງໃນຂັ້ນຕໍ່ໄປ',
+    manager_menu_requests: 'ຄຳຂໍເບີກວັດສະດຸ', manager_menu_supplier_directory: 'ລາຍຊື່ຜູ້ສະໜອງ', manager_menu_purchase_orders: 'ໃບສັ່ງຊື້', manager_menu_order_status: 'ສະຖານະຄຳສັ່ງ', manager_menu_admin_supplier_management: 'ຈັດການຜູ້ສະໜອງ', manager_menu_admin_platform_revenue: 'ລາຍຮັບແພລດຟອມ', manager_menu_admin_settlements: 'ການສະສາງ', manager_menu_admin_settings: 'ຕັ້ງຄ່າຜູ້ດູແລ', req_tab_title: 'ລາຍການຂໍເບີກວັດສະດຸຈາກໜ້າວຽກ', supplier_directory_title: 'ລາຍຊື່ຜູ້ສະໜອງ', purchase_orders_title: 'ໃບສັ່ງຊື້', order_status_title: 'ສະຖານະຄຳສັ່ງ', admin_supplier_management_title: 'ຈັດການຜູ້ສະໜອງ', admin_platform_revenue_title: 'ລາຍຮັບແພລດຟອມ', admin_settlements_title: 'ການສະສາງ', admin_settings_title: 'ຕັ້ງຄ່າຜູ້ດູແລ', add_supplier: '+ ເພີ່ມຜູ້ສະໜອງ', supplier_name: 'ຊື່ຜູ້ສະໜອງ', supplier_contact_person: 'ຜູ້ປະສານງານ', supplier_phone: 'ເບີໂທ', supplier_email: 'ອີເມວ', supplier_other_contact: 'LINE / WhatsApp / ຊ່ອງທາງອື່ນ', supplier_address: 'ທີ່ຢູ່', supplier_category: 'ໝວດສິນຄ້າ', supplier_commission_rate: 'ອັດຕາ commission (%)', supplier_status: 'ສະຖານະ', supplier_status_active: 'ໃຊ້ງານ', supplier_status_inactive: 'ບໍ່ໃຊ້ງານ', supplier_notes: 'ໝາຍເຫດ', supplier_search_placeholder: 'ຄົ້ນຫາຜູ້ສະໜອງ...', supplier_empty: 'ຍັງບໍ່ມີໃບຂໍ້ມູນຜູ້ສະໜອງ', supplier_save: 'ບັນທຶກຜູ້ສະໜອງ', purchase_order_number: 'ເລກທີໃບສັ່ງຊື້', purchase_order_date: 'ວັນທີສັ່ງຊື້', purchase_order_supplier: 'ຜູ້ສະໜອງ', purchase_order_items: 'ລາຍການສັ່ງຊື້', purchase_order_item_name: 'ລາຍການ', purchase_order_quantity: 'ຈຳນວນ', purchase_order_unit_price: 'ລາຄາຕໍ່ໜ່ວຍ', purchase_order_line_total: 'ລວມລາຍການ', purchase_order_total: 'ລວມທັງໝົດ', purchase_order_add_item: '+ ເພີ່ມລາຍການ', purchase_order_remove_item: 'ລົບ', purchase_order_notes: 'ໝາຍເຫດ', purchase_order_create: 'ສ້າງໃບສັ່ງຊື້', purchase_order_save: 'ບັນທຶກໃບສັ່ງຊື້', purchase_order_empty: 'ຍັງບໍ່ມີໃບສັ່ງຊື້', purchase_order_select_supplier: 'ເລືອກຜູ້ສະໜອງ', order_status_search_placeholder: 'ຄົ້ນຫາໃບສັ່ງຊື້...', order_status_filter_all: 'ທຸກສະຖານະ', order_status_details: 'ລາຍລະອຽດຄຳສັ່ງ', order_status_open_details: 'ເບິ່ງລາຍລະອຽດ', order_status_no_results: 'ບໍ່ພົບໃບສັ່ງຊື້ຕາມທີ່ຄົ້ນຫາ', order_status_draft: 'ຮ່າງ', order_status_submitted: 'ສົ່ງຄຳສັ່ງແລ້ວ', order_status_confirmed: 'ຢືນຢັນແລ້ວ', order_status_processing: 'ກຳລັງດຳເນີນການ', order_status_shipped: 'ຈັດສົ່ງແລ້ວ', order_status_delivered: 'ສົ່ງມອບແລ້ວ', order_status_cancelled: 'ຍົກເລີກ', req_status_pending: 'ລໍຖ້າອະນຸມັດ', req_status_approved: 'ອະນຸມັດແລ້ວ', req_status_rejected: 'ປະຕິເສດ',
+    manager_menu_chat: 'ແຊັດ/ສື່ສານ', chat_placeholder: 'ພິມຂໍ້ຄວາມ...', chat_send: 'ສົ່ງ', chat_manager_title: 'ແຊັດໂຄງການ',
+    feat_worker_item1: 'ເຊັກອິນ/ເຊັກອາວທ໌ GPS ໜ້າວຽກ', feat_worker_item2: 'ຖ່າຍຮູບກ່ອນ/ຫຼັງເຮັດວຽກ', feat_worker_item3: 'ປຸ່ມ SOS ແຈ້ງບັນຫາໜ້າວຽກທັນທີ', feat_worker_item4: 'ລະບົບສັ່ງວຽກດ້ວຍສຽງ',
+    feat_manager_item1: 'Dashboard ສະຫຼຸບພາບລວມທຸກໄຊຕ໌ງານ', feat_manager_item2: 'ຄຳນວນ % ຄວາມຄືບໜ້າເພື່ອເບີກເງິນເປັນງວດ', feat_manager_item3: 'ຈັດການພະນັກງານ ສິດທິ ແລະ ວັນລາ', feat_manager_item4: 'ສາງເອກະສານ ສັນຍາ ແລະ ແບບແປນ',
+    feat_owner_item1: 'ເບິ່ງ Timeline ແລະ ຮູບອັບເດດແບບ Real-time', feat_owner_item2: 'ອະນຸມັດແບບ ຫຼື ການເບີກຈ່າຍຜ່ານແອັບ', feat_owner_item3: 'ແຊັດຕົງກັບຜູ້ຈັດການໂຄງການ',
+    superapp_badge: 'Beyond Management', superapp_title: 'ຟີເຈີຍົກລະດັບສູ່ "Super App" ສຳລັບຊ່າງລາວ',
+    superapp_card1_title: 'Offline Mode', superapp_card1_desc: 'ເຮັດວຽກໄດ້ແມ່ນບໍ່ມີເນັດໃນໄຊຕ໌ງານຫ່າງໄກ ລະບົບຈະ Sync ຂໍ້ມູນອັດຕະໂນມັດເມື່ອມີສັນຍານ',
+    superapp_card2_title: 'ເບີກ-ຈ່າຍ ວັດສະດຸ', superapp_card2_desc: 'ຊ່າງກົດຂໍເບີກຂອງຜ່ານແອັບ ລົດບັນຫາຂອງຫາຍ ແລະ ເຊັກສະຕັອກໄດ້ແບບ Real-time',
+    superapp_card3_title: 'ບັນຊີເງິນສົດຍ່ອຍ', superapp_card3_desc: 'ໂຟແມນຖ່າຍຮູບບິນຄ່າໃຊ້ຈ່າຍຍ່ອຍ ແລະ ສົ່ງເຂົ້າບໍລິສັດເພື່ອເຮັດບັນຊີໄດ້ທັນທີ',
+    superapp_card4_title: 'ແຈ້ງເຕືອນສະພາບອາກາດ', superapp_card4_desc: 'ດຶງຂໍ້ມູນພະຍາກອນອາກາດ ແຈ້ງເຕືອນຝົນຕົກໜັກລ່ວງໜ້າ ເພື່ອໃຫ້ປັບແຜນງານໄດ້ທັນ',
+    pricing_title: 'ເລີ່ມຕົ້ນງ່າຍໆ ສຳລັບທຸກຂະໜາດທຸລະກິດ', pricing_subtitle: 'ຄິດຄ່າບໍລິການຕາມຈຳນວນຜູ້ໃຊ້ຈິງ (Per User/Month) ບໍ່ມີຂໍ້ຜູກມັດ',
+    pricing_basic_desc: 'ສຳລັບຄົນງານທົ່ວໄປ', pricing_basic_item1: 'ລົງເວລາເຂົ້າ-ອອກວຽກ (GPS)', pricing_basic_item2: 'ເບິ່ງວຽກທີ່ຕ້ອງເຮັດມື້ນີ້', pricing_basic_item3: 'ອັບໂຫຼດຮູບສົ່ງວຽກ', pricing_basic_item4: 'ໂໝດ Offline', pricing_start_cta: 'ເລີ່ມໃຊ້ງານ',
+    pricing_popular: 'ຍອດນິຍົມ', pricing_pro_desc: 'ສຳລັບຫົວໜ້າຄົນງານ / ໂຟແມນ', pricing_pro_item1: 'ຟີເຈີທັງໝົດໃນ Basic', pricing_pro_item2: 'ລາຍງານບັນຫາ', pricing_pro_item3: 'ລະບົບເບີກວັດສະດຸ', pricing_pro_item4: 'ບັນທຶກເງິນສົດຍ່ອຍ', pricing_pro_item5: 'ອັບເດດ % ຄວາມຄືບໜ້າໂຄງການ', pricing_trial_cta: 'ທົດລອງໃຊ້ຟຣີ 14 ມື້',
+    pricing_owner_desc: 'ສຳລັບເຈົ້າຂອງບ້ານ / ຜູ້ວ່າຈ້າງ', pricing_owner_item1: 'ເບິ່ງຄວາມຄືບໜ້າແບບ Real-time', pricing_owner_item2: 'ເບິ່ງຮູບອັບເດດໜ້າວຽກ', pricing_owner_item3: 'ກົດອະນຸມັດການເບີກຈ່າຍງວດງານ', pricing_owner_item4: 'ແຊັດຕົງກັບຜູ້ຈັດການໂຄງການ', pricing_owner_cta: 'ເບິ່ງຕົວຢ່າງແອັບເຈົ້າຂອງບ້ານ',
+    dashboard_main_menu: 'ເມນູຫຼັກ', dashboard_seed: 'ກົດທີ່ນີ້ເພື່ອຈຳລອງຂໍ້ມູນຕົວຢ່າງເຂົ້າ Firebase', dashboard_view_all: 'ເບິ່ງທັງໝົດ', dashboard_edit: 'ແກ້ໄຂ',
+    weather_loading: 'ກຳລັງກວດຈັບຕຳແໜ່ງ ແລະ ດຶງຂໍ້ມູນອາກາດ...', weather_permission_denied: 'ບໍ່ໄດ້ອະນຸຍາດຕຳແໜ່ງ ຈຶ່ງບໍ່ສາມາດສະແດງອາກາດຈິງໄດ້', weather_unavailable: 'ດຶງຂໍ້ມູນອາກາດບໍ່ສຳເລັດ ກະລຸນາລອງໃໝ່', weather_not_supported: 'ອຸປະກອນນີ້ບໍ່ຮອງຮັບການລະບຸຕຳແໜ່ງ', weather_now: 'ຕອນນີ້', weather_tomorrow: 'ມື້ອື່ນ', weather_rain_chance: 'ໂອກາດຝົນ', weather_at_location: 'ຕຳແໜ່ງປັດຈຸບັນ', weather_clear: 'ແຈ້ງໃສ', weather_mainly_clear: 'ແຈ້ງສ່ວນໃຫຍ່', weather_partly_cloudy: 'ມີເມກບາງສ່ວນ', weather_overcast: 'ຟ້າປິດ', weather_fog: 'ໝອກ', weather_drizzle: 'ຝົນຝອຍ', weather_rain: 'ຝົນຕົກ', weather_snow: 'ຫິມະ', weather_thunderstorm: 'ພາຍຸຝົນຟ້າຄະນອງ', firebase_required: 'ກະລຸນາຕັ້ງຄ່າ Firebase Config ກ່ອນ', seed_success: 'ເພີ່ມຂໍ້ມູນຕົວຢ່າງສຳເລັດ', seed_error: 'ເກີດຂໍ້ຜິດພາດ: ກະລຸນາຕັ້ງ Firestore Rule ເປັນ Test Mode', boq_import_success: 'ນຳເຂົ້າຂໍ້ມູນ BOQ ສຳເລັດ', receipt_scan_success: 'ສະແກນ ແລະ ບັນທຶກບິນສຳເລັດ',
+    overview_stat_active_sites: 'ໄຊຕ໌ງານທີ່ກຳລັງດຳເນີນການ', overview_stat_attendance: 'ພະນັກງານມາເຮັດວຽກມື້ນີ້', overview_stat_sos: 'ບັນຫາແຈ້ງເຕືອນ (SOS)', overview_stat_requests: 'ຄຳຂໍເບີກວັດສະດຸໃໝ່',
+    overview_sos_title: 'ມີການແຈ້ງບັນຫາໜ້າວຽກສຸກເສີນ (SOS)', overview_by: 'ໂດຍ', overview_site: 'ໄຊຕ໌', overview_acknowledge: 'ຮັບຊາບບັນຫາ', overview_current_sites: 'ສະຖານະໄຊຕ໌ງານປັດຈຸບັນ', overview_no_sites: 'ບໍ່ມີຂໍ້ມູນໄຊຕ໌ງານ',
+    overview_pending_docs: 'ເອກະສານລໍຖ້າອະນຸມັດ', overview_amount: 'ຍອດ', overview_no_pending_docs: 'ບໍ່ມີລາຍການລໍຖ້າອະນຸມັດ', overview_manage_all_docs: 'ຈັດການເອກະສານທັງໝົດ',
+    table_project_name: 'ຊື່ໂຄງການ', table_progress: 'ຄວາມຄືບໜ້າ', table_actions: 'ຈັດການ', table_identity_phone: 'ຊື່ - ເບີໂທ', table_role_wage: 'ຕຳແໜ່ງ & ຄ່າແຮງ', table_site: 'ໄຊຕ໌ງານ', table_attendance: 'ການເຂົ້າວຽກ', table_doc_name: 'ຊື່ເອກະສານ', table_doc_amount: 'ຍອດເງິນ', table_project: 'ໂຄງການ', table_sender: 'ຜູ້ສົ່ງ',
+    workers_unit: 'ຄົນງານ', attendance_from_app: 'ຈາກ App',
+    inventory_all_projects: 'ລວມທຸກໂຄງການ', inventory_central_stock: 'ສະຕັອກກາງ (ບໍ່ໄດ້ລະບຸ)', label_related_project: 'ໂຄງການທີ່ກ່ຽວຂ້ອງ', label_linked_project: 'ໂຄງການທີ່ຜູກ', stock_overview_title: 'ພາບລວມສະຕັອກ', stock_total_items: 'ຈຳນວນລາຍການທັງໝົດ', stock_low_items: 'ລາຍການໃກ້ໝົດ', stock_out_items: 'ລາຍການໝົດສະຕັອກ', stock_recent_movements: 'ຄວາມເຄື່ອນໄຫວສະຕັອກຫຼ້າສຸດ', stock_recent_placeholder: 'ລະບົບຈະສະແດງ movement ຈາກໂມດູນຮັບເຂົ້າ/ເບີກອອກເມື່ອພ້ອມ', stock_status_low: 'ໃກ້ໝົດ', stock_status_out: 'ໝົດສະຕັອກ', stock_status_ok: 'ພ້ອມໃຊ້', stock_movement_updated: 'ອັບເດດລາຍການ', material_catalog_title: 'ລາຍການວັດສະດຸ', material_catalog_description: 'ຄົ້ນຫາ ແລະ ເບິ່ງລາຍລະອຽດວັດສະດຸຈາກຂໍ້ມູນຄັງທີ່ມີຢູ່', material_catalog_search_placeholder: 'ຄົ້ນຫາຊື່ວັດສະດຸ...', material_catalog_filter_all_categories: 'ທຸກໝວດໝູ່', material_catalog_filter_all_statuses: 'ທຸກສະຖານະ', material_catalog_details: 'ລາຍລະອຽດວັດສະດຸ', material_catalog_open_details: 'ເປີດລາຍລະອຽດ', material_catalog_empty: 'ບໍ່ພົບລາຍການວັດສະດຸ', material_catalog_notes: 'ໝາຍເຫດ', inventory_movements_title: 'ຮັບເຂົ້າ / ເບີກອອກ', inventory_movements_description: 'ຕິດຕາມ movement ຂອງວັດສະດຸຈາກຂໍ້ມູນຄັງປະຈຸບັນ', inventory_movements_search_placeholder: 'ຄົ້ນຫາ movement...', inventory_movements_all_types: 'ທຸກປະເພດ', inventory_movements_all_materials: 'ທຸກວັດສະດຸ', inventory_movements_date_all: 'ທຸກວັນ', inventory_movement_type: 'ປະເພດ movement', inventory_movement_inbound: 'ຮັບເຂົ້າ', inventory_movement_outbound: 'ເບີກອອກ', inventory_movement_date: 'ວັນທີ', inventory_movement_reference: 'ໝາຍເຫດ / ອ້າງອີງ', inventory_movement_balance: 'ຍອດຄົງເຫຼືອ', inventory_movement_details: 'ລາຍລະອຽດ movement', inventory_movement_empty: 'ບໍ່ພົບ movement ໃນລະບົບ', warehouse_value_title: 'ມູນຄ່າຄັງວັດສະດຸ', warehouse_value_description: 'ສະຫຼຸບມູນຄ່າຂອງສະຕັອກຈາກຂໍ້ມູນວັດສະດຸປະຈຸບັນ', warehouse_value_total: 'ມູນຄ່າຄັງລວມ', warehouse_value_by_category: 'ມູນຄ່າຕາມໝວດໝູ່', warehouse_value_top_materials: 'ວັດສະດຸມູນຄ່າສູງ', warehouse_value_low_high: 'ໃກ້ໝົດແຕ່ມູນຄ່າສູງ', warehouse_value_out_impact: 'ຜົນກະທົບຈາກສະຕັອກໝົດ', warehouse_value_empty: 'ຍັງບໍ່ມີຂໍ້ມູນວັດສະດຸສຳລັບຄຳນວນ', warehouse_value_items: 'ລາຍການ', warehouse_value_estimated_loss: 'ມູນຄ່າທີ່ຂາດໄປ',
+    requests_intro: 'ຂໍ້ມູນໃນໜ້ານີ້ຈະເຊື່ອມໂຍງແບບ Real-time ກັບສິ່ງທີ່ພະນັກງານສົ່ງມາຈາກ "ແອັບຄົນງານ"', requests_open_worker: 'ຈຳລອງໄປໜ້າຈໍຄົນງານ', requests_project: 'ໂຄງການ', requests_unspecified: 'ບໍ່ໄດ້ລະບຸ', requests_items_title: 'ລາຍການວັດສະດຸທີ່ຂໍເບີກ:', requests_empty: 'ຍັງບໍ່ມີລາຍການຂໍເບີກ',
+    chat_realtime: 'ເຊື່ອມຕໍ່ກັບແອັບຄົນງານ ແລະ ເຈົ້າຂອງບ້ານແບບ Real-time', chat_go_worker: 'ໄປແອັບຄົນງານ', chat_go_owner: 'ໄປແອັບເຈົ້າຂອງ', chat_owner_suffix: '(ເຈົ້າຂອງບ້ານ)', chat_recording: 'ກຳລັງອັດສຽງ...', chat_hold_record: 'ກົດຄ້າງເພື່ອອັດສຽງ',
+    modal_full_name: 'ຊື່ - ນາມສະກຸນ *', category_construction: 'ວັດສະດຸກໍ່ສ້າງ', category_decor: 'ຕົກແຕ່ງ', category_plumbing: 'ປະປາ/ສຸຂາພິບານ', category_electrical: 'ໄຟຟ້າ', category_other: 'ອື່ນໆ', project_risk_alert: 'ມີຄວາມສ່ຽງຕ້ອງຕິດຕາມ',
+  },
+  TH: {
+    nav_features: 'ฟีเจอร์หลัก', nav_superapp: 'ส่วนเสริมพิเศษ', nav_pricing: 'แพ็กเกจราคา', nav_login: 'เข้าสู่ระบบ',
+    lang_name: '🇹🇭 ไทย',
+    hero_badge: '#1 Construction App in Laos', hero_title1: 'จัดการไซต์งานก่อสร้างง่ายๆ', hero_title2: 'สไตล์สบายดี', hero_desc: 'แอปพลิเคชันสำหรับบริษัทรับเหมา ผู้รับเหมาอิสระ และเจ้าของบ้าน เชื่อมโยงทุกขั้นตอนตั้งแต่คุมคนงาน เบิกของ ไปจนถึงส่งมอบงาน',
+    hero_btn_try: 'ทดลองใช้งานฟรี', hero_btn_worker: 'ดูแอปสำหรับคนงาน',
+    feat_title: 'ฟังก์ชันหลักตอบโจทย์ทุกฝ่าย', feat_subtitle: 'ออกแบบมาให้ใช้งานง่าย ไม่ว่าจะเป็นช่างหน้างาน ผู้จัดการบริษัท หรือเจ้าของบ้าน',
+    feat_worker: 'สำหรับพนักงาน / ช่าง', feat_manager: 'สำหรับผู้จัดการ / บริษัท', feat_owner: 'สำหรับเจ้าของบ้าน',
+    worker_checkin: 'กดเข้างาน (GPS)', worker_checked: 'ลงเวลาแล้ว', worker_photo: 'ถ่ายรูปส่งงาน', worker_material: 'ขอเบิกของ', worker_voice: 'พิมพ์ไม่ถนัด? อัดเสียงเลย', worker_sos: 'แจ้งปัญหา / ของขาด (SOS)',
+    manager_overview: 'ภาพรวมโครงการ (Dashboard)', manager_menu_overview: 'ภาพรวม', manager_menu_projects: 'จัดการไซต์งาน', manager_menu_workers: 'จัดการพนักงาน', manager_menu_docs: 'เอกสาร & เบิกเงิน', manager_menu_inventory: 'คลังวัสดุ', manager_logout: 'ออกจากระบบ',
+    manager_tab_projects_title: 'รายการไซต์งานทั้งหมด', add_project: '+ เพิ่มไซต์งานใหม่', status_active: 'กำลังดำเนินการ', status_delayed: 'ล่าช้า', status_completed: 'เสร็จสิ้น', search_placeholder: 'ค้นหาชื่อไซต์งาน...',
+    modal_add_title: 'เพิ่มไซต์งานใหม่', modal_edit_title: 'แก้ไขไซต์งาน', btn_save: 'บันทึก', btn_cancel: 'ยกเลิก', btn_delete: 'ลบ', label_name: 'ชื่อโครงการ', label_location: 'สถานที่', label_progress: 'ความคืบหน้า (%)', label_status: 'สถานะ', label_workers: 'จำนวนคนงาน',
+    manager_tab_workers_title: 'รายชื่อพนักงาน/ช่าง', add_worker: '+ เพิ่มพนักงาน', worker_role_foreman: 'โฟร์แมน', worker_role_worker: 'ช่างทั่วไป', label_phone: 'เบอร์โทรศัพท์', label_role: 'ตำแหน่ง', label_wage: 'ค่าแรง (THB/วัน)', label_assigned_site: 'ไซต์งานประจำ', label_attendance: 'การเข้างาน', modal_add_worker: 'เพิ่มพนักงานใหม่', modal_edit_worker: 'แก้ไขข้อมูลพนักงาน', worker_search_placeholder: 'ค้นหาชื่อพนักงาน...', unassigned_site: 'ไม่ได้ระบุ',
+    manager_tab_docs_title: 'เอกสารและการเบิกจ่าย', add_doc: '+ สร้างเอกสารใหม่', doc_type_invoice: 'ใบเบิกเงิน (Invoice)', doc_type_report: 'รายงานส่งงาน', doc_status_pending: 'รออนุมัติ', doc_status_approved: 'อนุมัติแล้ว', doc_status_rejected: 'ปฏิเสธ', label_doc_title: 'หัวข้อเอกสาร', label_doc_type: 'ประเภทเอกสาร', label_amount: 'จำนวนเงิน (THB)', label_date: 'วันที่', search_doc_placeholder: 'ค้นหาเอกสาร...', filter_all: 'เอกสารทั้งหมด', modal_add_doc: 'สร้างเอกสารใหม่', modal_edit_doc: 'แก้ไขเอกสาร',
+    docs_billing_summary: 'สรุปเอกสารและการเงิน', docs_billing_total_records: 'จำนวนเอกสารทั้งหมด', docs_billing_total_value: 'มูลค่ารวม', docs_billing_pending: 'รายการที่ต้องติดตาม', docs_billing_search_placeholder: 'ค้นหาเลขเอกสารหรือลูกค้า...', docs_billing_filter_all_types: 'ทุกประเภท', docs_billing_filter_all_statuses: 'ทุกสถานะ', docs_billing_details: 'รายละเอียดเอกสาร', docs_billing_open_details: 'เปิดรายละเอียด', docs_billing_record_number: 'เลขเอกสาร', docs_billing_customer: 'ลูกค้า / ผู้ว่าจ้าง', docs_billing_empty: 'ไม่พบเอกสารตามเงื่อนไข', doc_type_quotation: 'ใบเสนอราคา', doc_type_agreement: 'สัญญา', docs_billing_status_draft: 'ฉบับร่าง', finance_summary_title: 'สรุปรายรับ / รายจ่าย', finance_summary_description: 'ภาพรวมรายรับ รายจ่าย และยอดสุทธิจากเอกสาร คำสั่งซื้อ และคลังวัสดุ', finance_total_revenue: 'รายรับรวม', finance_total_expense: 'รายจ่ายรวม', finance_net_balance: 'ยอดสุทธิ', finance_recent_records: 'รายการล่าสุด', finance_summary_by_category: 'สรุปตามหมวด', finance_revenue_category: 'รายรับ', finance_expense_category: 'รายจ่าย', finance_empty: 'ยังไม่มีข้อมูลรายรับ/รายจ่าย',
+    manager_tab_inv_title: 'คลังวัสดุ & สรุปงบประมาณ (BOQ)', btn_add_inv: '+ เพิ่มวัสดุ', btn_import_boq: 'นำเข้า BOQ (Excel/PDF)', btn_scan_bill: 'สแกนบิล', label_item_name: 'ชื่อรายการ/วัสดุ', label_category: 'หมวดหมู่', label_qty: 'จำนวน', label_unit: 'หน่วย', label_unit_price: 'ราคา/หน่วย (THB)', label_total_price: 'ราคารวม', search_inv_placeholder: 'ค้นหารายการวัสดุ...', filter_project: 'ทุกโครงการ', inv_summary_total: 'มูลค่าวัสดุรวมทั้งหมด', modal_add_inv: 'เพิ่มรายการวัสดุ', modal_edit_inv: 'แก้ไขรายการ', modal_import_title: 'นำเข้ารายการวัสดุ (Import BOQ)', modal_scan_title: 'สแกนบิล / ใบเสร็จ',
+    company_logo: 'โลโก้บริษัท', company_name: 'ชื่อบริษัท', company_address: 'ที่อยู่', company_phone: 'โทรศัพท์', company_email: 'อีเมล', company_tax_id: 'เลขประจำตัวผู้เสียภาษี', company_signer_name: 'ชื่อผู้ลงนาม', company_signer_title: 'ตำแหน่งผู้ลงนาม', company_signature_image: 'รูปลายเซ็น', company_business_details: 'รายละเอียดธุรกิจเพิ่มเติม',
+    company_logo_upload: 'อัปโหลดโลโก้', company_logo_change: 'เปลี่ยนโลโก้', company_signature_upload: 'อัปโหลดลายเซ็น', company_signature_change: 'เปลี่ยนลายเซ็น', company_signature_remove: 'ลบลายเซ็น', company_profile_save: 'บันทึกข้อมูลบริษัท', company_profile_saved: 'บันทึกข้อมูลบริษัทแล้ว', company_profile_preview: 'ข้อมูลชุดนี้จะถูกนำไปใช้ต่อในใบเสนอราคาและสัญญา',
+    quotation_number: 'เลขที่ใบเสนอราคา', quotation_issue_date: 'วันที่ออกเอกสาร', quotation_expiry_date: 'วันหมดอายุ', quotation_customer_name: 'ชื่อลูกค้า / บริษัท', quotation_customer_address: 'ที่อยู่ลูกค้า', quotation_customer_phone: 'โทรศัพท์ลูกค้า', quotation_customer_email: 'อีเมลลูกค้า',
+    quotation_item_rows: 'รายการสินค้า/บริการ', quotation_item_name: 'รายการ', quotation_quantity: 'จำนวน', quotation_unit_price: 'ราคาต่อหน่วย', quotation_line_total: 'รวมรายการ', quotation_add_item: '+ เพิ่มรายการ', quotation_remove_item: 'ลบ',
+    quotation_subtotal: 'ยอดรวมย่อย', quotation_discount: 'ส่วนลด', quotation_tax: 'ภาษี', quotation_total: 'ยอดรวมทั้งสิ้น', quotation_notes: 'หมายเหตุ', quotation_payment_terms: 'เงื่อนไขการชำระเงิน', quotation_save: 'บันทึกใบเสนอราคา', quotation_saved: 'บันทึกใบเสนอราคาแล้ว',
+    agreement_contract_number: 'เลขที่สัญญา', agreement_contract_date: 'วันที่สัญญา', agreement_employer_info: 'ข้อมูลผู้ว่าจ้าง / ลูกค้า', agreement_employer_name: 'ชื่อผู้ว่าจ้าง / ลูกค้า', agreement_employer_address: 'ที่อยู่ผู้ว่าจ้าง', agreement_employer_phone: 'โทรศัพท์ผู้ว่าจ้าง', agreement_employer_email: 'อีเมลผู้ว่าจ้าง', agreement_contractor_info: 'ข้อมูลผู้รับเหมา / บริษัท', agreement_project_title: 'ชื่อโครงการ / ชื่องาน', agreement_scope_of_work: 'ขอบเขตงาน', agreement_timeline: 'ระยะเวลาดำเนินงาน', agreement_payment_terms: 'เงื่อนไขการชำระเงิน', agreement_warranty_terms: 'เงื่อนไขการรับประกัน', agreement_change_order_terms: 'เงื่อนไขงานเปลี่ยนแปลง', agreement_termination_terms: 'เงื่อนไขการยกเลิกสัญญา', agreement_signature_section: 'ส่วนลงนาม', agreement_signer_client: 'ผู้ลงนามฝ่ายลูกค้า', agreement_signer_contractor: 'ผู้ลงนามฝ่ายผู้รับเหมา', agreement_save: 'บันทึกสัญญา', agreement_saved: 'บันทึกสัญญาแล้ว',
+    agreement_mode_standard: 'แบบมาตรฐาน', agreement_mode_ai: 'ร่างด้วย AI', agreement_ai_panel_title: 'สร้างร่างสัญญาจากข้อมูลโครงการ', agreement_ai_generate: 'สร้างร่างสัญญา', agreement_ai_generated: 'สร้างร่างสัญญาแล้ว', agreement_client_name: 'ชื่อลูกค้า', agreement_client_requirements: 'รายละเอียดความต้องการ', agreement_project_location: 'สถานที่โครงการ', agreement_special_conditions: 'เงื่อนไขพิเศษ',
+    template_language: 'ภาษาเอกสาร', template_quotation_heading: 'หัวเรื่องใบเสนอราคา', template_quotation_notes: 'หมายเหตุใบเสนอราคา', template_payment_terms: 'เงื่อนไขการชำระเงิน', template_agreement_clauses: 'ข้อสัญญามาตรฐาน', template_signature_labels: 'ป้ายกำกับลายเซ็น', template_default_wording: 'ข้อความมาตรฐานเอกสาร', template_signer_client_label: 'ป้ายกำกับฝั่งลูกค้า', template_signer_contractor_label: 'ป้ายกำกับฝั่งผู้รับเหมา', template_save: 'บันทึกการตั้งค่าเอกสาร', template_saved: 'บันทึกการตั้งค่าเอกสารแล้ว', template_used_as_default: 'หากเว้นว่างในแบบฟอร์ม ระบบจะใช้ template นี้เป็นค่าเริ่มต้น',
+    preview_document: 'ดูตัวอย่าง', print_document: 'พิมพ์เอกสาร', preview_title: 'ตัวอย่างเอกสาร', pdf_export_ready: 'โครงสร้างนี้พร้อมต่อยอดสำหรับ PDF export ในขั้นถัดไป',
+    email_recipient: 'อีเมลผู้รับ', email_cc: 'อีเมล CC', email_subject: 'หัวข้ออีเมล', email_body: 'เนื้อหาอีเมล', send_email: 'ส่งอีเมล', prepare_email_draft: 'เตรียมร่างอีเมล', email_draft_ready: 'ร่างอีเมลพร้อมเปิดในโปรแกรมอีเมลแล้ว', email_draft_prepared: 'เตรียมข้อมูลร่างอีเมลแล้ว', email_backend_pending: 'การส่งอีเมลจริงผ่าน backend/API จะเพิ่มในขั้นถัดไป',
+    owner_welcome: 'ยินดีต้อนรับ,', owner_progress: 'ความคืบหน้าโครงการ', owner_timeline: 'อัปเดตล่าสุดจากหน้างาน', owner_current_project: 'โครงการปัจจุบัน', owner_current_project_name: 'สร้างบ้านเดี่ยว 2 ชั้น ไซเซดถา', owner_current_stage: 'งวดที่ 3/5', owner_expected_completion: 'คาดว่าจะแล้วเสร็จ', owner_view_all: 'ดูทั้งหมด', owner_latest_update_title: 'เทพื้นชั้น 2 เสร็จสิ้น', owner_latest_update_time: 'วันนี้ 14:30', owner_latest_update_note: 'ช่างได้ทำการเทคอนกรีตพื้นชั้น 2 เรียบร้อยแล้ว และกำลังรอเซ็ตตัวตามระยะเวลามาตรฐาน', owner_nav_project: 'โครงการ', owner_nav_docs: 'เอกสาร', owner_nav_chat: 'แชท', owner_docs_title: 'เอกสารโครงการ', owner_docs_empty: 'ยังไม่มีเอกสารสำหรับลูกค้า',
+    nav_group_overview: 'ภาพรวม', nav_group_operations: 'การดำเนินงาน', nav_group_documents: 'เอกสาร', nav_group_procurement: 'จัดซื้อ/เบิกจ่าย', nav_group_inventory: 'คลังวัสดุ', nav_group_finance: 'การเงิน', nav_group_settings: 'ตั้งค่า', nav_group_admin: 'ผู้ดูแลระบบ',
+    manager_menu_company_profile: 'ข้อมูลบริษัท', manager_menu_quotations: 'ใบเสนอราคา', manager_menu_contractor_agreements: 'สัญญาผู้รับเหมา', manager_menu_document_settings: 'ตั้งค่าเอกสาร', manager_menu_email_signature: 'อีเมล & ลายเซ็น',
+    company_profile_title: 'ข้อมูลบริษัท', quotations_title: 'ใบเสนอราคา', contractor_agreements_title: 'สัญญาผู้รับเหมา', document_settings_title: 'ตั้งค่าเอกสาร', email_signature_title: 'อีเมล & ลายเซ็น',
+    email_signature_description: 'จัดการร่างอีเมลของใบเสนอราคาและสัญญา พร้อมตรวจสอบข้อมูลผู้ลงนามก่อนส่ง', email_for_quotation: 'อีเมลสำหรับใบเสนอราคา', email_for_agreement: 'อีเมลสำหรับสัญญา', signature_preview_title: 'ตัวอย่างบล็อกลายเซ็น', signature_image_missing: 'ยังไม่มีรูปลายเซ็น', signature_reused_hint: 'ข้อมูลชุดนี้จะถูกนำไปใช้ต่อใน preview และการส่งเอกสาร',
+    section_placeholder_title: 'ส่วนนี้พร้อมสำหรับขยายต่อ', section_placeholder_desc: 'โครงสร้างเมนูและการสลับหน้าเชื่อมไว้แล้ว เพื่อให้เพิ่มฟอร์มและ workflow จริงได้ในขั้นถัดไป',
+    manager_menu_requests: 'คำขอเบิกวัสดุ', manager_menu_supplier_directory: 'รายชื่อซัพพลายเออร์', manager_menu_purchase_orders: 'ใบสั่งซื้อ', manager_menu_order_status: 'สถานะคำสั่งซื้อ', manager_menu_admin_supplier_management: 'จัดการซัพพลายเออร์', manager_menu_admin_platform_revenue: 'รายได้แพลตฟอร์ม', manager_menu_admin_settlements: 'การกระทบยอด', manager_menu_admin_settings: 'ตั้งค่าผู้ดูแล', req_tab_title: 'รายการขอเบิกวัสดุจากหน้างาน', supplier_directory_title: 'รายชื่อซัพพลายเออร์', purchase_orders_title: 'ใบสั่งซื้อ', order_status_title: 'สถานะคำสั่งซื้อ', admin_supplier_management_title: 'จัดการซัพพลายเออร์', admin_platform_revenue_title: 'รายได้แพลตฟอร์ม', admin_settlements_title: 'การกระทบยอด', admin_settings_title: 'ตั้งค่าผู้ดูแล', add_supplier: '+ เพิ่มซัพพลายเออร์', supplier_name: 'ชื่อซัพพลายเออร์', supplier_contact_person: 'ผู้ติดต่อ', supplier_phone: 'โทรศัพท์', supplier_email: 'อีเมล', supplier_other_contact: 'LINE / WhatsApp / ช่องทางอื่น', supplier_address: 'ที่อยู่', supplier_category: 'หมวดสินค้า', supplier_commission_rate: 'อัตรา commission (%)', supplier_status: 'สถานะ', supplier_status_active: 'ใช้งาน', supplier_status_inactive: 'ไม่ใช้งาน', supplier_notes: 'หมายเหตุ', supplier_search_placeholder: 'ค้นหาซัพพลายเออร์...', supplier_empty: 'ยังไม่มีข้อมูลซัพพลายเออร์', supplier_save: 'บันทึกซัพพลายเออร์', purchase_order_number: 'เลขที่ใบสั่งซื้อ', purchase_order_date: 'วันที่สั่งซื้อ', purchase_order_supplier: 'ซัพพลายเออร์', purchase_order_items: 'รายการสั่งซื้อ', purchase_order_item_name: 'รายการ', purchase_order_quantity: 'จำนวน', purchase_order_unit_price: 'ราคาต่อหน่วย', purchase_order_line_total: 'รวมรายการ', purchase_order_total: 'รวมทั้งสิ้น', purchase_order_add_item: '+ เพิ่มรายการ', purchase_order_remove_item: 'ลบ', purchase_order_notes: 'หมายเหตุ', purchase_order_create: 'สร้างใบสั่งซื้อ', purchase_order_save: 'บันทึกใบสั่งซื้อ', purchase_order_empty: 'ยังไม่มีใบสั่งซื้อ', purchase_order_select_supplier: 'เลือกซัพพลายเออร์', order_status_search_placeholder: 'ค้นหาใบสั่งซื้อ...', order_status_filter_all: 'ทุกสถานะ', order_status_details: 'รายละเอียดคำสั่งซื้อ', order_status_open_details: 'ดูรายละเอียด', order_status_no_results: 'ไม่พบใบสั่งซื้อตามคำค้นหา', order_status_draft: 'ร่าง', order_status_submitted: 'ส่งคำสั่งแล้ว', order_status_confirmed: 'ยืนยันแล้ว', order_status_processing: 'กำลังดำเนินการ', order_status_shipped: 'จัดส่งแล้ว', order_status_delivered: 'ส่งมอบแล้ว', order_status_cancelled: 'ยกเลิก', req_status_pending: 'รออนุมัติ', req_status_approved: 'อนุมัติแล้ว', req_status_rejected: 'ปฏิเสธ',
+    manager_menu_chat: 'แชท/การสื่อสาร', chat_placeholder: 'พิมพ์ข้อความ...', chat_send: 'ส่ง', chat_manager_title: 'แชทโครงการ',
+    feat_worker_item1: 'เช็คอิน/เช็คเอาท์ GPS หน้างาน', feat_worker_item2: 'ถ่ายรูป ก่อน/หลัง ทำงานส่งงาน', feat_worker_item3: 'ปุ่ม SOS แจ้งปัญหาหน้างานทันที', feat_worker_item4: 'ระบบสั่งงานด้วยเสียง (ไม่ต้องพิมพ์)',
+    feat_manager_item1: 'Dashboard สรุปภาพรวมทุกไซต์งาน', feat_manager_item2: 'คำนวณ % ความคืบหน้าเพื่อเบิกเงินงวด', feat_manager_item3: 'จัดการพนักงาน สิทธิ์ และวันลา', feat_manager_item4: 'คลังเอกสาร สัญญา และแบบแปลน',
+    feat_owner_item1: 'ดู Timeline และรูปอัปเดต Real-time', feat_owner_item2: 'อนุมัติแบบหรือการเบิกจ่ายผ่านแอป', feat_owner_item3: 'แชทตรงกับผู้จัดการโครงการ',
+    superapp_badge: 'Beyond Management', superapp_title: 'ฟีเจอร์ยกระดับสู่ "Super App" สำหรับช่างลาว',
+    superapp_card1_title: 'Offline Mode', superapp_card1_desc: 'ทำงานได้แม้ไม่มีเน็ตในไซต์งานห่างไกล ระบบจะ Sync ข้อมูลขึ้นเซิร์ฟเวอร์อัตโนมัติเมื่อมีสัญญาณ',
+    superapp_card2_title: 'เบิก-จ่าย วัสดุ', superapp_card2_desc: 'ช่างกดขอเบิกของผ่านแอป ตัดปัญหาของหาย เช็คสต็อกได้เรียลไทม์',
+    superapp_card3_title: 'บัญชีเงินสดย่อย (Petty Cash)', superapp_card3_desc: 'โฟร์แมนถ่ายรูปบิลค่าใช้จ่ายย่อย ส่งเข้าบริษัทเพื่อทำบัญชีได้ทันที',
+    superapp_card4_title: 'แจ้งเตือนสภาพอากาศ', superapp_card4_desc: 'ดึงข้อมูลพยากรณ์อากาศ แจ้งเตือนฝนตกหนักล่วงหน้า เพื่อให้ผู้จัดการปรับแผนงานได้ทัน',
+    pricing_title: 'เริ่มต้นง่ายๆ สำหรับทุกขนาดธุรกิจ', pricing_subtitle: 'คิดค่าบริการตามผู้ใช้งานจริง (Per User/Month) ไม่มีข้อผูกมัด',
+    pricing_basic_desc: 'สำหรับคนงานทั่วไป', pricing_basic_item1: 'ลงเวลาเข้า-ออกงาน (GPS)', pricing_basic_item2: 'ดูงานที่ต้องทำวันนี้', pricing_basic_item3: 'อัปโหลดรูปส่งงาน (Visual UI)', pricing_basic_item4: 'โหมด Offline', pricing_start_cta: 'เริ่มต้นใช้งาน',
+    pricing_popular: 'ยอดนิยม', pricing_pro_desc: 'สำหรับหัวหน้าคนงาน / โฟร์แมน', pricing_pro_item1: 'ฟีเจอร์ทั้งหมดใน Basic', pricing_pro_item2: 'รายงานปัญหา (Issue Reporting)', pricing_pro_item3: 'ระบบเบิกวัสดุ (Inventory Request)', pricing_pro_item4: 'บันทึกเงินสดย่อย (Petty Cash)', pricing_pro_item5: 'อัปเดต % ความคืบหน้าโครงการ', pricing_trial_cta: 'ทดลองใช้ฟรี 14 วัน',
+    pricing_owner_desc: 'สำหรับเจ้าของบ้าน / ผู้ว่าจ้าง', pricing_owner_item1: 'ดูความคืบหน้า Real-time', pricing_owner_item2: 'ดูรูปภาพอัปเดตหน้างาน', pricing_owner_item3: 'กดอนุมัติการเบิกจ่ายงวดงาน', pricing_owner_item4: 'แชทตรงกับผู้จัดการโครงการ', pricing_owner_cta: 'ดูตัวอย่างแอปเจ้าของบ้าน',
+    dashboard_main_menu: 'เมนูหลัก', dashboard_seed: 'คลิกที่นี่เพื่อจำลองข้อมูลตัวอย่าง (Seed Mock Data) ลงฐานข้อมูล Firebase', dashboard_view_all: 'ดูทั้งหมด', dashboard_edit: 'แก้ไข',
+    weather_loading: 'กำลังตรวจตำแหน่งและดึงข้อมูลอากาศจริง...', weather_permission_denied: 'ไม่ได้รับสิทธิ์ตำแหน่ง จึงไม่สามารถแสดงสภาพอากาศจริงได้', weather_unavailable: 'ดึงข้อมูลอากาศไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', weather_not_supported: 'อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง', weather_now: 'ตอนนี้', weather_tomorrow: 'พรุ่งนี้', weather_rain_chance: 'โอกาสฝน', weather_at_location: 'ตำแหน่งปัจจุบัน', weather_clear: 'ท้องฟ้าแจ่มใส', weather_mainly_clear: 'ค่อนข้างแจ่มใส', weather_partly_cloudy: 'มีเมฆบางส่วน', weather_overcast: 'เมฆมาก', weather_fog: 'มีหมอก', weather_drizzle: 'ฝนปรอย', weather_rain: 'ฝนตก', weather_snow: 'หิมะ', weather_thunderstorm: 'พายุฝนฟ้าคะนอง', firebase_required: 'โปรดใส่ Firebase Config ก่อน', seed_success: 'เพิ่มข้อมูลตัวอย่างสำเร็จ', seed_error: 'เกิดข้อผิดพลาด: โปรดตั้งค่า Firestore Rule เป็น Test Mode', boq_import_success: 'นำเข้าข้อมูล BOQ สำเร็จ', receipt_scan_success: 'สแกนและบันทึกบิลสำเร็จ',
+    overview_stat_active_sites: 'ไซต์งานกำลังดำเนินการ', overview_stat_attendance: 'พนักงานมาทำงานวันนี้', overview_stat_sos: 'ปัญหาแจ้งเตือน (SOS)', overview_stat_requests: 'คำขอเบิกวัสดุใหม่',
+    overview_sos_title: 'มีการแจ้งปัญหาหน้างานฉุกเฉิน (SOS)', overview_by: 'โดย', overview_site: 'ไซต์', overview_acknowledge: 'รับทราบปัญหา', overview_current_sites: 'สถานะไซต์งานปัจจุบัน', overview_no_sites: 'ไม่มีข้อมูลไซต์งาน',
+    overview_pending_docs: 'เอกสารรอการอนุมัติ', overview_amount: 'ยอด', overview_no_pending_docs: 'ไม่มีรายการรออนุมัติ', overview_manage_all_docs: 'จัดการเอกสารทั้งหมด',
+    table_project_name: 'ชื่อโครงการ', table_progress: 'ความคืบหน้า', table_actions: 'จัดการ', table_identity_phone: 'ชื่อ - เบอร์โทร', table_role_wage: 'ตำแหน่ง & ค่าแรง', table_site: 'ไซต์งาน', table_attendance: 'การเข้างาน', table_doc_name: 'ชื่อเอกสาร', table_doc_amount: 'ยอดเงิน', table_project: 'โครงการ', table_sender: 'ผู้ส่ง',
+    workers_unit: 'คนงาน', attendance_from_app: 'จาก App',
+    inventory_all_projects: 'รวมทุกโครงการ', inventory_central_stock: 'สต็อกกลาง (ไม่ได้ระบุ)', label_related_project: 'โครงการที่เกี่ยวข้อง', label_linked_project: 'โครงการที่ผูก', stock_overview_title: 'ภาพรวมสต็อก', stock_total_items: 'จำนวนรายการทั้งหมด', stock_low_items: 'รายการใกล้หมด', stock_out_items: 'รายการหมดสต็อก', stock_recent_movements: 'ความเคลื่อนไหวสต็อกล่าสุด', stock_recent_placeholder: 'ระบบจะแสดง movement จากโมดูลรับเข้า/เบิกออกเมื่อพร้อมใช้งาน', stock_status_low: 'ใกล้หมด', stock_status_out: 'หมดสต็อก', stock_status_ok: 'พร้อมใช้', stock_movement_updated: 'อัปเดตรายการ', material_catalog_title: 'แคตตาล็อกวัสดุ', material_catalog_description: 'ค้นหาและดูรายละเอียดวัสดุจากข้อมูลคลังที่มีอยู่', material_catalog_search_placeholder: 'ค้นหาชื่อวัสดุ...', material_catalog_filter_all_categories: 'ทุกหมวดหมู่', material_catalog_filter_all_statuses: 'ทุกสถานะ', material_catalog_details: 'รายละเอียดวัสดุ', material_catalog_open_details: 'เปิดรายละเอียด', material_catalog_empty: 'ไม่พบรายการวัสดุ', material_catalog_notes: 'หมายเหตุ', inventory_movements_title: 'รับเข้า / เบิกออก', inventory_movements_description: 'ติดตามรายการเคลื่อนไหวสต็อกจากข้อมูลคลังปัจจุบัน', inventory_movements_search_placeholder: 'ค้นหา movement...', inventory_movements_all_types: 'ทุกประเภท', inventory_movements_all_materials: 'ทุกวัสดุ', inventory_movements_date_all: 'ทุกวัน', inventory_movement_type: 'ประเภท movement', inventory_movement_inbound: 'รับเข้า', inventory_movement_outbound: 'เบิกออก', inventory_movement_date: 'วันที่', inventory_movement_reference: 'หมายเหตุ / อ้างอิง', inventory_movement_balance: 'ยอดคงเหลือ', inventory_movement_details: 'รายละเอียด movement', inventory_movement_empty: 'ไม่พบรายการ movement', warehouse_value_title: 'มูลค่าคลังวัสดุ', warehouse_value_description: 'สรุปมูลค่าสต็อกจากข้อมูลวัสดุปัจจุบัน', warehouse_value_total: 'มูลค่าคลังรวม', warehouse_value_by_category: 'มูลค่าตามหมวดหมู่', warehouse_value_top_materials: 'วัสดุมูลค่าสูง', warehouse_value_low_high: 'ใกล้หมดแต่มูลค่าสูง', warehouse_value_out_impact: 'ผลกระทบจากของหมดสต็อก', warehouse_value_empty: 'ยังไม่มีข้อมูลวัสดุสำหรับคำนวณ', warehouse_value_items: 'รายการ', warehouse_value_estimated_loss: 'มูลค่าที่หายไป',
+    requests_intro: 'ข้อมูลที่แสดงในหน้านี้ จะเชื่อมโยงแบบ Real-time กับสิ่งที่พนักงานกดส่งมาจาก "แอปของคนงาน" ทันที', requests_open_worker: 'จำลองไปหน้าจอคนงาน', requests_project: 'โครงการ', requests_unspecified: 'ไม่ระบุ', requests_items_title: 'รายการวัสดุที่ขอเบิก:', requests_empty: 'ยังไม่มีรายการขอเบิก',
+    chat_realtime: 'เชื่อมต่อกับแอปคนงานและเจ้าของบ้านแบบ Real-time', chat_go_worker: 'ไปแอปคนงาน', chat_go_owner: 'ไปแอปเจ้าของ', chat_owner_suffix: '(เจ้าของบ้าน)', chat_recording: 'กำลังอัดเสียง...', chat_hold_record: 'กดค้างเพื่ออัดเสียง',
+    modal_full_name: 'ชื่อ - นามสกุล *', category_construction: 'วัสดุก่อสร้าง', category_decor: 'วัสดุตกแต่ง', category_plumbing: 'ประปา/สุขาภิบาล', category_electrical: 'ไฟฟ้า', category_other: 'อื่นๆ', project_risk_alert: 'มีความเสี่ยงต้องติดตาม',
+  },
+  EN: {
+    nav_features: 'Features', nav_superapp: 'Super App', nav_pricing: 'Pricing', nav_login: 'Login',
+    lang_name: '🇬🇧 EN',
+    hero_badge: '#1 Construction App', hero_title1: 'Manage Construction Sites Easily', hero_title2: 'The Sabaidee Way', hero_desc: 'The ultimate app for contractors, freelancers, and homeowners.',
+    hero_btn_try: 'Try for Free', hero_btn_worker: 'View Worker App',
+    feat_title: 'Core Features for Everyone', feat_subtitle: 'Designed to be user-friendly for on-site workers, company managers, and homeowners.',
+    feat_worker: 'For Workers', feat_manager: 'For Managers', feat_owner: 'For Homeowners',
+    worker_checkin: 'Check In', worker_checked: 'Checked In', worker_photo: 'Submit Photo', worker_material: 'Request Material', worker_voice: 'Voice to Text', worker_sos: 'Report Issue',
+    manager_overview: 'Project Overview', manager_menu_overview: 'Overview', manager_menu_projects: 'Manage Sites', manager_menu_workers: 'Manage Workers', manager_menu_docs: 'Docs & Billing', manager_menu_inventory: 'Inventory & BOQ', manager_logout: 'Logout',
+    manager_tab_projects_title: 'All Project Sites', add_project: '+ Add New Site', status_active: 'Active', status_delayed: 'Delayed', status_completed: 'Completed', search_placeholder: 'Search site...',
+    modal_add_title: 'Add New Site', modal_edit_title: 'Edit Site', btn_save: 'Save', btn_cancel: 'Cancel', btn_delete: 'Delete', label_name: 'Project Name', label_location: 'Location', label_progress: 'Progress (%)', label_status: 'Status', label_workers: 'Workers',
+    manager_tab_workers_title: 'All Workers', add_worker: '+ Add Worker', worker_role_foreman: 'Foreman', worker_role_worker: 'Worker', label_phone: 'Phone', label_role: 'Role', label_wage: 'Wage (USD)', label_assigned_site: 'Assigned Site', label_attendance: 'Attendance', modal_add_worker: 'Add Worker', modal_edit_worker: 'Edit Worker', worker_search_placeholder: 'Search worker...', unassigned_site: 'Unassigned',
+    manager_tab_docs_title: 'Documents & Billing', add_doc: '+ Create Document', doc_type_invoice: 'Invoice', doc_type_report: 'Report', doc_status_pending: 'Pending', doc_status_approved: 'Approved', doc_status_rejected: 'Rejected', label_doc_title: 'Title', label_doc_type: 'Type', label_amount: 'Amount (USD)', label_date: 'Date', search_doc_placeholder: 'Search docs...', filter_all: 'All', modal_add_doc: 'Create Doc', modal_edit_doc: 'Edit Doc',
+    docs_billing_summary: 'Docs & Billing Summary', docs_billing_total_records: 'Total Records', docs_billing_total_value: 'Total Value', docs_billing_pending: 'Needs Follow-up', docs_billing_search_placeholder: 'Search document number or client...', docs_billing_filter_all_types: 'All document types', docs_billing_filter_all_statuses: 'All statuses', docs_billing_details: 'Document Details', docs_billing_open_details: 'Open Details', docs_billing_record_number: 'Document Number', docs_billing_customer: 'Customer / Client', docs_billing_empty: 'No matching records found', doc_type_quotation: 'Quotation', doc_type_agreement: 'Agreement', docs_billing_status_draft: 'Draft', finance_summary_title: 'Revenue / Expense Summary', finance_summary_description: 'Overview of revenue, expenses, and net balance from documents, purchase orders, and inventory data', finance_total_revenue: 'Total Revenue', finance_total_expense: 'Total Expense', finance_net_balance: 'Net Balance', finance_recent_records: 'Recent Records', finance_summary_by_category: 'Summary by Category', finance_revenue_category: 'Revenue', finance_expense_category: 'Expense', finance_empty: 'No revenue or expense data yet',
+    manager_tab_inv_title: 'Inventory & Budget', btn_add_inv: '+ Add Item', btn_import_boq: 'Import BOQ', btn_scan_bill: 'Scan Receipt', label_item_name: 'Item Name', label_category: 'Category', label_qty: 'Qty', label_unit: 'Unit', label_unit_price: 'Unit Price (USD)', label_total_price: 'Total Price', search_inv_placeholder: 'Search inventory...', filter_project: 'All Projects', inv_summary_total: 'Total Cost', modal_add_inv: 'Add Item', modal_edit_inv: 'Edit Item', modal_import_title: 'Import BOQ', modal_scan_title: 'Scan Receipt',
+    company_logo: 'Company Logo', company_name: 'Company Name', company_address: 'Address', company_phone: 'Phone', company_email: 'Email', company_tax_id: 'Tax ID', company_signer_name: 'Signer Name', company_signer_title: 'Signer Title', company_signature_image: 'Signature Image', company_business_details: 'Additional Business Details',
+    company_logo_upload: 'Upload Logo', company_logo_change: 'Change Logo', company_signature_upload: 'Upload Signature', company_signature_change: 'Replace Signature', company_signature_remove: 'Remove Signature', company_profile_save: 'Save Company Profile', company_profile_saved: 'Company profile saved', company_profile_preview: 'This company profile will be reused in quotations and agreements',
+    quotation_number: 'Quotation Number', quotation_issue_date: 'Issue Date', quotation_expiry_date: 'Expiry Date', quotation_customer_name: 'Customer / Company Name', quotation_customer_address: 'Customer Address', quotation_customer_phone: 'Customer Phone', quotation_customer_email: 'Customer Email',
+    quotation_item_rows: 'Item Rows', quotation_item_name: 'Item', quotation_quantity: 'Quantity', quotation_unit_price: 'Unit Price', quotation_line_total: 'Line Total', quotation_add_item: '+ Add Item', quotation_remove_item: 'Remove',
+    quotation_subtotal: 'Subtotal', quotation_discount: 'Discount', quotation_tax: 'Tax', quotation_total: 'Total', quotation_notes: 'Notes', quotation_payment_terms: 'Payment Terms', quotation_save: 'Save Quotation', quotation_saved: 'Quotation saved',
+    agreement_contract_number: 'Contract Number', agreement_contract_date: 'Contract Date', agreement_employer_info: 'Employer / Client Info', agreement_employer_name: 'Employer / Client Name', agreement_employer_address: 'Employer Address', agreement_employer_phone: 'Employer Phone', agreement_employer_email: 'Employer Email', agreement_contractor_info: 'Contractor / Company Info', agreement_project_title: 'Project / Work Title', agreement_scope_of_work: 'Scope of Work', agreement_timeline: 'Timeline', agreement_payment_terms: 'Payment Terms', agreement_warranty_terms: 'Warranty Terms', agreement_change_order_terms: 'Change Order Terms', agreement_termination_terms: 'Termination Terms', agreement_signature_section: 'Signature Section', agreement_signer_client: 'Client Signer', agreement_signer_contractor: 'Contractor Signer', agreement_save: 'Save Agreement', agreement_saved: 'Agreement saved',
+    agreement_mode_standard: 'Standard Template', agreement_mode_ai: 'AI Draft', agreement_ai_panel_title: 'Generate a contract draft from project details', agreement_ai_generate: 'Generate Contract Draft', agreement_ai_generated: 'Contract draft generated', agreement_client_name: 'Client Name', agreement_client_requirements: 'Client Requirements', agreement_project_location: 'Project Location', agreement_special_conditions: 'Special Conditions',
+    template_language: 'Document Language', template_quotation_heading: 'Quotation Heading', template_quotation_notes: 'Quotation Notes', template_payment_terms: 'Payment Terms', template_agreement_clauses: 'Agreement Standard Clauses', template_signature_labels: 'Signature Labels', template_default_wording: 'Default Document Wording', template_signer_client_label: 'Client Label', template_signer_contractor_label: 'Contractor Label', template_save: 'Save Document Settings', template_saved: 'Document settings saved', template_used_as_default: 'When a form field is left blank, this template will be used as the default wording',
+    preview_document: 'Preview', print_document: 'Print Document', preview_title: 'Document Preview', pdf_export_ready: 'This structure is ready for a later PDF export step',
+    email_recipient: 'Recipient Email', email_cc: 'CC Email', email_subject: 'Email Subject', email_body: 'Email Body', send_email: 'Send Email', prepare_email_draft: 'Prepare Email Draft', email_draft_ready: 'Email draft is ready in your mail app', email_draft_prepared: 'Email draft fields are prepared', email_backend_pending: 'Real sending through a backend/API will be added later',
+    owner_welcome: 'Welcome,', owner_progress: 'Project Progress', owner_timeline: 'Latest Live Updates', owner_current_project: 'Current Project', owner_current_project_name: '2-Storey House Construction, Xaysettha', owner_current_stage: 'Stage 3/5', owner_expected_completion: 'Expected completion', owner_view_all: 'View All', owner_latest_update_title: 'Second-floor slab completed', owner_latest_update_time: 'Today 14:30', owner_latest_update_note: 'The site team finished the second-floor concrete slab and is waiting for the standard curing period to complete.', owner_nav_project: 'Project', owner_nav_docs: 'Documents', owner_nav_chat: 'Chat', owner_docs_title: 'Project Documents', owner_docs_empty: 'No client-facing documents yet',
+    nav_group_overview: 'Overview', nav_group_operations: 'Operations', nav_group_documents: 'Documents', nav_group_procurement: 'Procurement', nav_group_inventory: 'Inventory', nav_group_finance: 'Finance', nav_group_settings: 'Settings', nav_group_admin: 'Admin',
+    manager_menu_company_profile: 'Company Profile', manager_menu_quotations: 'Quotations', manager_menu_contractor_agreements: 'Contractor Agreements', manager_menu_document_settings: 'Document Settings', manager_menu_email_signature: 'Email & Signature',
+    company_profile_title: 'Company Profile', quotations_title: 'Quotations', contractor_agreements_title: 'Contractor Agreements', document_settings_title: 'Document Settings', email_signature_title: 'Email & Signature',
+    email_signature_description: 'Manage quotation and agreement email drafts and review signer details before sending', email_for_quotation: 'Quotation Email', email_for_agreement: 'Agreement Email', signature_preview_title: 'Signature Block Preview', signature_image_missing: 'No signature image uploaded yet', signature_reused_hint: 'This signer data will be reused in document previews and sending flows',
+    section_placeholder_title: 'This section is ready for the next step', section_placeholder_desc: 'The dashboard menu and section routing are connected here so real forms and workflows can be added later without changing the existing flow',
+    manager_menu_requests: 'Material Requests', manager_menu_supplier_directory: 'Supplier Directory', manager_menu_purchase_orders: 'Purchase Orders', manager_menu_order_status: 'Order Status', manager_menu_admin_supplier_management: 'Supplier Management', manager_menu_admin_platform_revenue: 'Platform Revenue', manager_menu_admin_settlements: 'Settlements', manager_menu_admin_settings: 'Admin Settings', req_tab_title: 'Site Material Requests', supplier_directory_title: 'Supplier Directory', purchase_orders_title: 'Purchase Orders', order_status_title: 'Order Status', admin_supplier_management_title: 'Supplier Management', admin_platform_revenue_title: 'Platform Revenue', admin_settlements_title: 'Settlements', admin_settings_title: 'Admin Settings', add_supplier: '+ Add Supplier', supplier_name: 'Supplier Name', supplier_contact_person: 'Contact Person', supplier_phone: 'Phone', supplier_email: 'Email', supplier_other_contact: 'LINE / WhatsApp / Other Contact', supplier_address: 'Address', supplier_category: 'Product Category', supplier_commission_rate: 'Commission Rate (%)', supplier_status: 'Status', supplier_status_active: 'Active', supplier_status_inactive: 'Inactive', supplier_notes: 'Notes', supplier_search_placeholder: 'Search suppliers...', supplier_empty: 'No suppliers yet', supplier_save: 'Save Supplier', purchase_order_number: 'Purchase Order Number', purchase_order_date: 'Order Date', purchase_order_supplier: 'Supplier', purchase_order_items: 'Order Items', purchase_order_item_name: 'Item', purchase_order_quantity: 'Quantity', purchase_order_unit_price: 'Unit Price', purchase_order_line_total: 'Line Total', purchase_order_total: 'Order Total', purchase_order_add_item: '+ Add Item', purchase_order_remove_item: 'Remove', purchase_order_notes: 'Notes', purchase_order_create: 'Create Purchase Order', purchase_order_save: 'Save Purchase Order', purchase_order_empty: 'No purchase orders yet', purchase_order_select_supplier: 'Select Supplier', order_status_search_placeholder: 'Search purchase orders...', order_status_filter_all: 'All statuses', order_status_details: 'Order Details', order_status_open_details: 'Open Details', order_status_no_results: 'No purchase orders match your search', order_status_draft: 'Draft', order_status_submitted: 'Submitted', order_status_confirmed: 'Confirmed', order_status_processing: 'Processing', order_status_shipped: 'Shipped', order_status_delivered: 'Delivered', order_status_cancelled: 'Cancelled', btn_approve: 'Approve', btn_reject: 'Reject', worker_req_title: 'Create Request', worker_req_items: 'Items needed', worker_req_photo: 'Take photo', worker_req_submit: 'Submit Request', req_status_pending: 'Pending', req_status_approved: 'Approved', req_status_rejected: 'Rejected',
+    manager_menu_chat: 'Chat', chat_placeholder: 'Type message...', chat_send: 'Send', chat_manager_title: 'Project Chat',
+    feat_worker_item1: 'GPS check-in/check-out on site', feat_worker_item2: 'Take before/after work photos', feat_worker_item3: 'SOS button for urgent site issues', feat_worker_item4: 'Voice-driven work input',
+    feat_manager_item1: 'Dashboard summary across all active sites', feat_manager_item2: 'Calculate progress percentage for milestone billing', feat_manager_item3: 'Manage staff, permissions, and leave', feat_manager_item4: 'Document, contract, and blueprint repository',
+    feat_owner_item1: 'View real-time timeline and photo updates', feat_owner_item2: 'Approve designs or progress payments in app', feat_owner_item3: 'Chat directly with the project manager',
+    superapp_badge: 'Beyond Management', superapp_title: 'Advanced "Super App" features for Lao construction teams',
+    superapp_card1_title: 'Offline Mode', superapp_card1_desc: 'Keep working without internet at remote sites and sync automatically when signal returns',
+    superapp_card2_title: 'Material Requests', superapp_card2_desc: 'Workers request materials in app to reduce loss and track stock in real time',
+    superapp_card3_title: 'Petty Cash', superapp_card3_desc: 'Foremen photograph receipts and submit small expenses directly for accounting',
+    superapp_card4_title: 'Weather Alerts', superapp_card4_desc: 'Use forecast data to warn about heavy rain and help managers adjust plans early',
+    pricing_title: 'A simple start for businesses of any size', pricing_subtitle: 'Charged by actual active users (Per User/Month) with no lock-in',
+    pricing_basic_desc: 'For general workers', pricing_basic_item1: 'GPS attendance check-in/out', pricing_basic_item2: 'See today’s assigned tasks', pricing_basic_item3: 'Upload work photos', pricing_basic_item4: 'Offline mode', pricing_start_cta: 'Get Started',
+    pricing_popular: 'Most Popular', pricing_pro_desc: 'For foremen and supervisors', pricing_pro_item1: 'Everything in Basic', pricing_pro_item2: 'Issue reporting', pricing_pro_item3: 'Inventory requests', pricing_pro_item4: 'Petty cash records', pricing_pro_item5: 'Project progress updates', pricing_trial_cta: 'Start 14-Day Free Trial',
+    pricing_owner_desc: 'For homeowners / clients', pricing_owner_item1: 'View real-time progress', pricing_owner_item2: 'See updated site photos', pricing_owner_item3: 'Approve milestone payments', pricing_owner_item4: 'Chat with the project manager', pricing_owner_cta: 'View Owner App Demo',
+    dashboard_main_menu: 'Main Menu', dashboard_seed: 'Click here to seed sample data into Firebase', dashboard_view_all: 'View All', dashboard_edit: 'Edit',
+    weather_loading: 'Detecting your location and loading live weather...', weather_permission_denied: 'Location access was denied, so live weather could not be loaded', weather_unavailable: 'Weather data could not be loaded. Please try again.', weather_not_supported: 'This device does not support geolocation', weather_now: 'Now', weather_tomorrow: 'Tomorrow', weather_rain_chance: 'Rain chance', weather_at_location: 'Current location', weather_clear: 'Clear', weather_mainly_clear: 'Mostly clear', weather_partly_cloudy: 'Partly cloudy', weather_overcast: 'Overcast', weather_fog: 'Foggy', weather_drizzle: 'Drizzle', weather_rain: 'Rain', weather_snow: 'Snow', weather_thunderstorm: 'Thunderstorm', firebase_required: 'Please configure Firebase first', seed_success: 'Sample data added successfully', seed_error: 'An error occurred: please set Firestore Rules to Test Mode', boq_import_success: 'BOQ import completed', receipt_scan_success: 'Receipt scanned and saved successfully',
+    overview_stat_active_sites: 'Active Sites', overview_stat_attendance: 'Workers Present Today', overview_stat_sos: 'SOS Alerts', overview_stat_requests: 'New Material Requests',
+    overview_sos_title: 'There are urgent SOS reports from site', overview_by: 'By', overview_site: 'Site', overview_acknowledge: 'Acknowledge', overview_current_sites: 'Current Site Status', overview_no_sites: 'No project sites found',
+    overview_pending_docs: 'Pending Documents', overview_amount: 'Amount', overview_no_pending_docs: 'No pending documents', overview_manage_all_docs: 'Manage All Documents',
+    table_project_name: 'Project Name', table_progress: 'Progress', table_actions: 'Actions', table_identity_phone: 'Name - Phone', table_role_wage: 'Role & Wage', table_site: 'Site', table_attendance: 'Attendance', table_doc_name: 'Document Name', table_doc_amount: 'Amount', table_project: 'Project', table_sender: 'Sender',
+    workers_unit: 'workers', attendance_from_app: 'from App',
+    inventory_all_projects: 'All Projects Combined', inventory_central_stock: 'Central stock (unassigned)', label_related_project: 'Related Project', label_linked_project: 'Linked Project', stock_overview_title: 'Stock Overview', stock_total_items: 'Total Items', stock_low_items: 'Low Stock Items', stock_out_items: 'Out of Stock Items', stock_recent_movements: 'Recent Stock Movements', stock_recent_placeholder: 'Movement history will connect here when inbound/outbound stock modules are ready', stock_status_low: 'Low', stock_status_out: 'Out of Stock', stock_status_ok: 'Available', stock_movement_updated: 'Item updated', material_catalog_title: 'Material Catalog', material_catalog_description: 'Search and review material details from the current inventory dataset', material_catalog_search_placeholder: 'Search materials...', material_catalog_filter_all_categories: 'All categories', material_catalog_filter_all_statuses: 'All statuses', material_catalog_details: 'Material Details', material_catalog_open_details: 'Open Details', material_catalog_empty: 'No materials found', material_catalog_notes: 'Notes', inventory_movements_title: 'Inbound / Outbound', inventory_movements_description: 'Track stock movement records from the current inventory dataset', inventory_movements_search_placeholder: 'Search movements...', inventory_movements_all_types: 'All types', inventory_movements_all_materials: 'All materials', inventory_movements_date_all: 'All dates', inventory_movement_type: 'Movement Type', inventory_movement_inbound: 'Inbound', inventory_movement_outbound: 'Outbound', inventory_movement_date: 'Date', inventory_movement_reference: 'Note / Reference', inventory_movement_balance: 'Stock Balance', inventory_movement_details: 'Movement Details', inventory_movement_empty: 'No movement records found', warehouse_value_title: 'Warehouse Value', warehouse_value_description: 'Summarize stock value from the current inventory dataset', warehouse_value_total: 'Total Warehouse Value', warehouse_value_by_category: 'Value by Category', warehouse_value_top_materials: 'Highest Value Materials', warehouse_value_low_high: 'Low Stock but High Value', warehouse_value_out_impact: 'Out of Stock Value Impact', warehouse_value_empty: 'No material data available for valuation', warehouse_value_items: 'Items', warehouse_value_estimated_loss: 'Estimated Value Gap',
+    requests_intro: 'This page reflects worker submissions from the worker app in real time', requests_open_worker: 'Open Worker Screen', requests_project: 'Project', requests_unspecified: 'Unspecified', requests_items_title: 'Requested materials:', requests_empty: 'No material requests yet',
+    chat_realtime: 'Connected to worker and homeowner apps in real time', chat_go_worker: 'Go to Worker App', chat_go_owner: 'Go to Owner App', chat_owner_suffix: '(owner)', chat_recording: 'Recording audio...', chat_hold_record: 'Hold to record',
+    modal_full_name: 'Full Name *', category_construction: 'Construction Materials', category_decor: 'Decorative Materials', category_plumbing: 'Plumbing / Sanitary', category_electrical: 'Electrical', category_other: 'Other', project_risk_alert: 'Risk detected and requires follow-up',
+  }
+};
+
+Object.assign(translations.LA, {
+  inventory_view_all: 'ວັດສະດຸທັງໝົດ',
+  inventory_view_project: 'ຕາມໂຄງການ',
+  inventory_view_warehouse: 'ຕາມຄັງ',
+  inventory_view_movements: 'ຄວາມເຄື່ອນໄຫວ',
+  inventory_filter_category: 'ກັ່ນຕາມໝວດ',
+  inventory_filter_warehouse: 'ກັ່ນຕາມຄັງ',
+  inventory_filter_status: 'ກັ່ນຕາມສະຖານະ',
+  inventory_filter_all_warehouses: 'ທຸກຄັງ',
+  inventory_filter_all_projects: 'ທຸກໂຄງການ',
+  inventory_code: 'ລະຫັດ',
+  inventory_results_count: 'ລາຍການທີ່ພົບ',
+  inventory_main_workspace: 'ພື້ນທີ່ຂໍ້ມູນຫຼັກ',
+  inventory_quick_actions: 'ຄຳສັ່ງດ່ວນ',
+  inventory_group_items: 'ລາຍການໃນກຸ່ມ',
+  inventory_group_value: 'ມູນຄ່າກຸ່ມ',
+  inventory_by_project_desc: 'ເບິ່ງວັດສະດຸແຍກຕາມໂຄງການ ແລະ ສະຕັອກກາງ',
+  inventory_by_warehouse_desc: 'ເບິ່ງສະຕັອກແຍກຕາມຄັງຈັດເກັບ',
+  inventory_empty_filtered: 'ບໍ່ພົບວັດສະດຸຕາມຕົວກອງທີ່ເລືອກ',
+  inventory_project_stock: 'ສະຕັອກໂຄງການ',
+});
+
+Object.assign(translations.TH, {
+  inventory_view_all: 'วัสดุทั้งหมด',
+  inventory_view_project: 'ตามโครงการ',
+  inventory_view_warehouse: 'ตามคลัง',
+  inventory_view_movements: 'ความเคลื่อนไหว',
+  inventory_filter_category: 'กรองตามหมวด',
+  inventory_filter_warehouse: 'กรองตามคลัง',
+  inventory_filter_status: 'กรองตามสถานะ',
+  inventory_filter_all_warehouses: 'ทุกคลัง',
+  inventory_filter_all_projects: 'ทุกโครงการ',
+  inventory_code: 'รหัส',
+  inventory_results_count: 'จำนวนที่พบ',
+  inventory_main_workspace: 'พื้นที่ข้อมูลหลัก',
+  inventory_quick_actions: 'คำสั่งด่วน',
+  inventory_group_items: 'รายการในกลุ่ม',
+  inventory_group_value: 'มูลค่ากลุ่ม',
+  inventory_by_project_desc: 'ดูวัสดุแยกตามโครงการและสต็อกกลาง',
+  inventory_by_warehouse_desc: 'ดูสต็อกแยกตามคลังจัดเก็บ',
+  inventory_empty_filtered: 'ไม่พบวัสดุตามตัวกรองที่เลือก',
+  inventory_project_stock: 'สต็อกโครงการ',
+});
+
+Object.assign(translations.EN, {
+  inventory_view_all: 'All Materials',
+  inventory_view_project: 'By Project',
+  inventory_view_warehouse: 'By Warehouse',
+  inventory_view_movements: 'Recent Movements',
+  inventory_filter_category: 'Category Filter',
+  inventory_filter_warehouse: 'Warehouse Filter',
+  inventory_filter_status: 'Stock Status',
+  inventory_filter_all_warehouses: 'All Warehouses',
+  inventory_filter_all_projects: 'All Projects',
+  inventory_code: 'Code',
+  inventory_results_count: 'Results',
+  inventory_main_workspace: 'Main Workspace',
+  inventory_quick_actions: 'Quick Actions',
+  inventory_group_items: 'Items in Group',
+  inventory_group_value: 'Group Value',
+  inventory_by_project_desc: 'Review materials separated by project and central stock',
+  inventory_by_warehouse_desc: 'Review stock separated by storage warehouse',
+  inventory_empty_filtered: 'No materials match the selected filters',
+  inventory_project_stock: 'Project Stock',
+});
+
+Object.assign(translations.LA, {
+  label_person_type: 'ປະເພດບຸກຄົນ / ນິຕິບຸກຄົນ',
+  worker_section_personal: 'ຂໍ້ມູນບຸກຄົນ',
+  worker_section_assignment: 'ຂໍ້ມູນການມອບໝາຍ',
+  worker_section_subcontractor: 'ຂໍ້ມູນຜູ້ຮັບເໝົາຊ່ວງ',
+  worker_section_supplier: 'ຂໍ້ມູນຜູ້ສະໜອງ',
+  worker_section_contact: 'ຊ່ອງທາງຕິດຕໍ່',
+  worker_section_status: 'ສະຖານະ & ໝາຍເຫດ',
+  label_email: 'ອີເມວ',
+  label_other_contact: 'LINE / WhatsApp / ຊ່ອງທາງອື່ນ',
+  label_address: 'ທີ່ຢູ່',
+  label_status: 'ສະຖານະ',
+  label_notes: 'ໝາຍເຫດ',
+  label_company_team_name: 'ຊື່ບໍລິສັດ / ຊື່ທີມ',
+  label_company_store_name: 'ຊື່ບໍລິສັດ / ຊື່ຮ້ານ',
+  label_contact_person: 'ຜູ້ຕິດຕໍ່',
+  label_subcontract_work_type: 'ປະເພດວຽກຮັບເໝົາ',
+  label_product_category: 'ໝວດສິນຄ້າ',
+  person_type_employee: 'ພະນັກງານ',
+  person_type_skilled_worker: 'ຊ່າງ / ຄົນງານ',
+  person_type_team_lead: 'ຫົວໜ້າທີມ',
+  person_type_supervisor: 'ຜູ້ຄຸມງານ',
+  person_type_subcontractor: 'ຜູ້ຮັບເໝົາຊ່ວງ',
+  person_type_supplier: 'ຜູ້ສະໜອງ',
+  person_type_consultant: 'ທີ່ປຶກສາ / Freelancer',
+  entity_status_active: 'ໃຊ້ງານ',
+  entity_status_inactive: 'ບໍ່ໃຊ້ງານ',
+  worker_table_type_role: 'ປະເພດ & ຕຳແໜ່ງ',
+  worker_table_site_status: 'ໄຊຕ໌ / ສະຖານະ',
+  worker_table_contact: 'ຜູ້ຕິດຕໍ່',
+  worker_person_required: 'ກະລຸນາລະບຸຊື່ບຸກຄົນ',
+  worker_company_required: 'ກະລຸນາລະບຸຊື່ບໍລິສັດ ຫຼື ຊື່ທີມ',
+  worker_filter_type: 'ກັ່ນຕາມປະເພດ',
+  worker_filter_role: 'ກັ່ນຕາມຕຳແໜ່ງ',
+  worker_filter_site: 'ກັ່ນຕາມໄຊຕ໌',
+  worker_filter_status: 'ກັ່ນຕາມສະຖານະ',
+  worker_filter_all_types: 'ທຸກປະເພດ',
+  worker_filter_all_roles: 'ທຸກຕຳແໜ່ງ',
+  worker_filter_all_sites: 'ທຸກໄຊຕ໌',
+  worker_filter_all_statuses: 'ທຸກສະຖານະ',
+  worker_results_count: 'ຈຳນວນທີ່ພົບ',
+  worker_summary_people: 'ບຸກຄົນ / ນິຕິບຸກຄົນ',
+  worker_summary_active: 'ກຳລັງໃຊ້ງານ',
+  worker_summary_sites: 'ໄຊຕ໌ທີ່ຖືກມອບໝາຍ',
+  worker_mobile_details: 'ລາຍລະອຽດ',
+  worker_latest_site: 'ໄຊຕ໌ຫຼ້າສຸດ',
+  worker_offline_mode: 'ໂໝດອອຟລາຍ: ຂໍ້ມູນຈະຖືກສົ່ງອັດຕະໂນມັດເມື່ອມີເນັດ',
+  worker_checkin_time: '08:00 ນ.',
+  worker_checkin_hint: 'ຕ້ອງຢູ່ໃກ້ໄຊຕ໌ 100 ແມັດ',
+  worker_tasks_title: 'ວຽກທີ່ຕ້ອງເຮັດມື້ນີ້',
+  worker_task_1_title: 'ເທປູນພື້ນຊັ້ນ 2',
+  worker_task_1_time: 'ໃຫ້ແລ້ວກ່ອນ 15:00 ນ.',
+  worker_task_2_title: 'ຂົນເຫຼັກເສັ້ນເຂົ້າຄັງ',
+  worker_task_2_done: 'ສຳເລັດແລ້ວ',
+  worker_nav_home: 'ໜ້າຫຼັກ',
+  worker_nav_tasks: 'ວຽກຂອງຂ້ອຍ',
+  worker_nav_chat: 'ແຊັດ',
+  worker_req_photo_cta: 'ກົດເພື່ອຖ່າຍຮູບໜ້າວຽກ',
+  worker_report_title: 'ລາຍງານຄວາມຄືບໜ້າ',
+  worker_report_photo: 'ຖ່າຍຮູບຜົນງານ',
+  worker_report_open_camera: 'ກົດເພື່ອເປີດກ້ອງ',
+  worker_report_details: 'ລາຍລະອຽດ',
+  worker_report_submit: 'ສົ່ງລາຍງານໃຫ້ຜູ້ຈັດການ',
+  worker_sos_desc: 'ອະທິບາຍບັນຫາທີ່ພົບ',
+  worker_sos_photo_optional: 'ຮູບປະກອບ (ທາງເລືອກ)',
+  worker_sos_photo_cta: 'ກົດເພື່ອຖ່າຍຮູບຈຸດທີ່ມີບັນຫາ',
+  worker_sos_submit: 'ສົ່ງແຈ້ງເຕືອນສຸກເສີນ',
+  voice_message_label: 'ສົ່ງຂໍ້ຄວາມສຽງ',
+  worker_request_required: 'ກະລຸນາລະບຸລາຍການວັດສະດຸ',
+  worker_request_success: 'ສົ່ງຄຳຂໍເບີກວັດສະດຸສຳເລັດ',
+  worker_report_required: 'ກະລຸນາລະບຸລາຍລະອຽດງານ',
+  worker_report_success: 'ສົ່ງລາຍງານໜ້າວຽກສຳເລັດ',
+  worker_sos_required: 'ກະລຸນາລະບຸບັນຫາທີ່ພົບ',
+  worker_sos_success: 'ສົ່ງແຈ້ງເຕືອນສຸກເສີນແລ້ວ',
+  owner_manager_chat: 'ແຊັດ: ຜູ້ຈັດການໂຄງການ',
+});
+
+Object.assign(translations.TH, {
+  label_person_type: 'ประเภทบุคคล / นิติบุคคล',
+  worker_section_personal: 'ข้อมูลบุคคล',
+  worker_section_assignment: 'ข้อมูลงานและการมอบหมาย',
+  worker_section_subcontractor: 'ข้อมูลผู้รับเหมาช่วง',
+  worker_section_supplier: 'ข้อมูลซัพพลายเออร์',
+  worker_section_contact: 'ข้อมูลติดต่อ',
+  worker_section_status: 'สถานะและหมายเหตุ',
+  label_email: 'อีเมล',
+  label_other_contact: 'LINE / WhatsApp / ช่องทางอื่น',
+  label_address: 'ที่อยู่',
+  label_company_team_name: 'ชื่อบริษัท / ชื่อทีม',
+  label_company_store_name: 'ชื่อบริษัท / ชื่อร้าน',
+  label_contact_person: 'ผู้ติดต่อ',
+  label_subcontract_work_type: 'ประเภทงานรับเหมา',
+  label_product_category: 'หมวดสินค้า',
+  person_type_employee: 'พนักงาน',
+  person_type_skilled_worker: 'ช่าง / แรงงาน',
+  person_type_team_lead: 'หัวหน้าทีม',
+  person_type_supervisor: 'ผู้ควบคุมงาน',
+  person_type_subcontractor: 'ผู้รับเหมาช่วง',
+  person_type_supplier: 'ซัพพลายเออร์',
+  person_type_consultant: 'ที่ปรึกษา / ฟรีแลนซ์',
+  entity_status_active: 'ใช้งาน',
+  entity_status_inactive: 'ไม่ใช้งาน',
+  worker_table_type_role: 'ประเภทและตำแหน่ง',
+  worker_table_site_status: 'ไซต์ / สถานะ',
+  worker_table_contact: 'ผู้ติดต่อ',
+  worker_person_required: 'กรุณาระบุชื่อบุคคล',
+  worker_company_required: 'กรุณาระบุชื่อบริษัทหรือชื่อทีม',
+  worker_filter_type: 'กรองตามประเภท',
+  worker_filter_role: 'กรองตามตำแหน่ง',
+  worker_filter_site: 'กรองตามไซต์',
+  worker_filter_status: 'กรองตามสถานะ',
+  worker_filter_all_types: 'ทุกประเภท',
+  worker_filter_all_roles: 'ทุกตำแหน่ง',
+  worker_filter_all_sites: 'ทุกไซต์',
+  worker_filter_all_statuses: 'ทุกสถานะ',
+  worker_results_count: 'จำนวนที่พบ',
+  worker_summary_people: 'บุคคล / นิติบุคคล',
+  worker_summary_active: 'ใช้งานอยู่',
+  worker_summary_sites: 'ไซต์ที่ถูกมอบหมาย',
+  worker_mobile_details: 'รายละเอียด',
+  worker_latest_site: 'ไซต์งานล่าสุด',
+  worker_offline_mode: 'โหมดออฟไลน์: ข้อมูลจะส่งอัตโนมัติเมื่อมีเน็ต',
+  worker_checkin_time: '08:00 น.',
+  worker_checkin_hint: 'ต้องอยู่ใกล้ไซต์งาน 100 ม.',
+  worker_tasks_title: 'งานที่ต้องทำวันนี้',
+  worker_task_1_title: 'เทพื้นชั้น 2',
+  worker_task_1_time: 'เสร็จภายใน 15:00 น.',
+  worker_task_2_title: 'ขนเหล็กเส้นเข้าโกดัง',
+  worker_task_2_done: 'เสร็จแล้ว',
+  worker_nav_home: 'หน้าแรก',
+  worker_nav_tasks: 'งานของฉัน',
+  worker_nav_chat: 'แชท',
+  worker_req_photo_cta: 'กดเพื่อถ่ายรูปหน้างาน',
+  worker_report_title: 'รายงานความคืบหน้า',
+  worker_report_photo: 'ถ่ายรูปผลงาน',
+  worker_report_open_camera: 'กดเพื่อเปิดกล้อง',
+  worker_report_details: 'รายละเอียด',
+  worker_report_submit: 'ส่งรายงานให้ผู้จัดการ',
+  worker_sos_desc: 'อธิบายปัญหาที่พบ',
+  worker_sos_photo_optional: 'รูปภาพประกอบ (ทางเลือก)',
+  worker_sos_photo_cta: 'กดเพื่อถ่ายรูปจุดที่มีปัญหา',
+  worker_sos_submit: 'ส่งแจ้งเตือนฉุกเฉิน',
+  voice_message_label: 'ส่งข้อความเสียง',
+  worker_request_required: 'กรุณาระบุรายการวัสดุ',
+  worker_request_success: 'ส่งคำขอเบิกวัสดุสำเร็จ',
+  worker_report_required: 'กรุณาระบุรายละเอียดงาน',
+  worker_report_success: 'ส่งรายงานหน้างานสำเร็จ',
+  worker_sos_required: 'กรุณาระบุปัญหาที่พบ',
+  worker_sos_success: 'ส่งแจ้งเตือนปัญหาฉุกเฉินแล้ว',
+  owner_manager_chat: 'แชท: ผู้จัดการโครงการ',
+});
+
+Object.assign(translations.EN, {
+  label_person_type: 'Person Type / Entity Type',
+  worker_section_personal: 'Personal Details',
+  worker_section_assignment: 'Assignment Details',
+  worker_section_subcontractor: 'Subcontractor Details',
+  worker_section_supplier: 'Supplier Details',
+  worker_section_contact: 'Contact Details',
+  worker_section_status: 'Status & Notes',
+  label_email: 'Email',
+  label_other_contact: 'LINE / WhatsApp / Other Contact',
+  label_address: 'Address',
+  label_company_team_name: 'Company / Team Name',
+  label_company_store_name: 'Company / Store Name',
+  label_contact_person: 'Contact Person',
+  label_subcontract_work_type: 'Subcontract Work Type',
+  label_product_category: 'Product Category',
+  person_type_employee: 'Employee',
+  person_type_skilled_worker: 'Skilled Worker / Labor',
+  person_type_team_lead: 'Team Lead',
+  person_type_supervisor: 'Supervisor',
+  person_type_subcontractor: 'Subcontractor',
+  person_type_supplier: 'Supplier',
+  person_type_consultant: 'Consultant / Freelancer',
+  entity_status_active: 'Active',
+  entity_status_inactive: 'Inactive',
+  worker_table_type_role: 'Type & Role',
+  worker_table_site_status: 'Site / Status',
+  worker_table_contact: 'Contact',
+  worker_person_required: 'Please enter a person name',
+  worker_company_required: 'Please enter a company or team name',
+  worker_filter_type: 'Filter by Type',
+  worker_filter_role: 'Filter by Role',
+  worker_filter_site: 'Filter by Site',
+  worker_filter_status: 'Filter by Status',
+  worker_filter_all_types: 'All Types',
+  worker_filter_all_roles: 'All Roles',
+  worker_filter_all_sites: 'All Sites',
+  worker_filter_all_statuses: 'All Statuses',
+  worker_results_count: 'Results',
+  worker_summary_people: 'People / Entities',
+  worker_summary_active: 'Active',
+  worker_summary_sites: 'Assigned Sites',
+  worker_mobile_details: 'Details',
+  worker_latest_site: 'Latest Site',
+  worker_offline_mode: 'Offline mode: data will sync automatically when a connection is available',
+  worker_checkin_time: '08:00',
+  worker_checkin_hint: 'You must be within 100m of the site',
+  worker_tasks_title: 'Today\'s Tasks',
+  worker_task_1_title: 'Pour the second-floor slab',
+  worker_task_1_time: 'Complete by 15:00',
+  worker_task_2_title: 'Move rebar into storage',
+  worker_task_2_done: 'Completed',
+  worker_nav_home: 'Home',
+  worker_nav_tasks: 'My Tasks',
+  worker_nav_chat: 'Chat',
+  worker_req_photo_cta: 'Tap to take a site photo',
+  worker_report_title: 'Progress Report',
+  worker_report_photo: 'Take Work Photo',
+  worker_report_open_camera: 'Tap to open camera',
+  worker_report_details: 'Details',
+  worker_report_submit: 'Send Report to Manager',
+  worker_sos_desc: 'Describe the issue found',
+  worker_sos_photo_optional: 'Supporting Photo (optional)',
+  worker_sos_photo_cta: 'Tap to photograph the problem area',
+  worker_sos_submit: 'Send Emergency Alert',
+  voice_message_label: 'Voice message sent',
+  worker_request_required: 'Please enter the required materials',
+  worker_request_success: 'Material request submitted successfully',
+  worker_report_required: 'Please enter the work details',
+  worker_report_success: 'Site progress report submitted successfully',
+  worker_sos_required: 'Please describe the issue',
+  worker_sos_success: 'Emergency issue alert sent successfully',
+  owner_manager_chat: 'Chat: Project Manager',
+});
+
+Object.assign(translations.LA, {
+  nav_platform_owner: 'ຜູ້ດູແລແພລດຟອມ',
+  nav_supplier_portal: 'ພອດທັລ supplier',
+  admin_access_title: 'ທາງເຂົ້າສຳລັບຜູ້ດູແລແພລດຟອມ',
+  admin_access_desc: 'ແຍກຈາກ dashboard ຂອງຜູ້ໃຊ້ທົ່ວໄປ ເພື່ອກຽມພື້ນຖານສຳລັບການຄວບຄຸມລະບົບ, ລາຍຮັບ ແລະ ການກະທົບຍອດໃນຂັ້ນຕໍ່ໄປ',
+  admin_access_enter: 'ເຂົ້າ admin dashboard',
+  admin_back_home: 'ກັບຄືນໜ້າຫຼັກ',
+  supplier_access_title: 'ທາງເຂົ້າສຳລັບ supplier',
+  supplier_access_desc: 'ພື້ນທີ່ນີ້ແຍກຈາກ dashboard ຂອງ user ແລະ admin ເພື່ອກຽມ workflow ຂອງ supplier ໃຫ້ຂະຫຍາຍໄດ້ຢ່າງປອດໄພ.',
+  supplier_access_enter: 'ເຂົ້າ supplier portal',
+  supplier_back_home: 'ກັບຄືນໜ້າຫຼັກ',
+  supplier_section_ready: 'ສ່ວນນີ້ເປັນ placeholder ສຳລັບ workflow ຂອງ supplier ໃນຂັ້ນຕໍ່ໄປ',
+  supplier_portal_isolated_notice: 'supplier portal ນີ້ຖືກແຍກອອກຈາກ dashboard ຂອງ user ແລະ admin ໂດຍຈົງໃຈ.',
+  supplier_menu_overview: 'ພາບລວມ supplier',
+  supplier_menu_products: 'ສິນຄ້າ',
+  supplier_menu_orders: 'ອໍເດີ',
+  supplier_menu_profile: 'ໂປຣໄຟລ໌',
+  supplier_dashboard_title: 'Supplier Dashboard',
+  supplier_dashboard_desc: 'shell ສຳລັບສະຫຼຸບສະຖານະ supplier, ອໍເດີ ແລະ ຕົວຊີ້ວັດຫຼັກ.',
+  supplier_products_title: 'Products',
+  supplier_products_desc: 'shell ສຳລັບລາຍການສິນຄ້າ, ລາຄາ ແລະ ຄວາມພ້ອມຂາຍຂອງ supplier.',
+  supplier_products_add: '+ ເພີ່ມສິນຄ້າ',
+  supplier_products_edit: 'ແກ້ໄຂສິນຄ້າ',
+  supplier_products_remove: 'ລົບສິນຄ້າ',
+  supplier_products_activate: 'ເປີດໃຊ້ງານ',
+  supplier_products_deactivate: 'ປິດໃຊ້ງານ',
+  supplier_products_total: 'ສິນຄ້າທັງໝົດ',
+  supplier_products_active: 'ສິນຄ້າທີ່ໃຊ້ງານ',
+  supplier_products_inactive: 'ສິນຄ້າທີ່ປິດໃຊ້',
+  supplier_products_categories: 'ໝວດສິນຄ້າ',
+  supplier_products_search_placeholder: 'ຄົ້ນຫາລະຫັດ ຫຼື ຊື່ສິນຄ້າ...',
+  supplier_products_filter_all_statuses: 'ທຸກສະຖານະ',
+  supplier_products_filter_all_categories: 'ທຸກໝວດ',
+  supplier_products_empty: 'ຍັງບໍ່ມີສິນຄ້າໃນ supplier portal',
+  supplier_products_form_title_add: 'ເພີ່ມສິນຄ້າ',
+  supplier_products_form_title_edit: 'ແກ້ໄຂສິນຄ້າ',
+  supplier_products_form_basic: 'ຂໍ້ມູນພື້ນຖານ',
+  supplier_products_form_inventory: 'ລາຄາ & ສະຕ໋ອກ',
+  supplier_products_form_delivery: 'ການຈັດສົ່ງ & ຮູບພາບ',
+  supplier_products_code: 'ລະຫັດສິນຄ້າ',
+  supplier_products_name: 'ຊື່ສິນຄ້າ',
+  supplier_products_category: 'ໝວດ',
+  supplier_products_description: 'ລາຍລະອຽດ',
+  supplier_products_unit: 'ໜ່ວຍ',
+  supplier_products_price: 'ລາຄາ',
+  supplier_products_min_order_qty: 'ຂັ້ນຕ່ຳຕໍ່ຄຳສັ່ງ',
+  supplier_products_available_qty: 'ຈຳນວນພ້ອມຂາຍ',
+  supplier_products_lead_time: 'Lead Time',
+  supplier_products_delivery_area: 'ພື້ນທີ່ຈັດສົ່ງ',
+  supplier_products_image: 'ຮູບສິນຄ້າ',
+  supplier_products_image_upload: 'ອັບໂຫຼດຮູບ',
+  supplier_products_image_replace: 'ປ່ຽນຮູບ',
+  supplier_products_image_remove: 'ລຶບຮູບ',
+  supplier_products_status: 'ສະຖານະ',
+  supplier_products_save: 'ບັນທຶກສິນຄ້າ',
+  supplier_products_safe_remove_hint: 'ລົບໄດ້ເມື່ອສິນຄ້າຖືກປິດໃຊ້ງານແລ້ວ',
+  supplier_products_remove_confirm: 'ລົບສິນຄ້ານີ້ອອກຈາກ supplier portal ບໍ?',
+  supplier_products_csv_ready: 'ໂຄງສ້າງຂໍ້ມູນນີ້ກຽມໄວ້ສຳລັບ CSV import ແລະ image handling ໃນຂັ້ນຕໍ່ໄປ',
+  supplier_products_manual_source: 'ປ້ອນດ້ວຍມື',
+  supplier_products_stock_available: 'ພ້ອມຂາຍ',
+  supplier_products_stock_low: 'ໃກ້ໝົດ',
+  supplier_products_stock_out: 'ຂາດສະຕ໋ອກ',
+  supplier_products_image_preview: 'ຕົວຢ່າງຮູບ',
+  supplier_products_no_categories: 'ຍັງບໍ່ມີໝວດ supplier ທີ່ໃຊ້ງານ',
+  supplier_products_import_source: 'ແຫຼ່ງຂໍ້ມູນ',
+  supplier_products_effective_price: 'ລາຄາຂາຍ',
+  supplier_products_import_csv: 'ນຳເຂົ້າ CSV',
+  supplier_products_csv_example: 'CSV ຄວນມີ header ແບບງ່າຍເຊັ່ນ product_code, product_name, category, unit, price, minimum_order_quantity, available_quantity, lead_time, delivery_area, description, status',
+  supplier_products_csv_upload: 'ອັບໂຫຼດ CSV',
+  supplier_products_csv_preview_title: 'ກວດເບິ່ງແຖວທີ່ຈະນຳເຂົ້າ',
+  supplier_products_csv_preview_empty: 'ຍັງບໍ່ມີແຖວຈາກ CSV',
+  supplier_products_csv_confirm: 'ຢືນຢັນນຳເຂົ້າ',
+  supplier_products_csv_rows: 'ແຖວທີ່ພົບ',
+  supplier_products_csv_file: 'ໄຟລ໌ CSV',
+  supplier_products_csv_imported: 'ເຂົ້າລະບົບຜ່ານ CSV',
+  supplier_products_csv_required: 'ກະລຸນາເລືອກໄຟລ໌ CSV ກ່ອນ',
+  supplier_products_csv_parse_error: 'ບໍ່ສາມາດອ່ານ CSV ໄດ້',
+  supplier_products_csv_columns: 'ຄໍລຳທີ່ຮອງຮັບ',
+  supplier_products_image_meta: 'ຊື່ໄຟລ໌ / ຂະໜາດ / ປະເພດ',
+  supplier_products_image_hint: 'ຮອງຮັບການອັບໂຫຼດຮູບລາຍການດຽວໃນຕອນນີ້ ແລະ ກຽມ model ໄວ້ສຳລັບ bulk image support ໃນພາຍຫຼັງ',
+  supplier_orders_title: 'Orders',
+  supplier_orders_desc: 'shell ສຳລັບຕິດຕາມຄຳສັ່ງ, ຢືນຢັນການຈັດສົ່ງ ແລະ ສະຖານະອໍເດີ.',
+  supplier_profile_title: 'Profile',
+  supplier_profile_desc: 'shell ສຳລັບຂໍ້ມູນ supplier, ຂໍ້ມູນຕິດຕໍ່ ແລະ ເອກະສານພື້ນຖານ.',
+  supplier_orders_search_placeholder: 'ຄົ້ນຫາເລກອໍເດີ ຫຼື ຊື່ລູກຄ້າ...',
+  supplier_orders_filter_all: 'ທຸກສະຖານະ',
+  supplier_orders_total: 'ອໍເດີທັງໝົດ',
+  supplier_orders_open: 'ອໍເດີເປີດ',
+  supplier_orders_in_transit: 'ອໍເດີກຳລັງສົ່ງ',
+  supplier_orders_completed: 'ອໍເດີສຳເລັດ',
+  supplier_orders_details: 'ລາຍລະອຽດອໍເດີ',
+  supplier_orders_open_details: 'ເປີດລາຍລະອຽດ',
+  supplier_orders_customer: 'ລູກຄ້າ / ຜູ້ຮັບເໝົາ',
+  supplier_orders_project: 'ໂຄງການ / ໄຊຕ໌',
+  supplier_orders_status: 'ສະຖານະອໍເດີ',
+  supplier_orders_update_status: 'ອັບເດດສະຖານະ',
+  supplier_orders_empty: 'ຍັງບໍ່ມີ incoming orders',
+  supplier_orders_response_note: 'ໝາຍເຫດຈາກ supplier',
+  supplier_orders_confirm: 'ຢືນຢັນອໍເດີ',
+  supplier_orders_reject: 'ປະຕິເສດອໍເດີ',
+  supplier_orders_status_new: 'ໃໝ່',
+  supplier_orders_status_confirmed: 'ຢືນຢັນແລ້ວ',
+  supplier_orders_status_rejected: 'ປະຕິເສດ',
+  supplier_orders_status_preparing: 'ກຳລັງຈັດເຕັມ',
+  supplier_orders_status_shipped: 'ຈັດສົ່ງແລ້ວ',
+  supplier_orders_status_delivered: 'ສົ່ງມອບແລ້ວ',
+  supplier_orders_status_cancelled: 'ຍົກເລີກ',
+  supplier_profile_save: 'ບັນທຶກໂປຣໄຟລ໌ supplier',
+  supplier_profile_public_section: 'ຂໍ້ມູນທົ່ວໄປ',
+  supplier_profile_billing_section: 'ຜູ້ຕິດຕໍ່ຝັ່ງ billing',
+  supplier_profile_supported_categories: 'ໝວດທີ່ຮອງຮັບ',
+  supplier_profile_service_area: 'ພື້ນທີ່ໃຫ້ບໍລິການ / ຈັດສົ່ງ',
+  supplier_profile_business_notes: 'ໝາຍເຫດທາງທຸລະກິດ',
+  supplier_profile_empty: 'ຍັງບໍ່ມີ profile supplier, ລະບົບຈະສ້າງ profile ໃໝ່ເມື່ອບັນທຶກ',
+  supplier_profile_sync_notice: 'ຂໍ້ມູນຊຸດນີ້ reuse ຮ່ວມກັນກັບ admin supplier management ແລະ future agreements / billing',
+  manager_menu_admin_overview: 'ພາບລວມ admin',
+  manager_menu_admin_category_management: 'ຈັດການໝວດ supplier',
+  manager_menu_admin_supplier_agreements: 'ຂໍ້ຕົກລົງ supplier',
+  manager_menu_admin_commission_billing: 'Commission Billing',
+  admin_overview_title: 'ພາບລວມຝັ່ງ admin',
+  admin_overview_desc: 'ພື້ນທີ່ນີ້ເປັນ shell ແຍກສຳລັບ platform owner โดยບໍ່ປະປົນກັບ workflow ຂອງຜູ້ໃຊ້ທົ່ວໄປ',
+  admin_category_management_title: 'ຈັດການໝວດ supplier',
+  admin_category_management_desc: 'ຈັດການໝວດຜູ້ສະໜອງ ແລະ default commission ລະດັບ category ສຳລັບໃຊ້ຕໍ່ໃນ supplier mapping ແລະ revenue logic',
+  admin_supplier_management_desc: 'ຈັດການ supplier ລະດັບ platform, profile, status, category mapping ແລະ commission logic ທີ່ກຽມໄວ້ສຳລັບ workflow ຕໍ່ໄປ',
+  admin_supplier_agreements_title: 'ຂໍ້ຕົກລົງ supplier',
+  admin_supplier_agreements_desc: 'ຈັດການຂໍ້ຕົກລົງ commission ແລະ billing ຕໍ່ supplier ເພື່ອໃຊ້ຕໍ່ໃນ Commission Billing',
+  admin_commission_billing_title: 'Commission Billing',
+  admin_commission_billing_desc: 'ສ້າງ ແລະ ຕິດຕາມ commission billing records ຈາກ supplier agreements ແລະ purchase orders ສຳລັບໃຊ້ຕໍ່ໃນ print/export ແລະ settlement flow.',
+  admin_platform_revenue_desc: 'ເຕັຽມ shell ສຳລັບສະຫຼຸບລາຍຮັບ platform, commission ແລະ ຕົວຊີ້ວັດທາງການເງິນ',
+  admin_settlements_desc: 'ເຕັຽມພື້ນທີ່ສຳລັບການກະທົບຍອດ, ການຈ່າຍຄືນ ແລະ ສະຖານະການຊຳລະ',
+  admin_settings_desc: 'ຕັ້ງຄ່າ default ລະດັບ platform ສຳລັບ commission, billing, settlement ແລະ ຂໍ້ມູນທີ່ໃຊ້ຮ່ວມກັນໃນ print/export',
+  admin_settings_reuse_notice: 'ຄ່າຊຸດນີ້ຖືກກຽມໄວ້ເພື່ອ reuse ຮ່ວມກັບ Supplier Agreements, Commission Billing, Settlements ແລະ future print/export',
+  admin_settings_saved: 'ບັນທຶກຄ່າຕັ້ງ admin ແລ້ວ',
+  admin_settings_section_defaults: 'Default settings',
+  admin_settings_section_platform_identity: 'Platform billing identity',
+  admin_settings_default_commission_rate: 'Default commission rate (%)',
+  admin_settings_billing_number_prefix: 'Billing number prefix',
+  admin_settings_settlement_number_prefix: 'Settlement number prefix',
+  admin_settings_default_payment_due_days: 'Default payment due days',
+  admin_settings_default_billing_cycle: 'Default billing cycle',
+  admin_settings_default_billing_note: 'Default billing note',
+  admin_settings_default_settlement_note: 'Default settlement note',
+  admin_settings_platform_company_name: 'Platform company name',
+  admin_settings_platform_billing_address: 'Platform billing address',
+  admin_settings_platform_billing_email: 'Platform billing email',
+  admin_settings_platform_billing_phone: 'Platform billing phone',
+  admin_settings_internal_admin_notes: 'Internal admin notes',
+  admin_settings_reuse_agreements_billing: 'ໃຊ້ເປັນຄ່າ default ໃນ agreement, commission billing ແລະ settlement flows',
+  admin_settings_reuse_export: 'ໃຊ້ເປັນຂໍ້ມູນກາງສຳລັບ billing header ແລະ future export/reporting',
+  admin_section_ready: 'ສ່ວນນີ້ເປັນ placeholder ພ້ອມສຳລັບຂະຫຍາຍຕໍ່',
+  admin_supplier_total: 'ຜູ້ສະໜອງທັງໝົດ',
+  admin_supplier_active: 'ຜູ້ສະໜອງທີ່ໃຊ້ງານ',
+  admin_supplier_inactive: 'ຜູ້ສະໜອງທີ່ປິດໃຊ້',
+  admin_supplier_categories: 'ໝວດສິນຄ້າ',
+  admin_supplier_filter_all_statuses: 'ທຸກສະຖານະ',
+  admin_supplier_internal_notice: 'ຟິວຂໍ້ມູນພາຍໃນຈະຖືກໃຊ້ຕໍ່ໃນ Platform Revenue ແລະ Settlements',
+  admin_supplier_public_section: 'ຂໍ້ມູນທົ່ວໄປຂອງ supplier',
+  admin_supplier_internal_section: 'ຂໍ້ມູນພາຍໃນຂອງ platform',
+  admin_supplier_visible_to_user: 'ຜູ້ໃຊ້ທົ່ວໄປເຫັນໄດ້',
+  admin_supplier_internal_only: 'ສະແດງສະເພາະ admin',
+  admin_supplier_supported_categories: 'ໝວດທີ່ supplier ຮອງຮັບ',
+  admin_supplier_category_commission_section: 'ໝວດສິນຄ້າ & commission',
+  admin_supplier_no_category_assignments: 'supplier ນີ້ຍັງບໍ່ຖືກຜູກກັບໝວດໃດ',
+  admin_supplier_no_active_categories: 'ຍັງບໍ່ມີໝວດທີ່ໃຊ້ງານໃນ Category Management',
+  admin_supplier_commission_default: 'ໃຊ້ default',
+  admin_supplier_commission_override: 'override',
+  admin_supplier_use_category_default: 'ໃຊ້ default commission ຈາກ category',
+  admin_supplier_override_commission: 'override commission (%)',
+  admin_supplier_default_reference: 'default ຂອງ category',
+  admin_supplier_agreements_total: 'ຂໍ້ຕົກລົງທັງໝົດ',
+  admin_supplier_agreements_active: 'ຂໍ້ຕົກລົງທີ່ໃຊ້ງານ',
+  admin_supplier_agreements_expiring: 'ຂໍ້ຕົກລົງທີ່ມີວັນສິ້ນສຸດ',
+  admin_supplier_recent_records: 'ລາຍການທີ່ພົບ',
+  admin_supplier_agreements_search_placeholder: 'ຄົ້ນຫາຂໍ້ຕົກລົງ supplier...',
+  admin_supplier_agreement_filter_all_statuses: 'ທຸກສະຖານະ',
+  admin_supplier_agreement_add: '+ ເພີ່ມຂໍ້ຕົກລົງ',
+  admin_supplier_agreement_add_title: 'ເພີ່ມຂໍ້ຕົກລົງ supplier',
+  admin_supplier_agreement_edit_title: 'ແກ້ໄຂຂໍ້ຕົກລົງ supplier',
+  admin_supplier_agreement_form_section: 'ຂໍ້ມູນຂໍ້ຕົກລົງ',
+  admin_supplier_agreement_detail_title: 'ລາຍລະອຽດຂໍ້ຕົກລົງ',
+  admin_supplier_agreement_title: 'ຫົວຂໍ້ຂໍ້ຕົກລົງ',
+  admin_supplier_agreement_number: 'ເລກທີຂໍ້ຕົກລົງ',
+  admin_supplier_agreement_period: 'ໄລຍະເວລາຂໍ້ຕົກລົງ',
+  admin_supplier_agreement_billing_cycle: 'ຮອບ billing',
+  admin_supplier_agreement_billing_cycle_monthly: 'ລາຍເດືອນ',
+  admin_supplier_agreement_billing_cycle_biweekly: 'ທຸກ 2 ອາທິດ',
+  admin_supplier_agreement_billing_cycle_weekly: 'ລາຍອາທິດ',
+  admin_supplier_agreement_billing_cycle_custom: 'custom',
+  admin_supplier_agreement_billing_cutoff: 'ວັນ / ຊ່ວງ cutoff',
+  admin_supplier_agreement_payment_due_days: 'ຈຳນວນມື້ຄົບກຳນົດຊຳລະ',
+  admin_supplier_agreement_commission_basis: 'ບັນທຶກພື້ນຖານ commission',
+  admin_supplier_agreement_billing_contact: 'ຜູ້ຕິດຕໍ່ຝັ່ງ billing',
+  admin_supplier_agreement_payment_method_note: 'ວິທີຊຳລະ / settlement note',
+  admin_supplier_agreement_special_terms: 'ເງື່ອນໄຂພິເສດ',
+  admin_supplier_agreement_internal_notes: 'ໝາຍເຫດພາຍໃນ',
+  admin_supplier_agreement_status_draft: 'ຮ່າງ',
+  admin_supplier_agreement_status_active: 'ໃຊ້ງານ',
+  admin_supplier_agreement_status_inactive: 'ບໍ່ໃຊ້ງານ',
+  admin_supplier_agreement_status_expired: 'ໝົດອາຍຸ',
+  admin_supplier_agreements_empty: 'ຍັງບໍ່ມີຂໍ້ຕົກລົງ supplier',
+  admin_commission_billing_total: 'ໃບ billing ທັງໝົດ',
+  admin_commission_billing_open: 'ໃບ billing ທີ່ເປີດຢູ່',
+  admin_commission_billing_paid: 'ໃບ billing ທີ່ຊຳລະແລ້ວ',
+  admin_commission_billing_generate: '+ ສ້າງ billing',
+  admin_commission_billing_search_placeholder: 'ຄົ້ນຫາ commission billing...',
+  admin_commission_billing_filter_all_statuses: 'ທຸກສະຖານະ',
+  admin_commission_billing_empty: 'ຍັງບໍ່ມີ commission billing records',
+  admin_commission_billing_detail_title: 'ລາຍລະອຽດ commission billing',
+  admin_commission_billing_form_title: 'ສ້າງ Commission Billing',
+  admin_commission_billing_generate_section: 'ຂໍ້ມູນ billing',
+  admin_commission_billing_agreement_reference: 'ອ້າງອີງຂໍ້ຕົກລົງ',
+  admin_commission_billing_period: 'ຊ່ວງ billing',
+  admin_commission_billing_period_start: 'ເລີ່ມຕົ້ນຮອບ billing',
+  admin_commission_billing_period_end: 'ສິ້ນສຸດຮອບ billing',
+  admin_commission_billing_issue_date: 'ວັນອອກ billing',
+  admin_commission_billing_due_date: 'ວັນຄົບກຳນົດ',
+  admin_commission_billing_gross_sales: 'ຍອດຂາຍລວມ',
+  admin_commission_billing_commission_amount: 'ຈຳນວນ commission',
+  admin_commission_billing_order_count: 'ຈຳນວນອໍເດີ',
+  admin_commission_billing_source_orders: 'ອໍເດີທີ່ນຳມາຄຳນວນ',
+  admin_commission_billing_preview: 'ພາບລວມກ່ອນສ້າງ',
+  admin_commission_billing_select_agreement: 'ເລືອກຂໍ້ຕົກລົງ',
+  admin_commission_billing_empty_orders: 'ບໍ່ພົບອໍເດີທີ່ເຂົ້າເງື່ອນໄຂສຳລັບຮອບ billing ນີ້',
+  admin_commission_billing_export_ready: 'ໂຄງສ້າງ record ນີ້ກຽມໄວ້ສຳລັບ print / export / invoice output ໃນຂັ້ນຕໍ່ໄປ',
+  admin_commission_billing_status_draft: 'ຮ່າງ',
+  admin_commission_billing_status_issued: 'ອອກແລ້ວ',
+  admin_commission_billing_status_paid: 'ຊຳລະແລ້ວ',
+  admin_commission_billing_status_cancelled: 'ຍົກເລີກ',
+  admin_settlement_total: 'ລາຍການ settlement ທັງໝົດ',
+  admin_settlement_unpaid: 'ຍັງບໍ່ຊຳລະ',
+  admin_settlement_overdue: 'ເກີນກຳນົດ',
+  admin_settlement_paid: 'ຊຳລະແລ້ວ',
+  admin_settlement_add: '+ ສ້າງ settlement',
+  admin_settlement_search_placeholder: 'ຄົ້ນຫາ settlement...',
+  admin_settlement_filter_all_statuses: 'ທຸກສະຖານະ',
+  admin_settlement_empty: 'ຍັງບໍ່ມີ settlement records',
+  admin_settlement_detail_title: 'ລາຍລະອຽດ settlement',
+  admin_settlement_form_title: 'ສ້າງ Settlement',
+  admin_settlement_form_section: 'ຂໍ້ມູນ settlement',
+  admin_settlement_preview: 'ພາບລວມ settlement',
+  admin_settlement_related_billing: 'billing ທີ່ກ່ຽວຂ້ອງ',
+  admin_settlement_select_billing: 'ເລືອກ billing record',
+  admin_settlement_amount_due: 'ຈຳນວນທີ່ຕ້ອງຊຳລະ',
+  admin_settlement_amount_paid: 'ຈຳນວນທີ່ຊຳລະແລ້ວ',
+  admin_settlement_balance_remaining: 'ຍອດຄົງເຫຼືອ',
+  admin_settlement_payment_date: 'ວັນທີຊຳລະ',
+  admin_settlement_due_date: 'ວັນຄົບກຳນົດ',
+  admin_settlement_payment_method: 'ວິທີຊຳລະ',
+  admin_settlement_payment_reference: 'ເລກອ້າງອີງການຊຳລະ',
+  admin_settlement_status_unpaid: 'ຍັງບໍ່ຊຳລະ',
+  admin_settlement_status_partial: 'ຊຳລະບາງສ່ວນ',
+  admin_settlement_status_overdue: 'ເກີນກຳນົດ',
+  admin_settlement_status_paid: 'ຊຳລະແລ້ວ',
+  admin_settlement_status_cancelled: 'ຍົກເລີກ',
+  admin_settlement_record_payment: 'ບັນທຶກຮັບຊຳລະ',
+  admin_settlement_record_payment_title: 'ບັນທຶກການຮັບຊຳລະ',
+  admin_settlement_payment_history: 'ປະຫວັດການຊຳລະ',
+  admin_settlement_no_payments: 'ຍັງບໍ່ມີປະຫວັດການຮັບຊຳລະ',
+  admin_settlement_export_ready: 'ໂຄງສ້າງ settlement ນີ້ກຽມໄວ້ສຳລັບ reporting / export / payment audit ໃນຂັ້ນຕໍ່ໄປ',
+  admin_supplier_add_title: 'ເພີ່ມ supplier ໃໝ່',
+  admin_supplier_edit_title: 'ແກ້ໄຂ supplier',
+  admin_supplier_deactivate: 'ປິດໃຊ້ງານ',
+  admin_supplier_activate: 'ເປີດໃຊ້ງານ',
+  admin_supplier_remove: 'ລົບ supplier',
+  admin_category_total: 'ໝວດທັງໝົດ',
+  admin_category_active: 'ໝວດທີ່ໃຊ້ງານ',
+  admin_category_inactive: 'ໝວດທີ່ປິດໃຊ້',
+  admin_category_custom: 'ໝວດ custom',
+  admin_category_add: '+ ເພີ່ມໝວດ',
+  admin_category_add_title: 'ເພີ່ມໝວດ supplier',
+  admin_category_edit_title: 'ແກ້ໄຂໝວດ supplier',
+  admin_category_form_section: 'ຂໍ້ມູນໝວດ',
+  admin_category_name: 'ຊື່ໝວດ',
+  admin_category_slug: 'Slug / Code',
+  admin_category_internal_notes: 'ໝາຍເຫດພາຍໃນ',
+  admin_category_activate: 'ເປີດໃຊ້ງານ',
+  admin_category_deactivate: 'ປິດໃຊ້ງານ',
+  admin_category_remove: 'ລົບໝວດ',
+  admin_category_standard: 'ມາດຕະຖານ',
+  admin_category_custom_badge: 'custom',
+  admin_category_search_placeholder: 'ຄົ້ນຫາໝວດ...',
+  admin_category_filter_all_statuses: 'ທຸກສະຖານະ',
+  admin_category_internal_notice: 'ຄ່າ default commission ຂອງ category ນີ້ຖືກກຽມໄວ້ເພື່ອໃຊ້ຕໍ່ໃນ supplier mapping',
+  admin_category_system_notice: 'ໝວດມາດຕະຖານສາມາດແກ້ໄຂໄດ້ ແຕ່ຖືກກຳນົດເປັນ system category',
+  admin_category_empty: 'ຍັງບໍ່ມີໝວດ supplier',
+  supplier_settlement_terms: 'ເງື່ອນໄຂການກະທົບຍອດ',
+  supplier_platform_notes: 'ໝາຍເຫດພາຍໃນຂອງ platform',
+  admin_platform_revenue_internal_notice: 'ລາຍງານນີ້ເປັນ internal platform revenue ຄຳນວນຈາກ purchase orders ແລະ commission rate ຂອງ supplier',
+  admin_platform_total_revenue: 'ລາຍຮັບ platform ລວມ',
+  admin_platform_estimated_commission: 'commission ທີ່ຄາດການ',
+  admin_platform_order_volume: 'ມູນຄ່າຄຳສັ່ງຊື້',
+  admin_platform_recent_records: 'ລາຍການຫຼ້າສຸດ',
+  admin_platform_commission_by_supplier: 'commission ແຍກຕາມ supplier',
+  admin_platform_commission_by_supplier_desc: 'ສະຫຼຸບຈາກ purchase orders ທີ່ເຊື່ອມກັບ supplier ແລະ commission rate ພາຍໃນ',
+  admin_platform_revenue_by_period: 'ລາຍຮັບແຍກຕາມຊ່ວງເວລາ',
+  admin_platform_revenue_by_period_desc: 'ສະຫຼຸບຕາມເດືອນຈາກວັນທີຂອງ purchase order',
+  admin_platform_recent_revenue_records: 'ລາຍການລາຍຮັບຫຼ້າສຸດ',
+  admin_platform_recent_revenue_records_desc: 'ລາຍການ purchase order ທີ່ໃຊ້ເປັນຖານຄຳນວນ revenue/commission',
+  admin_platform_order_count: 'ຈຳນວນອໍເດີ',
+  admin_platform_revenue_empty: 'ຍັງບໍ່ມີຂໍ້ມູນ purchase order ພຽງພໍສຳລັບຄຳນວນ platform revenue',
+  supplier_category_standard_cement_construction_materials: 'ປູນ / ວັດສະດຸກໍ່ສ້າງ',
+  supplier_category_standard_steel: 'ເຫຼັກ',
+  supplier_category_standard_electrical: 'ໄຟຟ້າ',
+  supplier_category_standard_plumbing: 'ປະປາ',
+  supplier_category_standard_paint: 'ສີ',
+  supplier_category_standard_tiles: 'ກະເບື້ອງ',
+  supplier_category_standard_aluminum_glass: 'ອະລູມິນຽມ / ກະຈົກ',
+  supplier_category_standard_hardware: 'ຮາດແວ',
+  supplier_category_standard_tools: 'ເຄື່ອງມື',
+  supplier_category_standard_machinery_equipment_rental: 'ເຊົ່າເຄື່ອງຈັກ / ອຸປະກອນ',
+  supplier_category_standard_interior_finishing: 'ງານຕົບແຕ່ງພາຍໃນ',
+  supplier_category_standard_roofing_waterproofing: 'ຫຼັງຄາ / ກັນຊື່ມ',
+  supplier_category_standard_air_conditioning: 'ແອ',
+  supplier_category_standard_fire_protection: 'ລະບົບດັບເພີງ',
+  supplier_category_standard_safety_ppe: 'ອຸປະກອນຄວາມປອດໄພ / PPE',
+  supplier_category_standard_others: 'ອື່ນໆ',
+});
+
+Object.assign(translations.TH, {
+  nav_platform_owner: 'ผู้ดูแลแพลตฟอร์ม',
+  nav_supplier_portal: 'พอร์ทัลซัพพลายเออร์',
+  admin_access_title: 'ทางเข้าสำหรับผู้ดูแลแพลตฟอร์ม',
+  admin_access_desc: 'แยกจาก dashboard ผู้ใช้ปกติเพื่อเตรียมโครงสร้างสำหรับการควบคุมระบบ รายได้แพลตฟอร์ม และการกระทบยอดในขั้นถัดไป',
+  admin_access_enter: 'เข้า admin dashboard',
+  admin_back_home: 'กลับหน้าแรก',
+  supplier_access_title: 'ทางเข้าสำหรับซัพพลายเออร์',
+  supplier_access_desc: 'พื้นที่นี้แยกจาก dashboard ผู้ใช้ปกติและ admin เพื่อเตรียม workflow ของซัพพลายเออร์ให้ขยายต่อได้อย่างปลอดภัย',
+  supplier_access_enter: 'เข้า supplier portal',
+  supplier_back_home: 'กลับหน้าแรก',
+  supplier_section_ready: 'ส่วนนี้เป็น placeholder สำหรับ workflow ของซัพพลายเออร์ในขั้นถัดไป',
+  supplier_portal_isolated_notice: 'supplier portal นี้ถูกแยกออกจาก user dashboard และ admin dashboard โดยตั้งใจ',
+  supplier_menu_overview: 'ภาพรวมซัพพลายเออร์',
+  supplier_menu_products: 'สินค้า',
+  supplier_menu_orders: 'ออเดอร์',
+  supplier_menu_profile: 'โปรไฟล์',
+  supplier_dashboard_title: 'Supplier Dashboard',
+  supplier_dashboard_desc: 'shell สำหรับสรุปสถานะซัพพลายเออร์ ออเดอร์ และตัวชี้วัดหลัก',
+  supplier_products_title: 'Products',
+  supplier_products_desc: 'shell สำหรับรายการสินค้า ราคา และความพร้อมขายของซัพพลายเออร์',
+  supplier_products_add: '+ เพิ่มสินค้า',
+  supplier_products_edit: 'แก้ไขสินค้า',
+  supplier_products_remove: 'ลบสินค้า',
+  supplier_products_activate: 'เปิดใช้งาน',
+  supplier_products_deactivate: 'ปิดใช้งาน',
+  supplier_products_total: 'สินค้าทั้งหมด',
+  supplier_products_active: 'สินค้าที่ใช้งาน',
+  supplier_products_inactive: 'สินค้าที่ปิดใช้งาน',
+  supplier_products_categories: 'หมวดสินค้า',
+  supplier_products_search_placeholder: 'ค้นหารหัสหรือชื่อสินค้า...',
+  supplier_products_filter_all_statuses: 'ทุกสถานะ',
+  supplier_products_filter_all_categories: 'ทุกหมวด',
+  supplier_products_empty: 'ยังไม่มีสินค้าใน supplier portal',
+  supplier_products_form_title_add: 'เพิ่มสินค้า',
+  supplier_products_form_title_edit: 'แก้ไขสินค้า',
+  supplier_products_form_basic: 'ข้อมูลพื้นฐาน',
+  supplier_products_form_inventory: 'ราคาและสต็อก',
+  supplier_products_form_delivery: 'การจัดส่งและรูปภาพ',
+  supplier_products_code: 'รหัสสินค้า',
+  supplier_products_name: 'ชื่อสินค้า',
+  supplier_products_category: 'หมวด',
+  supplier_products_description: 'รายละเอียด',
+  supplier_products_unit: 'หน่วย',
+  supplier_products_price: 'ราคา',
+  supplier_products_min_order_qty: 'ขั้นต่ำต่อคำสั่งซื้อ',
+  supplier_products_available_qty: 'จำนวนพร้อมขาย',
+  supplier_products_lead_time: 'Lead Time',
+  supplier_products_delivery_area: 'พื้นที่จัดส่ง',
+  supplier_products_image: 'รูปสินค้า',
+  supplier_products_image_upload: 'อัปโหลดรูป',
+  supplier_products_image_replace: 'เปลี่ยนรูป',
+  supplier_products_image_remove: 'ลบรูป',
+  supplier_products_status: 'สถานะ',
+  supplier_products_save: 'บันทึกสินค้า',
+  supplier_products_safe_remove_hint: 'ลบได้เมื่อสินค้าถูกปิดใช้งานแล้ว',
+  supplier_products_remove_confirm: 'ลบสินค้านี้ออกจาก supplier portal ใช่หรือไม่?',
+  supplier_products_csv_ready: 'โครงสร้างข้อมูลนี้เตรียมไว้สำหรับ CSV import และ image handling ในขั้นถัดไป',
+  supplier_products_manual_source: 'ป้อนด้วยมือ',
+  supplier_products_stock_available: 'พร้อมขาย',
+  supplier_products_stock_low: 'ใกล้หมด',
+  supplier_products_stock_out: 'สินค้าหมด',
+  supplier_products_image_preview: 'ตัวอย่างรูป',
+  supplier_products_no_categories: 'ยังไม่มีหมวด supplier ที่เปิดใช้งาน',
+  supplier_products_import_source: 'แหล่งข้อมูล',
+  supplier_products_effective_price: 'ราคาขาย',
+  supplier_products_import_csv: 'นำเข้า CSV',
+  supplier_products_csv_example: 'CSV ควรมี header แบบง่าย เช่น product_code, product_name, category, unit, price, minimum_order_quantity, available_quantity, lead_time, delivery_area, description, status',
+  supplier_products_csv_upload: 'อัปโหลด CSV',
+  supplier_products_csv_preview_title: 'พรีวิวแถวที่จะนำเข้า',
+  supplier_products_csv_preview_empty: 'ยังไม่มีแถวจาก CSV',
+  supplier_products_csv_confirm: 'ยืนยันนำเข้า',
+  supplier_products_csv_rows: 'จำนวนแถวที่พบ',
+  supplier_products_csv_file: 'ไฟล์ CSV',
+  supplier_products_csv_imported: 'นำเข้าผ่าน CSV',
+  supplier_products_csv_required: 'กรุณาเลือกไฟล์ CSV ก่อน',
+  supplier_products_csv_parse_error: 'ไม่สามารถอ่าน CSV ได้',
+  supplier_products_csv_columns: 'คอลัมน์ที่รองรับ',
+  supplier_products_image_meta: 'ชื่อไฟล์ / ขนาด / ประเภท',
+  supplier_products_image_hint: 'ตอนนี้รองรับการอัปโหลดรูปทีละรายการ และเตรียม model ไว้สำหรับ bulk image support ในขั้นถัดไป',
+  supplier_orders_title: 'Orders',
+  supplier_orders_desc: 'shell สำหรับติดตามคำสั่งซื้อ ยืนยันการจัดส่ง และสถานะออเดอร์',
+  supplier_profile_title: 'Profile',
+  supplier_profile_desc: 'shell สำหรับข้อมูลซัพพลายเออร์ ข้อมูลติดต่อ และเอกสารพื้นฐาน',
+  supplier_orders_search_placeholder: 'ค้นหาเลขออเดอร์หรือชื่อลูกค้า...',
+  supplier_orders_filter_all: 'ทุกสถานะ',
+  supplier_orders_total: 'ออเดอร์ทั้งหมด',
+  supplier_orders_open: 'ออเดอร์ที่เปิดอยู่',
+  supplier_orders_in_transit: 'ออเดอร์ที่กำลังจัดส่ง',
+  supplier_orders_completed: 'ออเดอร์สำเร็จ',
+  supplier_orders_details: 'รายละเอียดออเดอร์',
+  supplier_orders_open_details: 'เปิดรายละเอียด',
+  supplier_orders_customer: 'ลูกค้า / ผู้รับเหมา',
+  supplier_orders_project: 'โครงการ / ไซต์',
+  supplier_orders_status: 'สถานะออเดอร์',
+  supplier_orders_update_status: 'อัปเดตสถานะ',
+  supplier_orders_empty: 'ยังไม่มี incoming orders',
+  supplier_orders_response_note: 'หมายเหตุจากซัพพลายเออร์',
+  supplier_orders_confirm: 'ยืนยันออเดอร์',
+  supplier_orders_reject: 'ปฏิเสธออเดอร์',
+  supplier_orders_status_new: 'ใหม่',
+  supplier_orders_status_confirmed: 'ยืนยันแล้ว',
+  supplier_orders_status_rejected: 'ปฏิเสธ',
+  supplier_orders_status_preparing: 'กำลังเตรียมสินค้า',
+  supplier_orders_status_shipped: 'จัดส่งแล้ว',
+  supplier_orders_status_delivered: 'ส่งมอบแล้ว',
+  supplier_orders_status_cancelled: 'ยกเลิก',
+  supplier_profile_save: 'บันทึกโปรไฟล์ซัพพลายเออร์',
+  supplier_profile_public_section: 'ข้อมูลทั่วไป',
+  supplier_profile_billing_section: 'ผู้ติดต่อฝั่ง billing',
+  supplier_profile_supported_categories: 'หมวดที่รองรับ',
+  supplier_profile_service_area: 'พื้นที่ให้บริการ / จัดส่ง',
+  supplier_profile_business_notes: 'หมายเหตุทางธุรกิจ',
+  supplier_profile_empty: 'ยังไม่มีโปรไฟล์ซัพพลายเออร์ ระบบจะสร้าง profile ใหม่เมื่อบันทึก',
+  supplier_profile_sync_notice: 'ข้อมูลชุดนี้ reuse ร่วมกับ admin supplier management และ future agreements / billing',
+  manager_menu_admin_overview: 'ภาพรวม admin',
+  manager_menu_admin_category_management: 'จัดการหมวดซัพพลายเออร์',
+  manager_menu_admin_supplier_agreements: 'ข้อตกลงซัพพลายเออร์',
+  manager_menu_admin_commission_billing: 'Commission Billing',
+  admin_overview_title: 'ภาพรวมฝั่ง admin',
+  admin_overview_desc: 'พื้นที่นี้เป็น shell แยกสำหรับ platform owner โดยไม่ปะปนกับ workflow ของผู้ใช้ทั่วไป',
+  admin_category_management_title: 'จัดการหมวดซัพพลายเออร์',
+  admin_category_management_desc: 'จัดการหมวดซัพพลายเออร์และ default commission ระดับ category เพื่อใช้ต่อใน supplier mapping และ revenue logic',
+  admin_supplier_management_desc: 'จัดการ supplier ระดับ platform, โปรไฟล์, สถานะ, category mapping และ commission logic ที่เตรียมไว้สำหรับ workflow ถัดไป',
+  admin_supplier_agreements_title: 'ข้อตกลงซัพพลายเออร์',
+  admin_supplier_agreements_desc: 'จัดการข้อตกลง commission และ billing ต่อซัพพลายเออร์เพื่อใช้ต่อใน Commission Billing',
+  admin_commission_billing_title: 'Commission Billing',
+  admin_commission_billing_desc: 'สร้างและติดตาม commission billing records จาก supplier agreements และ purchase orders เพื่อเตรียมต่อสำหรับ print/export และ settlement flow',
+  admin_platform_revenue_desc: 'เตรียม shell สำหรับสรุปรายได้แพลตฟอร์ม, commission และตัวชี้วัดทางการเงิน',
+  admin_settlements_desc: 'เตรียมพื้นที่สำหรับการกระทบยอด, การจ่ายคืน และสถานะการชำระเงิน',
+  admin_settings_desc: 'ตั้งค่า default ระดับแพลตฟอร์มสำหรับ commission, billing, settlement และข้อมูลกลางที่ใช้ร่วมกันใน print/export',
+  admin_settings_reuse_notice: 'ค่าชุดนี้ถูกเตรียมไว้เพื่อ reuse ร่วมกับ Supplier Agreements, Commission Billing, Settlements และ future print/export',
+  admin_settings_saved: 'บันทึกค่า admin settings แล้ว',
+  admin_settings_section_defaults: 'Default settings',
+  admin_settings_section_platform_identity: 'Platform billing identity',
+  admin_settings_default_commission_rate: 'Default commission rate (%)',
+  admin_settings_billing_number_prefix: 'Billing number prefix',
+  admin_settings_settlement_number_prefix: 'Settlement number prefix',
+  admin_settings_default_payment_due_days: 'Default payment due days',
+  admin_settings_default_billing_cycle: 'Default billing cycle',
+  admin_settings_default_billing_note: 'Default billing note',
+  admin_settings_default_settlement_note: 'Default settlement note',
+  admin_settings_platform_company_name: 'Platform company name',
+  admin_settings_platform_billing_address: 'Platform billing address',
+  admin_settings_platform_billing_email: 'Platform billing email',
+  admin_settings_platform_billing_phone: 'Platform billing phone',
+  admin_settings_internal_admin_notes: 'Internal admin notes',
+  admin_settings_reuse_agreements_billing: 'ใช้เป็นค่า default ใน agreement, commission billing และ settlement flows',
+  admin_settings_reuse_export: 'ใช้เป็นข้อมูลกลางสำหรับ billing header และ future export/reporting',
+  admin_section_ready: 'ส่วนนี้เป็น placeholder พร้อมสำหรับขยายต่อ',
+  admin_supplier_total: 'ซัพพลายเออร์ทั้งหมด',
+  admin_supplier_active: 'ซัพพลายเออร์ที่ใช้งาน',
+  admin_supplier_inactive: 'ซัพพลายเออร์ที่ปิดใช้งาน',
+  admin_supplier_categories: 'หมวดสินค้า',
+  admin_supplier_filter_all_statuses: 'ทุกสถานะ',
+  admin_supplier_internal_notice: 'ข้อมูลภายในชุดนี้จะถูกนำไปใช้ต่อใน Platform Revenue และ Settlements',
+  admin_supplier_public_section: 'ข้อมูลทั่วไปของซัพพลายเออร์',
+  admin_supplier_internal_section: 'ข้อมูลภายในของแพลตฟอร์ม',
+  admin_supplier_visible_to_user: 'ผู้ใช้ทั่วไปมองเห็นได้',
+  admin_supplier_internal_only: 'แสดงเฉพาะ admin',
+  admin_supplier_supported_categories: 'หมวดที่ซัพพลายเออร์รองรับ',
+  admin_supplier_category_commission_section: 'หมวดสินค้าและ commission',
+  admin_supplier_no_category_assignments: 'ซัพพลายเออร์นี้ยังไม่ได้ผูกกับหมวดใด',
+  admin_supplier_no_active_categories: 'ยังไม่มีหมวดที่เปิดใช้งานใน Category Management',
+  admin_supplier_commission_default: 'ใช้ค่า default',
+  admin_supplier_commission_override: 'override',
+  admin_supplier_use_category_default: 'ใช้ default commission ของหมวด',
+  admin_supplier_override_commission: 'override commission (%)',
+  admin_supplier_default_reference: 'ค่า default ของหมวด',
+  admin_supplier_agreements_total: 'ข้อตกลงทั้งหมด',
+  admin_supplier_agreements_active: 'ข้อตกลงที่ใช้งาน',
+  admin_supplier_agreements_expiring: 'ข้อตกลงที่มีวันสิ้นสุด',
+  admin_supplier_recent_records: 'รายการที่พบ',
+  admin_supplier_agreements_search_placeholder: 'ค้นหาข้อตกลงซัพพลายเออร์...',
+  admin_supplier_agreement_filter_all_statuses: 'ทุกสถานะ',
+  admin_supplier_agreement_add: '+ เพิ่มข้อตกลง',
+  admin_supplier_agreement_add_title: 'เพิ่มข้อตกลงซัพพลายเออร์',
+  admin_supplier_agreement_edit_title: 'แก้ไขข้อตกลงซัพพลายเออร์',
+  admin_supplier_agreement_form_section: 'ข้อมูลข้อตกลง',
+  admin_supplier_agreement_detail_title: 'รายละเอียดข้อตกลง',
+  admin_supplier_agreement_title: 'หัวข้อข้อตกลง',
+  admin_supplier_agreement_number: 'เลขที่ข้อตกลง',
+  admin_supplier_agreement_period: 'ช่วงเวลาข้อตกลง',
+  admin_supplier_agreement_billing_cycle: 'รอบ billing',
+  admin_supplier_agreement_billing_cycle_monthly: 'รายเดือน',
+  admin_supplier_agreement_billing_cycle_biweekly: 'ทุก 2 สัปดาห์',
+  admin_supplier_agreement_billing_cycle_weekly: 'รายสัปดาห์',
+  admin_supplier_agreement_billing_cycle_custom: 'custom',
+  admin_supplier_agreement_billing_cutoff: 'วัน / ช่วง cutoff',
+  admin_supplier_agreement_payment_due_days: 'จำนวนวันครบกำหนดชำระ',
+  admin_supplier_agreement_commission_basis: 'บันทึกพื้นฐาน commission',
+  admin_supplier_agreement_billing_contact: 'ผู้ติดต่อฝั่ง billing',
+  admin_supplier_agreement_payment_method_note: 'วิธีชำระ / settlement note',
+  admin_supplier_agreement_special_terms: 'เงื่อนไขพิเศษ',
+  admin_supplier_agreement_internal_notes: 'หมายเหตุภายใน',
+  admin_supplier_agreement_status_draft: 'ร่าง',
+  admin_supplier_agreement_status_active: 'ใช้งาน',
+  admin_supplier_agreement_status_inactive: 'ไม่ใช้งาน',
+  admin_supplier_agreement_status_expired: 'หมดอายุ',
+  admin_supplier_agreements_empty: 'ยังไม่มีข้อตกลงซัพพลายเออร์',
+  admin_commission_billing_total: 'ใบ billing ทั้งหมด',
+  admin_commission_billing_open: 'ใบ billing ที่ยังเปิดอยู่',
+  admin_commission_billing_paid: 'ใบ billing ที่ชำระแล้ว',
+  admin_commission_billing_generate: '+ สร้าง billing',
+  admin_commission_billing_search_placeholder: 'ค้นหา commission billing...',
+  admin_commission_billing_filter_all_statuses: 'ทุกสถานะ',
+  admin_commission_billing_empty: 'ยังไม่มี commission billing records',
+  admin_commission_billing_detail_title: 'รายละเอียด commission billing',
+  admin_commission_billing_form_title: 'สร้าง Commission Billing',
+  admin_commission_billing_generate_section: 'ข้อมูล billing',
+  admin_commission_billing_agreement_reference: 'อ้างอิงข้อตกลง',
+  admin_commission_billing_period: 'ช่วง billing',
+  admin_commission_billing_period_start: 'เริ่มรอบ billing',
+  admin_commission_billing_period_end: 'สิ้นสุดรอบ billing',
+  admin_commission_billing_issue_date: 'วันที่ออก billing',
+  admin_commission_billing_due_date: 'วันครบกำหนด',
+  admin_commission_billing_gross_sales: 'ยอดขายรวม',
+  admin_commission_billing_commission_amount: 'จำนวน commission',
+  admin_commission_billing_order_count: 'จำนวนออเดอร์',
+  admin_commission_billing_source_orders: 'ออเดอร์ที่ใช้คำนวณ',
+  admin_commission_billing_preview: 'ภาพรวมก่อนสร้าง',
+  admin_commission_billing_select_agreement: 'เลือกข้อตกลง',
+  admin_commission_billing_empty_orders: 'ไม่พบออเดอร์ที่เข้าเงื่อนไขสำหรับรอบ billing นี้',
+  admin_commission_billing_export_ready: 'โครงสร้าง record นี้ถูกเตรียมไว้สำหรับ print / export / invoice output ในขั้นถัดไป',
+  admin_commission_billing_status_draft: 'ร่าง',
+  admin_commission_billing_status_issued: 'ออกแล้ว',
+  admin_commission_billing_status_paid: 'ชำระแล้ว',
+  admin_commission_billing_status_cancelled: 'ยกเลิก',
+  admin_settlement_total: 'รายการ settlement ทั้งหมด',
+  admin_settlement_unpaid: 'ยังไม่ชำระ',
+  admin_settlement_overdue: 'เกินกำหนด',
+  admin_settlement_paid: 'ชำระแล้ว',
+  admin_settlement_add: '+ สร้าง settlement',
+  admin_settlement_search_placeholder: 'ค้นหา settlement...',
+  admin_settlement_filter_all_statuses: 'ทุกสถานะ',
+  admin_settlement_empty: 'ยังไม่มี settlement records',
+  admin_settlement_detail_title: 'รายละเอียด settlement',
+  admin_settlement_form_title: 'สร้าง Settlement',
+  admin_settlement_form_section: 'ข้อมูล settlement',
+  admin_settlement_preview: 'ภาพรวม settlement',
+  admin_settlement_related_billing: 'billing ที่เกี่ยวข้อง',
+  admin_settlement_select_billing: 'เลือก billing record',
+  admin_settlement_amount_due: 'จำนวนที่ต้องชำระ',
+  admin_settlement_amount_paid: 'จำนวนที่ชำระแล้ว',
+  admin_settlement_balance_remaining: 'ยอดคงเหลือ',
+  admin_settlement_payment_date: 'วันที่ชำระ',
+  admin_settlement_due_date: 'วันครบกำหนด',
+  admin_settlement_payment_method: 'วิธีชำระ',
+  admin_settlement_payment_reference: 'เลขอ้างอิงการชำระ',
+  admin_settlement_status_unpaid: 'ยังไม่ชำระ',
+  admin_settlement_status_partial: 'ชำระบางส่วน',
+  admin_settlement_status_overdue: 'เกินกำหนด',
+  admin_settlement_status_paid: 'ชำระแล้ว',
+  admin_settlement_status_cancelled: 'ยกเลิก',
+  admin_settlement_record_payment: 'บันทึกรับชำระ',
+  admin_settlement_record_payment_title: 'บันทึกการรับชำระ',
+  admin_settlement_payment_history: 'ประวัติการชำระ',
+  admin_settlement_no_payments: 'ยังไม่มีประวัติการรับชำระ',
+  admin_settlement_export_ready: 'โครงสร้าง settlement นี้ถูกเตรียมไว้สำหรับ reporting / export / payment audit ในขั้นถัดไป',
+  admin_supplier_add_title: 'เพิ่มซัพพลายเออร์ใหม่',
+  admin_supplier_edit_title: 'แก้ไขซัพพลายเออร์',
+  admin_supplier_deactivate: 'ปิดใช้งาน',
+  admin_supplier_activate: 'เปิดใช้งาน',
+  admin_supplier_remove: 'ลบซัพพลายเออร์',
+  admin_category_total: 'หมวดทั้งหมด',
+  admin_category_active: 'หมวดที่ใช้งาน',
+  admin_category_inactive: 'หมวดที่ปิดใช้งาน',
+  admin_category_custom: 'หมวด custom',
+  admin_category_add: '+ เพิ่มหมวด',
+  admin_category_add_title: 'เพิ่มหมวดซัพพลายเออร์',
+  admin_category_edit_title: 'แก้ไขหมวดซัพพลายเออร์',
+  admin_category_form_section: 'ข้อมูลหมวด',
+  admin_category_name: 'ชื่อหมวด',
+  admin_category_slug: 'Slug / Code',
+  admin_category_internal_notes: 'หมายเหตุภายใน',
+  admin_category_activate: 'เปิดใช้งาน',
+  admin_category_deactivate: 'ปิดใช้งาน',
+  admin_category_remove: 'ลบหมวด',
+  admin_category_standard: 'มาตรฐาน',
+  admin_category_custom_badge: 'custom',
+  admin_category_search_placeholder: 'ค้นหาหมวด...',
+  admin_category_filter_all_statuses: 'ทุกสถานะ',
+  admin_category_internal_notice: 'ค่า default commission ของแต่ละหมวดถูกเตรียมไว้เพื่อใช้ต่อใน supplier mapping',
+  admin_category_system_notice: 'หมวดมาตรฐานแก้ไขได้ แต่ถูกระบุเป็น system category',
+  admin_category_empty: 'ยังไม่มีหมวดซัพพลายเออร์',
+  supplier_settlement_terms: 'เงื่อนไขการกระทบยอด',
+  supplier_platform_notes: 'หมายเหตุภายในของแพลตฟอร์ม',
+  admin_platform_revenue_internal_notice: 'รายงานนี้เป็น internal platform revenue ที่คำนวณจาก purchase orders และ commission rate ของ supplier',
+  admin_platform_total_revenue: 'รายได้แพลตฟอร์มรวม',
+  admin_platform_estimated_commission: 'commission ที่คาดการณ์',
+  admin_platform_order_volume: 'มูลค่าคำสั่งซื้อ',
+  admin_platform_recent_records: 'รายการล่าสุด',
+  admin_platform_commission_by_supplier: 'commission แยกตามซัพพลายเออร์',
+  admin_platform_commission_by_supplier_desc: 'สรุปจาก purchase orders ที่เชื่อมกับ supplier และ commission rate ภายใน',
+  admin_platform_revenue_by_period: 'รายได้แยกตามช่วงเวลา',
+  admin_platform_revenue_by_period_desc: 'สรุปรายเดือนจากวันที่ของ purchase order',
+  admin_platform_recent_revenue_records: 'รายการรายได้ล่าสุด',
+  admin_platform_recent_revenue_records_desc: 'รายการ purchase order ที่ใช้เป็นฐานคำนวณ revenue/commission',
+  admin_platform_order_count: 'จำนวนออเดอร์',
+  admin_platform_revenue_empty: 'ยังไม่มีข้อมูล purchase order เพียงพอสำหรับคำนวณ platform revenue',
+  supplier_category_standard_cement_construction_materials: 'ปูน / วัสดุก่อสร้าง',
+  supplier_category_standard_steel: 'เหล็ก',
+  supplier_category_standard_electrical: 'ไฟฟ้า',
+  supplier_category_standard_plumbing: 'ประปา',
+  supplier_category_standard_paint: 'สี',
+  supplier_category_standard_tiles: 'กระเบื้อง',
+  supplier_category_standard_aluminum_glass: 'อลูมิเนียม / กระจก',
+  supplier_category_standard_hardware: 'ฮาร์ดแวร์',
+  supplier_category_standard_tools: 'เครื่องมือ',
+  supplier_category_standard_machinery_equipment_rental: 'เครื่องจักร / อุปกรณ์ให้เช่า',
+  supplier_category_standard_interior_finishing: 'งานตกแต่งภายใน',
+  supplier_category_standard_roofing_waterproofing: 'หลังคา / กันซึม',
+  supplier_category_standard_air_conditioning: 'เครื่องปรับอากาศ',
+  supplier_category_standard_fire_protection: 'ระบบดับเพลิง',
+  supplier_category_standard_safety_ppe: 'ความปลอดภัย / PPE',
+  supplier_category_standard_others: 'อื่นๆ',
+});
+
+Object.assign(translations.EN, {
+  nav_platform_owner: 'Platform Owner',
+  nav_supplier_portal: 'Supplier Portal',
+  admin_access_title: 'Platform Owner Access',
+  admin_access_desc: 'This entry point is separated from the normal user dashboard so platform admin controls, revenue views, and settlements can expand safely later.',
+  admin_access_enter: 'Open Admin Dashboard',
+  admin_back_home: 'Back to Home',
+  supplier_access_title: 'Supplier Access',
+  supplier_access_desc: 'This area is isolated from both the normal user dashboard and the admin dashboard so supplier workflows can expand safely later.',
+  supplier_access_enter: 'Open Supplier Portal',
+  supplier_back_home: 'Back to Home',
+  supplier_section_ready: 'This section is a placeholder for upcoming supplier workflows.',
+  supplier_portal_isolated_notice: 'This supplier portal is intentionally separated from both the user dashboard and the admin dashboard.',
+  supplier_menu_overview: 'Supplier Dashboard',
+  supplier_menu_products: 'Products',
+  supplier_menu_orders: 'Orders',
+  supplier_menu_profile: 'Profile',
+  supplier_dashboard_title: 'Supplier Dashboard',
+  supplier_dashboard_desc: 'Prepared shell for supplier status, order visibility, and core performance summaries.',
+  supplier_products_title: 'Products',
+  supplier_products_desc: 'Prepared shell for supplier product listings, pricing, and availability controls.',
+  supplier_products_add: '+ Add Product',
+  supplier_products_edit: 'Edit Product',
+  supplier_products_remove: 'Remove Product',
+  supplier_products_activate: 'Activate',
+  supplier_products_deactivate: 'Deactivate',
+  supplier_products_total: 'Total Products',
+  supplier_products_active: 'Active Products',
+  supplier_products_inactive: 'Inactive Products',
+  supplier_products_categories: 'Product Categories',
+  supplier_products_search_placeholder: 'Search by code or product name...',
+  supplier_products_filter_all_statuses: 'All statuses',
+  supplier_products_filter_all_categories: 'All categories',
+  supplier_products_empty: 'No products in the supplier portal yet',
+  supplier_products_form_title_add: 'Add Product',
+  supplier_products_form_title_edit: 'Edit Product',
+  supplier_products_form_basic: 'Basic Details',
+  supplier_products_form_inventory: 'Pricing & Stock',
+  supplier_products_form_delivery: 'Delivery & Image',
+  supplier_products_code: 'Product Code',
+  supplier_products_name: 'Product Name',
+  supplier_products_category: 'Category',
+  supplier_products_description: 'Description',
+  supplier_products_unit: 'Unit',
+  supplier_products_price: 'Price',
+  supplier_products_min_order_qty: 'Minimum Order Qty',
+  supplier_products_available_qty: 'Available Qty',
+  supplier_products_lead_time: 'Lead Time',
+  supplier_products_delivery_area: 'Delivery Area',
+  supplier_products_image: 'Product Image',
+  supplier_products_image_upload: 'Upload Image',
+  supplier_products_image_replace: 'Replace Image',
+  supplier_products_image_remove: 'Remove Image',
+  supplier_products_status: 'Status',
+  supplier_products_save: 'Save Product',
+  supplier_products_safe_remove_hint: 'Products can only be removed after being deactivated',
+  supplier_products_remove_confirm: 'Remove this product from the supplier portal?',
+  supplier_products_csv_ready: 'This data model is prepared for future CSV import and image handling support.',
+  supplier_products_manual_source: 'Manual entry',
+  supplier_products_stock_available: 'Available',
+  supplier_products_stock_low: 'Low stock',
+  supplier_products_stock_out: 'Out of stock',
+  supplier_products_image_preview: 'Image Preview',
+  supplier_products_no_categories: 'There are no active supplier categories yet',
+  supplier_products_import_source: 'Data Source',
+  supplier_products_effective_price: 'Selling Price',
+  supplier_products_import_csv: 'Import CSV',
+  supplier_products_csv_example: 'Use simple CSV headers such as product_code, product_name, category, unit, price, minimum_order_quantity, available_quantity, lead_time, delivery_area, description, status',
+  supplier_products_csv_upload: 'Upload CSV',
+  supplier_products_csv_preview_title: 'Preview Rows to Import',
+  supplier_products_csv_preview_empty: 'No CSV rows loaded yet',
+  supplier_products_csv_confirm: 'Confirm Import',
+  supplier_products_csv_rows: 'Rows Found',
+  supplier_products_csv_file: 'CSV File',
+  supplier_products_csv_imported: 'Imported via CSV',
+  supplier_products_csv_required: 'Please choose a CSV file first',
+  supplier_products_csv_parse_error: 'Unable to parse the CSV file',
+  supplier_products_csv_columns: 'Supported Columns',
+  supplier_products_image_meta: 'File Name / Size / Type',
+  supplier_products_image_hint: 'Single-image upload is supported now, and the model is prepared for future bulk image support.',
+  supplier_orders_title: 'Orders',
+  supplier_orders_desc: 'Prepared shell for order tracking, fulfillment confirmation, and order-status workflows.',
+  supplier_profile_title: 'Profile',
+  supplier_profile_desc: 'Prepared shell for supplier company details, contacts, and profile documents.',
+  supplier_orders_search_placeholder: 'Search order number or customer name...',
+  supplier_orders_filter_all: 'All statuses',
+  supplier_orders_total: 'Total Orders',
+  supplier_orders_open: 'Open Orders',
+  supplier_orders_in_transit: 'In Transit',
+  supplier_orders_completed: 'Completed Orders',
+  supplier_orders_details: 'Order Details',
+  supplier_orders_open_details: 'Open Details',
+  supplier_orders_customer: 'Customer / Contractor',
+  supplier_orders_project: 'Project / Site',
+  supplier_orders_status: 'Order Status',
+  supplier_orders_update_status: 'Update Status',
+  supplier_orders_empty: 'No incoming orders yet',
+  supplier_orders_response_note: 'Supplier Response Note',
+  supplier_orders_confirm: 'Confirm Order',
+  supplier_orders_reject: 'Reject Order',
+  supplier_orders_status_new: 'New',
+  supplier_orders_status_confirmed: 'Confirmed',
+  supplier_orders_status_rejected: 'Rejected',
+  supplier_orders_status_preparing: 'Preparing',
+  supplier_orders_status_shipped: 'Shipped',
+  supplier_orders_status_delivered: 'Delivered',
+  supplier_orders_status_cancelled: 'Cancelled',
+  supplier_profile_save: 'Save Supplier Profile',
+  supplier_profile_public_section: 'Public Details',
+  supplier_profile_billing_section: 'Billing Contact',
+  supplier_profile_supported_categories: 'Supported Categories',
+  supplier_profile_service_area: 'Service / Delivery Area',
+  supplier_profile_business_notes: 'Business Notes',
+  supplier_profile_empty: 'There is no supplier profile yet. A new supplier profile will be created when you save.',
+  supplier_profile_sync_notice: 'This profile reuses the same data structure as admin supplier management and future agreements / billing flows.',
+  manager_menu_admin_overview: 'Admin Overview',
+  manager_menu_admin_category_management: 'Category Management',
+  manager_menu_admin_supplier_agreements: 'Supplier Agreements',
+  manager_menu_admin_commission_billing: 'Commission Billing',
+  admin_overview_title: 'Admin Overview',
+  admin_overview_desc: 'This is a separate shell for platform-owner workflows and is intentionally isolated from the normal user dashboard.',
+  admin_category_management_title: 'Supplier Category Management',
+  admin_category_management_desc: 'Manage supplier categories and category-level default commission settings for later supplier mapping and revenue logic.',
+  admin_supplier_management_desc: 'Manage platform-level suppliers, profile data, status, category mapping, and commission logic prepared for later workflows.',
+  admin_supplier_agreements_title: 'Supplier Agreements',
+  admin_supplier_agreements_desc: 'Manage per-supplier commission and billing agreements so future Commission Billing can reuse the agreement terms directly.',
+  admin_commission_billing_title: 'Commission Billing',
+  admin_commission_billing_desc: 'Create and track commission billing records from supplier agreements and purchase orders, ready for later print/export and settlement workflows.',
+  admin_platform_revenue_desc: 'Prepared shell for platform revenue summaries, commission tracking, and financial insight modules.',
+  admin_settlements_desc: 'Prepared area for settlement review, payout handling, and payment status workflows.',
+  admin_settings_desc: 'Configure platform-level defaults for commission, billing, settlements, and shared platform billing identity for future print/export.',
+  admin_settings_reuse_notice: 'These settings are prepared to be reused by Supplier Agreements, Commission Billing, Settlements, and future print/export flows.',
+  admin_settings_saved: 'Admin settings saved',
+  admin_settings_section_defaults: 'Default Settings',
+  admin_settings_section_platform_identity: 'Platform Billing Identity',
+  admin_settings_default_commission_rate: 'Default Commission Rate (%)',
+  admin_settings_billing_number_prefix: 'Billing Number Prefix',
+  admin_settings_settlement_number_prefix: 'Settlement Number Prefix',
+  admin_settings_default_payment_due_days: 'Default Payment Due Days',
+  admin_settings_default_billing_cycle: 'Default Billing Cycle',
+  admin_settings_default_billing_note: 'Default Billing Note',
+  admin_settings_default_settlement_note: 'Default Settlement Note',
+  admin_settings_platform_company_name: 'Platform Company Name',
+  admin_settings_platform_billing_address: 'Platform Billing Address',
+  admin_settings_platform_billing_email: 'Platform Billing Email',
+  admin_settings_platform_billing_phone: 'Platform Billing Phone',
+  admin_settings_internal_admin_notes: 'Internal Admin Notes',
+  admin_settings_reuse_agreements_billing: 'Used as defaults in agreement, commission billing, and settlement flows.',
+  admin_settings_reuse_export: 'Used as shared billing identity for headers and future export/reporting.',
+  admin_section_ready: 'This section is a placeholder ready for later expansion.',
+  admin_supplier_total: 'Total Suppliers',
+  admin_supplier_active: 'Active Suppliers',
+  admin_supplier_inactive: 'Inactive Suppliers',
+  admin_supplier_categories: 'Product Categories',
+  admin_supplier_filter_all_statuses: 'All statuses',
+  admin_supplier_internal_notice: 'These internal fields are prepared for future Platform Revenue and Settlements workflows.',
+  admin_supplier_public_section: 'Supplier Public Profile',
+  admin_supplier_internal_section: 'Platform Internal Details',
+  admin_supplier_visible_to_user: 'Visible to normal users',
+  admin_supplier_internal_only: 'Admin only',
+  admin_supplier_supported_categories: 'Supported Categories',
+  admin_supplier_category_commission_section: 'Product Categories & Commission',
+  admin_supplier_no_category_assignments: 'This supplier is not mapped to any category yet.',
+  admin_supplier_no_active_categories: 'There are no active categories in Category Management yet.',
+  admin_supplier_commission_default: 'Using default',
+  admin_supplier_commission_override: 'Override',
+  admin_supplier_use_category_default: 'Use category default commission',
+  admin_supplier_override_commission: 'Override commission (%)',
+  admin_supplier_default_reference: 'Category default',
+  admin_supplier_agreements_total: 'Total Agreements',
+  admin_supplier_agreements_active: 'Active Agreements',
+  admin_supplier_agreements_expiring: 'Agreements with End Date',
+  admin_supplier_recent_records: 'Matched Records',
+  admin_supplier_agreements_search_placeholder: 'Search supplier agreements...',
+  admin_supplier_agreement_filter_all_statuses: 'All statuses',
+  admin_supplier_agreement_add: '+ Add Agreement',
+  admin_supplier_agreement_add_title: 'Add Supplier Agreement',
+  admin_supplier_agreement_edit_title: 'Edit Supplier Agreement',
+  admin_supplier_agreement_form_section: 'Agreement Details',
+  admin_supplier_agreement_detail_title: 'Agreement Details',
+  admin_supplier_agreement_title: 'Agreement Title',
+  admin_supplier_agreement_number: 'Agreement Number',
+  admin_supplier_agreement_period: 'Agreement Period',
+  admin_supplier_agreement_billing_cycle: 'Billing Cycle',
+  admin_supplier_agreement_billing_cycle_monthly: 'Monthly',
+  admin_supplier_agreement_billing_cycle_biweekly: 'Biweekly',
+  admin_supplier_agreement_billing_cycle_weekly: 'Weekly',
+  admin_supplier_agreement_billing_cycle_custom: 'Custom',
+  admin_supplier_agreement_billing_cutoff: 'Billing Cutoff Day / Period',
+  admin_supplier_agreement_payment_due_days: 'Payment Due Days',
+  admin_supplier_agreement_commission_basis: 'Commission Basis Note',
+  admin_supplier_agreement_billing_contact: 'Billing Contact',
+  admin_supplier_agreement_payment_method_note: 'Payment Method / Settlement Note',
+  admin_supplier_agreement_special_terms: 'Special Terms',
+  admin_supplier_agreement_internal_notes: 'Internal Notes',
+  admin_supplier_agreement_status_draft: 'Draft',
+  admin_supplier_agreement_status_active: 'Active',
+  admin_supplier_agreement_status_inactive: 'Inactive',
+  admin_supplier_agreement_status_expired: 'Expired',
+  admin_supplier_agreements_empty: 'No supplier agreements yet',
+  admin_commission_billing_total: 'Total Billing Records',
+  admin_commission_billing_open: 'Open Billing Records',
+  admin_commission_billing_paid: 'Paid Billing Records',
+  admin_commission_billing_generate: '+ Generate Billing',
+  admin_commission_billing_search_placeholder: 'Search commission billing...',
+  admin_commission_billing_filter_all_statuses: 'All statuses',
+  admin_commission_billing_empty: 'No commission billing records yet',
+  admin_commission_billing_detail_title: 'Commission Billing Detail',
+  admin_commission_billing_form_title: 'Generate Commission Billing',
+  admin_commission_billing_generate_section: 'Billing Details',
+  admin_commission_billing_agreement_reference: 'Agreement Reference',
+  admin_commission_billing_period: 'Billing Period',
+  admin_commission_billing_period_start: 'Billing Period Start',
+  admin_commission_billing_period_end: 'Billing Period End',
+  admin_commission_billing_issue_date: 'Billing Issue Date',
+  admin_commission_billing_due_date: 'Due Date',
+  admin_commission_billing_gross_sales: 'Gross Sales Amount',
+  admin_commission_billing_commission_amount: 'Commission Amount',
+  admin_commission_billing_order_count: 'Order Count',
+  admin_commission_billing_source_orders: 'Source Orders',
+  admin_commission_billing_preview: 'Generation Preview',
+  admin_commission_billing_select_agreement: 'Select Agreement',
+  admin_commission_billing_empty_orders: 'No eligible orders were found for this billing period.',
+  admin_commission_billing_export_ready: 'This record structure is ready for future print, export, and invoice output workflows.',
+  admin_commission_billing_status_draft: 'Draft',
+  admin_commission_billing_status_issued: 'Issued',
+  admin_commission_billing_status_paid: 'Paid',
+  admin_commission_billing_status_cancelled: 'Cancelled',
+  admin_settlement_total: 'Total Settlements',
+  admin_settlement_unpaid: 'Unpaid',
+  admin_settlement_overdue: 'Overdue',
+  admin_settlement_paid: 'Paid',
+  admin_settlement_add: '+ Create Settlement',
+  admin_settlement_search_placeholder: 'Search settlements...',
+  admin_settlement_filter_all_statuses: 'All statuses',
+  admin_settlement_empty: 'No settlement records yet',
+  admin_settlement_detail_title: 'Settlement Detail',
+  admin_settlement_form_title: 'Create Settlement',
+  admin_settlement_form_section: 'Settlement Details',
+  admin_settlement_preview: 'Settlement Preview',
+  admin_settlement_related_billing: 'Related Billing Record',
+  admin_settlement_select_billing: 'Select Billing Record',
+  admin_settlement_amount_due: 'Amount Due',
+  admin_settlement_amount_paid: 'Amount Paid',
+  admin_settlement_balance_remaining: 'Balance Remaining',
+  admin_settlement_payment_date: 'Payment Date',
+  admin_settlement_due_date: 'Due Date',
+  admin_settlement_payment_method: 'Payment Method',
+  admin_settlement_payment_reference: 'Payment Reference',
+  admin_settlement_status_unpaid: 'Unpaid',
+  admin_settlement_status_partial: 'Partially Paid',
+  admin_settlement_status_overdue: 'Overdue',
+  admin_settlement_status_paid: 'Paid',
+  admin_settlement_status_cancelled: 'Cancelled',
+  admin_settlement_record_payment: 'Record Payment',
+  admin_settlement_record_payment_title: 'Record Payment Received',
+  admin_settlement_payment_history: 'Payment History',
+  admin_settlement_no_payments: 'No payment history yet',
+  admin_settlement_export_ready: 'This settlement structure is ready for future reporting, export, and payment audit workflows.',
+  admin_supplier_add_title: 'Add Supplier',
+  admin_supplier_edit_title: 'Edit Supplier',
+  admin_supplier_deactivate: 'Deactivate',
+  admin_supplier_activate: 'Activate',
+  admin_supplier_remove: 'Remove Supplier',
+  admin_category_total: 'Total Categories',
+  admin_category_active: 'Active Categories',
+  admin_category_inactive: 'Inactive Categories',
+  admin_category_custom: 'Custom Categories',
+  admin_category_add: '+ Add Category',
+  admin_category_add_title: 'Add Supplier Category',
+  admin_category_edit_title: 'Edit Supplier Category',
+  admin_category_form_section: 'Category Details',
+  admin_category_name: 'Category Name',
+  admin_category_slug: 'Slug / Code',
+  admin_category_internal_notes: 'Internal Notes',
+  admin_category_activate: 'Activate',
+  admin_category_deactivate: 'Deactivate',
+  admin_category_remove: 'Remove Category',
+  admin_category_standard: 'Standard',
+  admin_category_custom_badge: 'Custom',
+  admin_category_search_placeholder: 'Search categories...',
+  admin_category_filter_all_statuses: 'All statuses',
+  admin_category_internal_notice: 'Default category commission is prepared here so Supplier Management can map suppliers to one or more categories later.',
+  admin_category_system_notice: 'Standard categories can be edited, but they are flagged as system categories.',
+  admin_category_empty: 'No supplier categories yet',
+  supplier_settlement_terms: 'Settlement Terms',
+  supplier_platform_notes: 'Platform Internal Notes',
+  admin_platform_revenue_internal_notice: 'This report is internal platform revenue based on purchase orders and supplier commission rates.',
+  admin_platform_total_revenue: 'Total Platform Revenue',
+  admin_platform_estimated_commission: 'Estimated Total Commission',
+  admin_platform_order_volume: 'Order Volume',
+  admin_platform_recent_records: 'Recent Records',
+  admin_platform_commission_by_supplier: 'Commission by Supplier',
+  admin_platform_commission_by_supplier_desc: 'Summarized from purchase orders linked to suppliers and their internal commission rates.',
+  admin_platform_revenue_by_period: 'Revenue by Period',
+  admin_platform_revenue_by_period_desc: 'Monthly summary based on purchase order dates.',
+  admin_platform_recent_revenue_records: 'Recent Revenue Records',
+  admin_platform_recent_revenue_records_desc: 'Recent purchase orders used as the basis for revenue and commission calculations.',
+  admin_platform_order_count: 'Order Count',
+  admin_platform_revenue_empty: 'There is not enough purchase order data to calculate platform revenue yet.',
+  supplier_category_standard_cement_construction_materials: 'Cement / Construction Materials',
+  supplier_category_standard_steel: 'Steel',
+  supplier_category_standard_electrical: 'Electrical',
+  supplier_category_standard_plumbing: 'Plumbing',
+  supplier_category_standard_paint: 'Paint',
+  supplier_category_standard_tiles: 'Tiles',
+  supplier_category_standard_aluminum_glass: 'Aluminum / Glass',
+  supplier_category_standard_hardware: 'Hardware',
+  supplier_category_standard_tools: 'Tools',
+  supplier_category_standard_machinery_equipment_rental: 'Machinery / Equipment Rental',
+  supplier_category_standard_interior_finishing: 'Interior Finishing',
+  supplier_category_standard_roofing_waterproofing: 'Roofing / Waterproofing',
+  supplier_category_standard_air_conditioning: 'Air Conditioning',
+  supplier_category_standard_fire_protection: 'Fire Protection',
+  supplier_category_standard_safety_ppe: 'Safety / PPE',
+  supplier_category_standard_others: 'Others',
+});
+
+Object.assign(translations.LA, {
+  project_code: 'ລະຫັດໂຄງການ',
+  project_type: 'ປະເພດໂຄງການ',
+  project_site_address: 'ທີ່ຢູ່ໜ້າງານ',
+  project_start_date: 'ວັນເລີ່ມ',
+  project_end_date: 'ວັນສິ້ນສຸດ',
+  project_value: 'ມູນຄ່າໂຄງການ',
+  project_client_name: 'ຊື່ລູກຄ້າ / ຜູ້ວ່າຈ້າງ',
+  project_section_core: 'ຂໍ້ມູນໂຄງການ',
+  project_section_supervisor: 'ຂໍ້ມູນຜູ້ຄຸມງານ',
+  project_section_subcontractor: 'ຂໍ້ມູນຜູ້ຮັບເໝົາຊ່ວງ',
+  project_supervisor_name: 'ຊື່ຜູ້ຄຸມງານ',
+  project_supervisor_position: 'ຕຳແໜ່ງຜູ້ຄຸມງານ',
+  project_supervisor_notes: 'ໝາຍເຫດຜູ້ຄຸມງານ',
+  project_subcontractor_name: 'ຊື່ຜູ້ຮັບເໝົາຊ່ວງ / ບໍລິສັດ',
+  project_subcontractor_work_type: 'ປະເພດວຽກຮັບເໝົາ',
+  project_subcontractor_contact_person: 'ຜູ້ປະສານງານ',
+  project_subcontractor_status: 'ສະຖານະຜູ້ຮັບເໝົາຊ່ວງ',
+  project_subcontractor_notes: 'ໝາຍເຫດຜູ້ຮັບເໝົາຊ່ວງ',
+  project_add_subcontractor: '+ ເພີ່ມຜູ້ຮັບເໝົາຊ່ວງ',
+  project_remove_subcontractor: 'ລົບລາຍການ',
+  project_subcontractor_entry: 'ຜູ້ຮັບເໝົາຊ່ວງ',
+  project_type_residential: 'ທີ່ພັກອາໄສ',
+  project_type_commercial: 'ພານິດ',
+  project_type_industrial: 'ອຸດສາຫະກຳ',
+  project_type_renovation: 'ປັບປຸງ / ຕໍ່ເຕີມ',
+  project_type_other: 'ອື່ນໆ',
+  project_detail_title: 'ພາບລວມໂຄງການ',
+  project_open_details: 'ເບິ່ງລາຍລະອຽດ',
+  project_detail_empty: 'ເລືອກໂຄງການເພື່ອເບິ່ງລາຍລະອຽດ',
+  project_status_summary: 'ສະຖານະໂຄງການ',
+  project_schedule_summary: 'ໄລຍະເວລາດຳເນີນງານ',
+  project_team_summary: 'ທີມໂຄງການ',
+  project_tab_overview: 'ພາບລວມ',
+  project_tab_progress: 'ຄວາມຄືບໜ້າ',
+  project_tab_team: 'ທີມງານ',
+  project_tab_subcontractors: 'ຜູ້ຮັບເໝົາຊ່ວງ',
+  project_tab_materials: 'ວັດສະດຸ',
+  project_tab_notes: 'ໝາຍເຫດ',
+  project_progress_summary: 'ສະຫຼຸບຄວາມຄືບໜ້າ',
+  project_current_milestone: 'ສະຖານະປັດຈຸບັນ',
+  project_materials_summary: 'ສະຫຼຸບວັດສະດຸໂຄງການ',
+  project_materials_placeholder: 'ຈະເຊື່ອມຂໍ້ມູນວັດສະດຸຕາມໂຄງການເພີ່ມໄດ້ຕໍ່ໄປ',
+  project_notes_placeholder: 'ຍັງບໍ່ມີໝາຍເຫດເພີ່ມເຕີມສຳລັບໂຄງການນີ້',
+  project_summary_subcontractors: 'ຈຳນວນຜູ້ຮັບເໝົາຊ່ວງ',
+  project_summary_materials: 'ຈຳນວນວັດສະດຸ',
+  project_alerts_title: 'ສິ່ງທີ່ຄວນຕິດຕາມ',
+  project_alert_delayed: 'ໂຄງການນີ້ຢູ່ໃນສະຖານະລ່າຊ້າ ຄວນກວດ milestone ແລະ ແຜນວຽກ',
+  project_alert_low_materials: 'ມີວັດສະດຸໃກ້ໝົດໃນໂຄງການນີ້',
+  project_alert_missing_supervisor: 'ຂໍ້ມູນຜູ້ຄຸມງານຍັງບໍ່ຄົບ',
+  project_alert_no_subcontractors: 'ຍັງບໍ່ມີຜູ້ຮັບເໝົາຊ່ວງທີ່ຖືກລະບຸ',
+  project_material_link_basis: 'ລາຍການນີ້ສະແດງຈາກວັດສະດຸທີ່ຜູກກັບໂຄງການນີ້ຜ່ານ project link ໃນຄັງ',
+  inventory_linked_project_label: 'ໂຄງການທີ່ຜູກ',
+  inventory_open_linked_project: 'ເປີດໂຄງການ',
+  inventory_link_unassigned: 'ຍັງບໍ່ໄດ້ຜູກກັບໂຄງການ',
+  inventory_manage_linking: 'ຈັດການການຜູກວັດສະດຸ',
+  inventory_change_link: 'ປ່ຽນການຜູກ',
+  inventory_unlink_material: 'ຍົກເລີກການຜູກ',
+  inventory_apply_link: 'ບັນທຶກການຜູກ',
+  inventory_link_confirm_change: 'ການປ່ຽນໂຄງການທີ່ຜູກອາດກະທົບການສະແດງ stock ຂອງໂຄງການ ຕ້ອງການດຳເນີນຕໍ່ບໍ?',
+  inventory_link_confirm_unlink: 'ການຍົກເລີກການຜູກຈະນຳວັດສະດຸນີ້ອອກຈາກມຸມມອງ stock ຂອງໂຄງການ ຕ້ອງການດຳເນີນຕໍ່ບໍ?',
+  inventory_link_saved: 'ບັນທຶກການຜູກວັດສະດຸແລ້ວ',
+  project_material_assigned: 'ຈຳນວນທີ່ຈັດສັນ',
+  project_material_used: 'ຈຳນວນທີ່ໃຊ້ແລ້ວ',
+  project_material_remaining: 'ຈຳນວນຄົງເຫຼືອ',
+  project_material_issue: 'ເບີກເຂົ້າໂຄງການ',
+  project_material_return: 'ຄືນວັດສະດຸ',
+  project_material_adjust: 'ປັບຈຳນວນ',
+  project_material_quantity_hint: 'ຈຳນວນທີ່ຈັດສັນໃຊ້ຄ່າ stock ປັດຈຸບັນຂອງລາຍການນີ້',
+  project_material_issue_qty: 'ຈຳນວນທີ່ຈະເບີກ',
+  project_material_return_qty: 'ຈຳນວນທີ່ຈະຄືນ',
+  project_material_usage_saved: 'ບັນທຶກຂໍ້ມູນການໃຊ້ວັດສະດຸແລ້ວ',
+  project_material_confirm_return: 'ການຄືນວັດສະດຸຈະຫັກຈຳນວນ stock ຂອງໂຄງການ ຕ້ອງການດຳເນີນຕໍ່ບໍ?',
+  project_material_invalid_qty: 'ກະລຸນາລະບຸຈຳນວນທີ່ຖືກຕ້ອງ',
+  project_material_return_exceeds: 'ຈຳນວນຄືນຈະເກີນ stock ທີ່ເຫຼືອຂອງໂຄງການ',
+  project_material_not_linked: 'ກະລຸນາຜູກວັດສະດຸກັບໂຄງການກ່ອນ',
+  inventory_project_usage_title: 'ການໃຊ້ວັດສະດຸໃນໂຄງການ',
+  inventory_project_usage_context: 'ເບິ່ງການໃຊ້, ເບີກເພີ່ມ, ແລະ ຄືນວັດສະດຸສຳລັບໂຄງການທີ່ຜູກ',
+});
+
+Object.assign(translations.TH, {
+  project_code: 'รหัสโครงการ',
+  project_type: 'ประเภทโครงการ',
+  project_site_address: 'ที่อยู่ไซต์งาน',
+  project_start_date: 'วันที่เริ่ม',
+  project_end_date: 'วันที่สิ้นสุด',
+  project_value: 'มูลค่าโครงการ',
+  project_client_name: 'ชื่อลูกค้า / ผู้ว่าจ้าง',
+  project_section_core: 'ข้อมูลโครงการ',
+  project_section_supervisor: 'ข้อมูลผู้ควบคุมงาน',
+  project_section_subcontractor: 'ข้อมูลผู้รับเหมาช่วง',
+  project_supervisor_name: 'ชื่อผู้ควบคุมงาน',
+  project_supervisor_position: 'ตำแหน่งผู้ควบคุมงาน',
+  project_supervisor_notes: 'หมายเหตุผู้ควบคุมงาน',
+  project_subcontractor_name: 'ชื่อผู้รับเหมาช่วง / บริษัท',
+  project_subcontractor_work_type: 'ประเภทงานรับเหมา',
+  project_subcontractor_contact_person: 'ผู้ติดต่อ',
+  project_subcontractor_status: 'สถานะผู้รับเหมาช่วง',
+  project_subcontractor_notes: 'หมายเหตุผู้รับเหมาช่วง',
+  project_add_subcontractor: '+ เพิ่มผู้รับเหมาช่วง',
+  project_remove_subcontractor: 'ลบรายการ',
+  project_subcontractor_entry: 'ผู้รับเหมาช่วง',
+  project_type_residential: 'ที่อยู่อาศัย',
+  project_type_commercial: 'พาณิชย์',
+  project_type_industrial: 'อุตสาหกรรม',
+  project_type_renovation: 'ปรับปรุง / ต่อเติม',
+  project_type_other: 'อื่นๆ',
+  project_detail_title: 'ภาพรวมโครงการ',
+  project_open_details: 'ดูรายละเอียด',
+  project_detail_empty: 'เลือกโครงการเพื่อดูรายละเอียด',
+  project_status_summary: 'สถานะโครงการ',
+  project_schedule_summary: 'ช่วงเวลาดำเนินงาน',
+  project_team_summary: 'ทีมโครงการ',
+  project_tab_overview: 'ภาพรวม',
+  project_tab_progress: 'ความคืบหน้า',
+  project_tab_team: 'ทีมงาน',
+  project_tab_subcontractors: 'ผู้รับเหมาช่วง',
+  project_tab_materials: 'วัสดุ',
+  project_tab_notes: 'หมายเหตุ',
+  project_progress_summary: 'สรุปความคืบหน้า',
+  project_current_milestone: 'สถานะปัจจุบัน',
+  project_materials_summary: 'สรุปวัสดุในโครงการ',
+  project_materials_placeholder: 'สามารถเชื่อมข้อมูลวัสดุตามโครงการเพิ่มเติมได้ในขั้นถัดไป',
+  project_notes_placeholder: 'ยังไม่มีหมายเหตุเพิ่มเติมสำหรับโครงการนี้',
+  project_summary_subcontractors: 'จำนวนผู้รับเหมาช่วง',
+  project_summary_materials: 'จำนวนวัสดุ',
+  project_alerts_title: 'จุดที่ควรติดตาม',
+  project_alert_delayed: 'โครงการนี้อยู่ในสถานะล่าช้า ควรตรวจ milestone และแผนงาน',
+  project_alert_low_materials: 'มีวัสดุใกล้หมดในโครงการนี้',
+  project_alert_missing_supervisor: 'ข้อมูลผู้ควบคุมงานยังไม่ครบ',
+  project_alert_no_subcontractors: 'ยังไม่มีผู้รับเหมาช่วงที่ถูกระบุ',
+  project_material_link_basis: 'รายการนี้อ้างอิงจากวัสดุที่ผูกกับโครงการนี้ผ่าน project link ในคลังวัสดุ',
+  inventory_linked_project_label: 'โครงการที่ผูก',
+  inventory_open_linked_project: 'เปิดโครงการ',
+  inventory_link_unassigned: 'ยังไม่ผูกกับโครงการ',
+  inventory_manage_linking: 'จัดการการผูกวัสดุ',
+  inventory_change_link: 'เปลี่ยนการผูก',
+  inventory_unlink_material: 'ยกเลิกการผูก',
+  inventory_apply_link: 'บันทึกการผูก',
+  inventory_link_confirm_change: 'การเปลี่ยนโครงการที่ผูกอาจกระทบการแสดง stock ของโครงการ ต้องการดำเนินการต่อหรือไม่?',
+  inventory_link_confirm_unlink: 'การยกเลิกการผูกจะนำวัสดุนี้ออกจากมุมมอง stock ของโครงการ ต้องการดำเนินการต่อหรือไม่?',
+  inventory_link_saved: 'บันทึกการผูกวัสดุแล้ว',
+  project_material_assigned: 'จำนวนที่จัดสรร',
+  project_material_used: 'จำนวนที่ใช้แล้ว',
+  project_material_remaining: 'จำนวนคงเหลือ',
+  project_material_issue: 'เบิกเข้าโครงการ',
+  project_material_return: 'คืนวัสดุ',
+  project_material_adjust: 'ปรับจำนวน',
+  project_material_quantity_hint: 'จำนวนที่จัดสรรใช้ค่าสต็อกปัจจุบันของรายการนี้',
+  project_material_issue_qty: 'จำนวนที่ต้องการเบิกเพิ่ม',
+  project_material_return_qty: 'จำนวนที่ต้องการคืน',
+  project_material_usage_saved: 'บันทึกข้อมูลการใช้วัสดุแล้ว',
+  project_material_confirm_return: 'การคืนวัสดุจะหักจำนวน stock ของโครงการ ต้องการดำเนินการต่อหรือไม่?',
+  project_material_invalid_qty: 'กรุณาระบุจำนวนที่ถูกต้อง',
+  project_material_return_exceeds: 'จำนวนคืนมากกว่าสต็อกคงเหลือของโครงการ',
+  project_material_not_linked: 'กรุณาผูกวัสดุกับโครงการก่อน',
+  inventory_project_usage_title: 'การใช้วัสดุในโครงการ',
+  inventory_project_usage_context: 'ดูการใช้ เบิกเพิ่ม และคืนวัสดุสำหรับโครงการที่ผูกอยู่',
+});
+
+Object.assign(translations.EN, {
+  project_code: 'Project Code',
+  project_type: 'Project Type',
+  project_site_address: 'Location / Site Address',
+  project_start_date: 'Start Date',
+  project_end_date: 'End Date',
+  project_value: 'Project Value',
+  project_client_name: 'Client / Employer Name',
+  project_section_core: 'Project Details',
+  project_section_supervisor: 'Supervisor Details',
+  project_section_subcontractor: 'Subcontractor Details',
+  project_supervisor_name: 'Supervisor Name',
+  project_supervisor_position: 'Supervisor Position',
+  project_supervisor_notes: 'Supervisor Notes',
+  project_subcontractor_name: 'Subcontractor / Company Name',
+  project_subcontractor_work_type: 'Subcontract Work Type',
+  project_subcontractor_contact_person: 'Contact Person',
+  project_subcontractor_status: 'Subcontractor Status',
+  project_subcontractor_notes: 'Subcontractor Notes',
+  project_add_subcontractor: '+ Add Subcontractor',
+  project_remove_subcontractor: 'Remove Entry',
+  project_subcontractor_entry: 'Subcontractor',
+  project_type_residential: 'Residential',
+  project_type_commercial: 'Commercial',
+  project_type_industrial: 'Industrial',
+  project_type_renovation: 'Renovation / Extension',
+  project_type_other: 'Other',
+  project_detail_title: 'Project Overview',
+  project_open_details: 'Open Details',
+  project_detail_empty: 'Select a project to view details',
+  project_status_summary: 'Project Status',
+  project_schedule_summary: 'Schedule',
+  project_team_summary: 'Team',
+  project_tab_overview: 'Overview',
+  project_tab_progress: 'Progress',
+  project_tab_team: 'Team',
+  project_tab_subcontractors: 'Subcontractors',
+  project_tab_materials: 'Materials',
+  project_tab_notes: 'Notes',
+  project_progress_summary: 'Progress Summary',
+  project_current_milestone: 'Current Status',
+  project_materials_summary: 'Project Materials Summary',
+  project_materials_placeholder: 'Project-linked materials can be connected here in the next step',
+  project_notes_placeholder: 'No additional project notes yet',
+  project_summary_subcontractors: 'Subcontractor Count',
+  project_summary_materials: 'Material Count',
+  project_alerts_title: 'Needs Attention',
+  project_alert_delayed: 'This project is marked delayed and should be reviewed against milestones and schedule',
+  project_alert_low_materials: 'This project has low-stock materials that may need action',
+  project_alert_missing_supervisor: 'Supervisor contact information is still incomplete',
+  project_alert_no_subcontractors: 'No subcontractors have been assigned yet',
+  project_material_link_basis: 'This list uses materials currently linked to this project through the inventory project assignment',
+  inventory_linked_project_label: 'Linked Project',
+  inventory_open_linked_project: 'Open Project',
+  inventory_link_unassigned: 'Not linked to a project',
+  inventory_manage_linking: 'Manage Material Linking',
+  inventory_change_link: 'Change Link',
+  inventory_unlink_material: 'Unlink Material',
+  inventory_apply_link: 'Save Link',
+  inventory_link_confirm_change: 'Changing the linked project may affect project stock visibility. Do you want to continue?',
+  inventory_link_confirm_unlink: 'Unlinking will remove this material from the project stock view. Do you want to continue?',
+  inventory_link_saved: 'Material link saved',
+  project_material_assigned: 'Assigned Quantity',
+  project_material_used: 'Used Quantity',
+  project_material_remaining: 'Remaining Quantity',
+  project_material_issue: 'Issue to Project',
+  project_material_return: 'Return Material',
+  project_material_adjust: 'Adjust Quantity',
+  project_material_quantity_hint: 'Assigned quantity uses the current stock quantity on this material record',
+  project_material_issue_qty: 'Issue Quantity',
+  project_material_return_qty: 'Return Quantity',
+  project_material_usage_saved: 'Project material usage saved',
+  project_material_confirm_return: 'Returning material will reduce this project stock quantity. Do you want to continue?',
+  project_material_invalid_qty: 'Please enter a valid quantity',
+  project_material_return_exceeds: 'Return quantity exceeds the remaining project stock',
+  project_material_not_linked: 'Link this material to a project first',
+  inventory_project_usage_title: 'Project Material Usage',
+  inventory_project_usage_context: 'Review usage, issue more stock, and return stock for the linked project',
+});
+
+Object.assign(translations.LA, {
+  firebase_config_warning: 'ຄຳເຕືອນ: ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ Firebase Config. ກະລຸນາໃສ່ config ໃຫ້ຄົບເພື່ອໃຫ້ລະບົບ database ເຮັດວຽກໄດ້.',
+  manager_default_submitter: 'ຜູ້ຈັດການໂຄງການ',
+  supplier_orders_profile_required: 'ກະລຸນາບັນທຶກ profile ຂອງ supplier ກ່ອນ ເພື່ອໃຫ້ portal ກອງຂໍ້ມູນອໍເດີໄດ້ຖືກ supplier.',
+  supplier_section_available: 'ພ້ອມໃຊ້ງານ',
+  export_document: 'ດາວໂຫຼດເອກະສານ',
+  export_file_ready: 'ໄຟລ໌ HTML ພ້ອມສຳລັບເປີດ, ພິມ ຫຼື ແປງເປັນ PDF ໃນຂັ້ນຕໍ່ໄປ',
+  export_document_failed: 'ບໍ່ສາມາດສ້າງໄຟລ໌ export ໄດ້. ກະລຸນາລອງ preview ອີກຄັ້ງ.',
+  open_section_hint: 'ເຂົ້າໄປຈັດການສ່ວນນີ້',
+  supplier_products_empty_hint: 'ເພີ່ມສິນຄ້າໃໝ່ ຫຼື ນຳເຂົ້າ CSV ເພື່ອເລີ່ມຕົ້ນ.',
+  supplier_orders_empty_hint: 'ອໍເດີຈາກຄຳສັ່ງຊື້ຈະສະແດງທີ່ນີ້ເມື່ອ supplier ຖືກເຊື່ອມກັບລາຍການ.',
+  supplier_profile_empty_hint: 'ບັນທຶກຂໍ້ມູນບໍລິສັດ ແລະ ຂໍ້ມູນຕິດຕໍ່ເພື່ອໃຊ້ໃນ portal ແລະ agreement ຕໍ່ໄປ.',
+  admin_empty_hint: 'ເພີ່ມຂໍ້ມູນລາຍການທຳອິດເພື່ອເລີ່ມ workflow ສ່ວນນີ້.',
+  admin_overview_desc: 'ໜ້ານີ້ເປັນສູນກາງສຳລັບ workflow ຂອງ platform owner ແລະ ແຍກຈາກ dashboard ຜູ້ໃຊ້ທົ່ວໄປຢ່າງຊັດເຈນ.',
+  admin_platform_revenue_desc: 'ສະຫຼຸບລາຍໄດ້ແພລດຟອມ, commission ແລະ ລາຍການອ້າງອີງຈາກຂໍ້ມູນ supplier ແລະ order ປັດຈຸບັນ.',
+  supplier_dashboard_desc: 'ສະຫຼຸບສະຖານະ supplier, ລາຍການສິນຄ້າ, ອໍເດີ ແລະ ຂໍ້ມູນສຳຄັນທີ່ຕ້ອງຕິດຕາມ.',
+  supplier_products_desc: 'ຈັດການລາຍການສິນຄ້າ, ລາຄາ, stock, ແລະ ການນຳເຂົ້າ CSV ຂອງ supplier.',
+  supplier_orders_desc: 'ຕິດຕາມ incoming orders, ຢືນຢັນຄຳສັ່ງ, ແລະ ອັບເດດສະຖານະການຈັດສົ່ງ.',
+  supplier_profile_desc: 'ຈັດການຂໍ້ມູນບໍລິສັດ, ຜູ້ຕິດຕໍ່, ພື້ນທີ່ບໍລິການ, ແລະ ຂໍ້ມູນ billing ຂອງ supplier.',
+  landing_roles_title: 'ເລືອກທາງເຂົ້າຕາມບົດບາດ',
+  landing_roles_desc: 'ເຂົ້າໃຊ້ dashboard ຫຼື portal ຂອງແຕ່ລະບົດບາດໄດ້ທັນທີ.',
+  landing_role_user_title: 'ຜູ້ໃຊ້ທົ່ວໄປ / ບໍລິສັດ',
+  landing_role_user_desc: 'ເຂົ້າ dashboard ສຳລັບໂຄງການ, ຄົນງານ, ເອກະສານ, ຄັງ ແລະ ການຈັດຊື້.',
+  landing_role_admin_desc: 'ເຂົ້າສ່ວນ platform owner ສຳລັບ supplier, revenue, billing ແລະ settlements.',
+  landing_role_supplier_desc: 'ເຂົ້າ supplier portal ສຳລັບສິນຄ້າ, ອໍເດີ ແລະ profile ຂອງ supplier.',
+  landing_role_enter: 'ເຂົ້າໃຊ້',
+  auth_login_title: 'ເຂົ້າໃຊ້ຕາມບົດບາດ',
+  auth_login_desc: 'ເລືອກບົດບາດ ແລະ ໃສ່ຂໍ້ມູນສຳລັບເຂົ້າ dashboard ຫຼື portal ທີ່ຖືກຕ້ອງ.',
+  auth_role_label: 'ບົດບາດ',
+  auth_email_label: 'ອີເມວ',
+  auth_password_label: 'ລະຫັດຜ່ານ',
+  auth_sign_in: 'ເຂົ້າລະບົບ',
+  auth_sign_out: 'ອອກຈາກລະບົບ',
+  auth_continue: 'ໄປຕໍ່',
+  auth_demo_title: 'ບັນຊີທົດລອງ',
+  auth_demo_hint: 'foundation ນີ້ໃຊ້ບັນຊີທົດລອງຕາມ role ກ່ອນ ແລະ ພ້ອມຕໍ່ຍອດໄປ backend/auth provider ໃນຂັ້ນຕໍ່ໄປ.',
+  auth_invalid_credentials: 'ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງສຳລັບ role ທີ່ເລືອກ.',
+  auth_guard_message: 'ບັນຊີນີ້ບໍ່ມີສິດເຂົ້າ dashboard ນີ້. ກະລຸນາເຂົ້າລະບົບດ້ວຍ role ທີ່ຖືກຕ້ອງ.',
+  auth_logged_in_as: 'ກຳລັງເຂົ້າລະບົບເປັນ',
+});
+
+Object.assign(translations.TH, {
+  firebase_config_warning: 'คำเตือน: ยังไม่ได้ตั้งค่า Firebase Config กรุณาใส่ config ให้ครบเพื่อให้ระบบฐานข้อมูลทำงานได้',
+  manager_default_submitter: 'ผู้จัดการโครงการ',
+  supplier_orders_profile_required: 'กรุณาบันทึกโปรไฟล์ซัพพลายเออร์ก่อน เพื่อให้พอร์ทัลกรองข้อมูลออเดอร์ให้ตรงกับซัพพลายเออร์ปัจจุบัน',
+  supplier_section_available: 'พร้อมใช้งาน',
+  export_document: 'ดาวน์โหลดเอกสาร',
+  export_file_ready: 'ไฟล์ HTML พร้อมสำหรับเปิด พิมพ์ หรือแปลงเป็น PDF ในขั้นถัดไป',
+  export_document_failed: 'ไม่สามารถสร้างไฟล์ export ได้ กรุณาลองเปิด preview แล้วทำอีกครั้ง',
+  open_section_hint: 'เข้าไปจัดการส่วนนี้',
+  supplier_products_empty_hint: 'เพิ่มสินค้าใหม่หรือนำเข้า CSV เพื่อเริ่มต้นรายการสินค้า',
+  supplier_orders_empty_hint: 'ออเดอร์จากคำสั่งซื้อจะปรากฏที่นี่เมื่อซัพพลายเออร์ถูกเชื่อมกับรายการที่เกี่ยวข้อง',
+  supplier_profile_empty_hint: 'บันทึกข้อมูลบริษัทและช่องทางติดต่อเพื่อใช้ในพอร์ทัลและข้อตกลงในขั้นถัดไป',
+  admin_empty_hint: 'เพิ่มข้อมูลรายการแรกเพื่อเริ่ม workflow ของส่วนนี้',
+  admin_overview_desc: 'หน้านี้เป็นศูนย์กลางของ workflow ฝั่ง platform owner และแยกจาก dashboard ผู้ใช้ทั่วไปอย่างชัดเจน',
+  admin_platform_revenue_desc: 'สรุปรายได้แพลตฟอร์ม, commission และรายการอ้างอิงจากข้อมูล supplier และ order ปัจจุบัน',
+  supplier_dashboard_desc: 'สรุปสถานะซัพพลายเออร์ รายการสินค้า ออเดอร์ และข้อมูลสำคัญที่ต้องติดตาม',
+  supplier_products_desc: 'จัดการรายการสินค้า ราคา สต็อก และการนำเข้า CSV ของซัพพลายเออร์',
+  supplier_orders_desc: 'ติดตาม incoming orders ยืนยันคำสั่งซื้อ และอัปเดตสถานะการจัดส่ง',
+  supplier_profile_desc: 'จัดการข้อมูลบริษัท ผู้ติดต่อ พื้นที่ให้บริการ และข้อมูล billing ของซัพพลายเออร์',
+  landing_roles_title: 'เลือกทางเข้าตามบทบาท',
+  landing_roles_desc: 'เข้าสู่ dashboard หรือ portal ของแต่ละบทบาทได้ทันทีจากหน้าเดียว',
+  landing_role_user_title: 'ผู้ใช้ทั่วไป / บริษัท',
+  landing_role_user_desc: 'เข้าสู่ dashboard สำหรับโครงการ คนงาน เอกสาร คลังวัสดุ และการจัดซื้อ',
+  landing_role_admin_desc: 'เข้าสู่ส่วน platform owner สำหรับ supplier, revenue, billing และ settlements',
+  landing_role_supplier_desc: 'เข้าสู่ supplier portal สำหรับสินค้า ออเดอร์ และโปรไฟล์ซัพพลายเออร์',
+  landing_role_enter: 'เข้าสู่ระบบ',
+  auth_login_title: 'เข้าสู่ระบบตามบทบาท',
+  auth_login_desc: 'เลือกบทบาทและใส่ข้อมูลเพื่อเข้าสู่ dashboard หรือ portal ที่ถูกต้อง',
+  auth_role_label: 'บทบาท',
+  auth_email_label: 'อีเมล',
+  auth_password_label: 'รหัสผ่าน',
+  auth_sign_in: 'เข้าสู่ระบบ',
+  auth_sign_out: 'ออกจากระบบ',
+  auth_continue: 'ไปต่อ',
+  auth_demo_title: 'บัญชีทดลอง',
+  auth_demo_hint: 'foundation นี้ใช้บัญชีทดลองแยกตาม role ก่อน และพร้อมต่อยอดไป backend/auth provider ในขั้นถัดไป',
+  auth_invalid_credentials: 'อีเมลหรือรหัสผ่านไม่ถูกต้องสำหรับบทบาทที่เลือก',
+  auth_guard_message: 'บัญชีนี้ไม่มีสิทธิ์เข้าหน้า dashboard นี้ กรุณาเข้าสู่ระบบด้วยบทบาทที่ถูกต้อง',
+  auth_logged_in_as: 'กำลังเข้าสู่ระบบเป็น',
+});
+
+Object.assign(translations.EN, {
+  firebase_config_warning: 'Warning: Firebase config is not set yet. Please provide the required config so the database can work correctly.',
+  manager_default_submitter: 'Project Manager',
+  supplier_orders_profile_required: 'Save the supplier profile first so the portal can filter orders for the current supplier correctly.',
+  supplier_section_available: 'Available',
+  export_document: 'Download Document',
+  export_file_ready: 'An HTML file is prepared for opening, printing, or converting to PDF later.',
+  export_document_failed: 'The export file could not be created. Open the preview and try again.',
+  open_section_hint: 'Open this section',
+  supplier_products_empty_hint: 'Add a product or import a CSV file to start the product list.',
+  supplier_orders_empty_hint: 'Incoming orders will appear here when purchase orders are linked to this supplier.',
+  supplier_profile_empty_hint: 'Save the company and contact details here for later portal and agreement use.',
+  admin_empty_hint: 'Add the first record to start this workflow.',
+  admin_overview_desc: 'This page is the central workspace for platform-owner workflows and remains clearly separated from the normal user dashboard.',
+  admin_platform_revenue_desc: 'Review platform revenue, commission totals, and supporting records from the current supplier and order data.',
+  supplier_dashboard_desc: 'Review supplier status, product activity, incoming orders, and key information that needs attention.',
+  supplier_products_desc: 'Manage supplier products, pricing, stock, and CSV imports from one place.',
+  supplier_orders_desc: 'Track incoming orders, confirm requests, and update fulfillment status.',
+  supplier_profile_desc: 'Manage company details, contact channels, service area, and billing information for the supplier profile.',
+  landing_roles_title: 'Choose Your Entry Point',
+  landing_roles_desc: 'Open the right dashboard or portal for each role from one place.',
+  landing_role_user_title: 'Normal User / Company',
+  landing_role_user_desc: 'Open the main dashboard for projects, workers, documents, inventory, and procurement.',
+  landing_role_admin_desc: 'Open the platform-owner workspace for suppliers, revenue, billing, and settlements.',
+  landing_role_supplier_desc: 'Open the supplier portal for products, orders, and supplier profile management.',
+  landing_role_enter: 'Open',
+  auth_login_title: 'Role-Based Sign In',
+  auth_login_desc: 'Choose a role and enter the matching credentials for the correct dashboard or portal.',
+  auth_role_label: 'Role',
+  auth_email_label: 'Email',
+  auth_password_label: 'Password',
+  auth_sign_in: 'Sign In',
+  auth_sign_out: 'Sign Out',
+  auth_continue: 'Continue',
+  auth_demo_title: 'Demo Accounts',
+  auth_demo_hint: 'This foundation uses role-based demo accounts first and is ready for a later backend/auth-provider upgrade.',
+  auth_invalid_credentials: 'The email or password does not match the selected role.',
+  auth_guard_message: 'This account cannot open that dashboard. Sign in with the correct role first.',
+  auth_logged_in_as: 'Signed in as',
+});
+
+Object.assign(translations.LA, {
+  manager_menu_admin_pricing_management: 'ຈັດການແພັກເກດລາຄາ',
+  admin_pricing_management_title: 'ຈັດການແພັກເກດລາຄາ',
+  admin_pricing_management_desc: 'ຈັດການແພັກເກດ, ລາຄາ, ຮອບບິນ, ຟີເຈີ ແລະ ແພັກເກດແນະນຳ ສຳລັບ platform.',
+  admin_pricing_total_packages: 'ແພັກເກດທັງໝົດ',
+  admin_pricing_active_packages: 'ແພັກເກດທີ່ໃຊ້ງານ',
+  admin_pricing_recommended_package: 'ແພັກເກດແນະນຳ',
+  admin_pricing_monthly_revenue_hint: 'ລາຄາລາຍເດືອນພື້ນຖານ',
+  admin_pricing_add_package: '+ ເພີ່ມແພັກເກດ',
+  admin_pricing_edit_package: 'ແກ້ໄຂແພັກເກດ',
+  admin_pricing_search_placeholder: 'ຄົ້ນຫາຊື່ແພັກເກດ ຫຼື code...',
+  admin_pricing_filter_all_statuses: 'ທຸກສະຖານະ',
+  admin_pricing_empty: 'ຍັງບໍ່ມີແພັກເກດລາຄາ',
+  admin_pricing_empty_hint: 'ເພີ່ມແພັກເກດທຳອິດເພື່ອເລີ່ມຈັດການ pricing.',
+  admin_pricing_package_code: 'Package Code',
+  admin_pricing_package_name: 'ຊື່ແພັກເກດ',
+  admin_pricing_package_description: 'ຄຳອະທິບາຍແພັກເກດ',
+  admin_pricing_package_price: 'ລາຄາ',
+  admin_pricing_billing_period: 'ຮອບບິນ',
+  admin_pricing_billing_period_monthly: 'ລາຍເດືອນ',
+  admin_pricing_billing_period_quarterly: 'ລາຍ 3 ເດືອນ',
+  admin_pricing_billing_period_yearly: 'ລາຍປີ',
+  admin_pricing_billing_period_custom: 'ກຳນົດເອງ',
+  admin_pricing_status_enabled: 'ເປີດໃຊ້',
+  admin_pricing_status_disabled: 'ປິດໃຊ້',
+  admin_pricing_features: 'ຟີເຈີ package',
+  admin_pricing_features_hint: 'ໃສ່ 1 ຟີເຈີຕໍ່ 1 ແຖວ',
+  admin_pricing_popular: 'ແນະນຳ',
+  admin_pricing_not_popular: 'ບໍ່ແມ່ນແພັກເກດແນະນຳ',
+  admin_pricing_set_recommended: 'ຕັ້ງເປັນແພັກເກດແນະນຳ',
+  admin_pricing_unset_recommended: 'ຍົກເລີກແພັກເກດແນະນຳ',
+  admin_pricing_toggle_enable: 'ເປີດ/ປິດ package',
+  admin_pricing_save: 'ບັນທຶກ package',
+  admin_pricing_feature_count: 'ຈຳນວນຟີເຈີ',
+  admin_pricing_no_features: 'ຍັງບໍ່ໄດ້ລະບຸຟີເຈີ',
+  admin_pricing_price_suffix: '/ ຮອບ',
+  admin_pricing_modal_title_add: 'ເພີ່ມແພັກເກດໃໝ່',
+  admin_pricing_modal_title_edit: 'ແກ້ໄຂແພັກເກດ',
+});
+
+Object.assign(translations.TH, {
+  manager_menu_admin_pricing_management: 'จัดการแพ็กเกจราคา',
+  admin_pricing_management_title: 'จัดการแพ็กเกจราคา',
+  admin_pricing_management_desc: 'จัดการแพ็กเกจ ราคา รอบบิล ฟีเจอร์ และแพ็กเกจแนะนำสำหรับแพลตฟอร์ม',
+  admin_pricing_total_packages: 'แพ็กเกจทั้งหมด',
+  admin_pricing_active_packages: 'แพ็กเกจที่เปิดใช้งาน',
+  admin_pricing_recommended_package: 'แพ็กเกจแนะนำ',
+  admin_pricing_monthly_revenue_hint: 'ราคาฐานต่อรอบบิล',
+  admin_pricing_add_package: '+ เพิ่มแพ็กเกจ',
+  admin_pricing_edit_package: 'แก้ไขแพ็กเกจ',
+  admin_pricing_search_placeholder: 'ค้นหาชื่อแพ็กเกจหรือรหัส...',
+  admin_pricing_filter_all_statuses: 'ทุกสถานะ',
+  admin_pricing_empty: 'ยังไม่มีแพ็กเกจราคา',
+  admin_pricing_empty_hint: 'เพิ่มแพ็กเกจแรกเพื่อเริ่มจัดการ pricing',
+  admin_pricing_package_code: 'Package Code',
+  admin_pricing_package_name: 'ชื่อแพ็กเกจ',
+  admin_pricing_package_description: 'คำอธิบายแพ็กเกจ',
+  admin_pricing_package_price: 'ราคา',
+  admin_pricing_billing_period: 'รอบบิล',
+  admin_pricing_billing_period_monthly: 'รายเดือน',
+  admin_pricing_billing_period_quarterly: 'ราย 3 เดือน',
+  admin_pricing_billing_period_yearly: 'รายปี',
+  admin_pricing_billing_period_custom: 'กำหนดเอง',
+  admin_pricing_status_enabled: 'เปิดใช้งาน',
+  admin_pricing_status_disabled: 'ปิดใช้งาน',
+  admin_pricing_features: 'ฟีเจอร์แพ็กเกจ',
+  admin_pricing_features_hint: 'ใส่ 1 ฟีเจอร์ต่อ 1 บรรทัด',
+  admin_pricing_popular: 'แนะนำ',
+  admin_pricing_not_popular: 'ไม่ใช่แพ็กเกจแนะนำ',
+  admin_pricing_set_recommended: 'ตั้งเป็นแพ็กเกจแนะนำ',
+  admin_pricing_unset_recommended: 'ยกเลิกแพ็กเกจแนะนำ',
+  admin_pricing_toggle_enable: 'เปิด/ปิดแพ็กเกจ',
+  admin_pricing_save: 'บันทึกแพ็กเกจ',
+  admin_pricing_feature_count: 'จำนวนฟีเจอร์',
+  admin_pricing_no_features: 'ยังไม่ได้ระบุฟีเจอร์',
+  admin_pricing_price_suffix: '/ รอบ',
+  admin_pricing_modal_title_add: 'เพิ่มแพ็กเกจใหม่',
+  admin_pricing_modal_title_edit: 'แก้ไขแพ็กเกจ',
+});
+
+Object.assign(translations.EN, {
+  manager_menu_admin_pricing_management: 'Pricing Management',
+  admin_pricing_management_title: 'Pricing Management',
+  admin_pricing_management_desc: 'Manage platform packages, pricing, billing periods, features, and the recommended plan.',
+  admin_pricing_total_packages: 'Total Packages',
+  admin_pricing_active_packages: 'Active Packages',
+  admin_pricing_recommended_package: 'Recommended Package',
+  admin_pricing_monthly_revenue_hint: 'Base price per billing period',
+  admin_pricing_add_package: '+ Add Package',
+  admin_pricing_edit_package: 'Edit Package',
+  admin_pricing_search_placeholder: 'Search package name or code...',
+  admin_pricing_filter_all_statuses: 'All statuses',
+  admin_pricing_empty: 'No pricing packages yet',
+  admin_pricing_empty_hint: 'Add the first package to start managing pricing.',
+  admin_pricing_package_code: 'Package Code',
+  admin_pricing_package_name: 'Package Name',
+  admin_pricing_package_description: 'Package Description',
+  admin_pricing_package_price: 'Price',
+  admin_pricing_billing_period: 'Billing Period',
+  admin_pricing_billing_period_monthly: 'Monthly',
+  admin_pricing_billing_period_quarterly: 'Quarterly',
+  admin_pricing_billing_period_yearly: 'Yearly',
+  admin_pricing_billing_period_custom: 'Custom',
+  admin_pricing_status_enabled: 'Enabled',
+  admin_pricing_status_disabled: 'Disabled',
+  admin_pricing_features: 'Package Features',
+  admin_pricing_features_hint: 'Enter one feature per line',
+  admin_pricing_popular: 'Recommended',
+  admin_pricing_not_popular: 'Not Recommended',
+  admin_pricing_set_recommended: 'Set Recommended',
+  admin_pricing_unset_recommended: 'Unset Recommended',
+  admin_pricing_toggle_enable: 'Enable or Disable Package',
+  admin_pricing_save: 'Save Package',
+  admin_pricing_feature_count: 'Feature Count',
+  admin_pricing_no_features: 'No features listed yet',
+  admin_pricing_price_suffix: '/ period',
+  admin_pricing_modal_title_add: 'Add New Package',
+  admin_pricing_modal_title_edit: 'Edit Package',
+});
+
+const NUMBER_LOCALE = {
+  LA: 'lo-LA',
+  TH: 'th-TH',
+  EN: 'en-US',
+};
+
+const BASE_CURRENCY = 'LAK';
+
+const EXCHANGE_RATES = {
+  LAK: 1,
+  THB: 0.0016,
+  USD: 0.000046,
+};
+
+const DISPLAY_CURRENCY = {
+  LA: 'LAK',
+  TH: 'THB',
+  EN: 'USD',
+};
+
+const COMPANY_PROFILE_STORAGE_KEY = 'buildsabaidee_company_profile';
+const QUOTATION_DRAFT_STORAGE_KEY = 'buildsabaidee_quotation_draft';
+const AGREEMENT_DRAFT_STORAGE_KEY = 'buildsabaidee_agreement_draft';
+const DOCUMENT_TEMPLATE_SETTINGS_STORAGE_KEY = 'buildsabaidee_document_template_settings';
+const SUPPLIER_DIRECTORY_STORAGE_KEY = 'buildsabaidee_supplier_directory';
+const PURCHASE_ORDERS_STORAGE_KEY = 'buildsabaidee_purchase_orders';
+const SUPPLIER_CATEGORIES_STORAGE_KEY = 'buildsabaidee_supplier_categories';
+const SUPPLIER_AGREEMENTS_STORAGE_KEY = 'buildsabaidee_supplier_agreements';
+const COMMISSION_BILLING_STORAGE_KEY = 'buildsabaidee_commission_billing_records';
+const SETTLEMENTS_STORAGE_KEY = 'buildsabaidee_settlement_records';
+const ADMIN_PLATFORM_SETTINGS_STORAGE_KEY = 'buildsabaidee_admin_platform_settings';
+const SUPPLIER_PRODUCTS_STORAGE_KEY = 'buildsabaidee_supplier_products';
+const PRICING_PACKAGES_STORAGE_KEY = 'buildsabaidee_pricing_packages';
+const AUTH_SESSION_STORAGE_KEY = 'buildsabaidee_auth_session';
+
+const DASHBOARD_ROLE_MAP = {
+  manager: 'user',
+  supplier_dashboard: 'supplier',
+  platform_owner_dashboard: 'admin',
+};
+
+const VIEW_ROLE_MAP = {
+  ...DASHBOARD_ROLE_MAP,
+  supplier_access: 'supplier',
+  platform_owner_access: 'admin',
+};
+
+const ROLE_HOME_VIEW = {
+  user: 'manager',
+  supplier: 'supplier_dashboard',
+  admin: 'platform_owner_dashboard',
+};
+
+const ROLE_ACCESS_VIEW = {
+  user: 'role_login',
+  supplier: 'supplier_access',
+  admin: 'platform_owner_access',
+};
+
+const DEMO_AUTH_ACCOUNTS = {
+  user: {
+    email: 'user@buildsabaidee.app',
+    password: 'demo123',
+    displayName: 'Contractor Demo',
+  },
+  supplier: {
+    email: 'supplier@buildsabaidee.app',
+    password: 'demo123',
+    displayName: 'Supplier Demo',
+  },
+  admin: {
+    email: 'admin@buildsabaidee.app',
+    password: 'demo123',
+    displayName: 'Platform Owner Demo',
+  },
+};
+
+const DEFAULT_COMPANY_PROFILE = {
+  logoUrl: '',
+  companyName: '',
+  address: '',
+  phone: '',
+  email: '',
+  taxId: '',
+  signerName: '',
+  signerTitle: '',
+  signatureImageUrl: '',
+  businessDetails: '',
+};
+
+function createDefaultAdminPlatformSettings() {
+  return {
+    defaultCommissionRate: 3,
+    billingNumberPrefix: 'CB',
+    settlementNumberPrefix: 'SET',
+    defaultPaymentDueDays: 15,
+    defaultBillingCycle: 'monthly',
+    defaultBillingNote: '',
+    defaultSettlementNote: '',
+    platformCompanyName: 'BuildSabaidee Platform',
+    platformBillingAddress: '',
+    platformBillingEmail: '',
+    platformBillingPhone: '',
+    internalAdminNotes: '',
+  };
+}
+
+function createPricingPackageEntry(overrides = {}) {
+  return {
+    id: `pricing-package-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    code: '',
+    name: '',
+    description: '',
+    price: 0,
+    billingPeriod: 'monthly',
+    status: 'enabled',
+    isRecommended: false,
+    features: [],
+    displayOrder: Date.now(),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+function createDefaultPricingPackages() {
+  return [
+    createPricingPackageEntry({
+      code: 'BASIC',
+      name: 'Basic',
+      description: 'Starter package for small contractor teams.',
+      price: 299000,
+      billingPeriod: 'monthly',
+      status: 'enabled',
+      isRecommended: false,
+      features: ['GPS attendance', 'Task updates', 'Document access'],
+      displayOrder: 1,
+    }),
+    createPricingPackageEntry({
+      code: 'PRO',
+      name: 'Pro',
+      description: 'Operational package for growing site and project teams.',
+      price: 699000,
+      billingPeriod: 'monthly',
+      status: 'enabled',
+      isRecommended: true,
+      features: ['Everything in Basic', 'Procurement workflow', 'Inventory control', 'Supplier coordination'],
+      displayOrder: 2,
+    }),
+    createPricingPackageEntry({
+      code: 'ENTERPRISE',
+      name: 'Enterprise',
+      description: 'Advanced package for multi-project operations and platform control.',
+      price: 1499000,
+      billingPeriod: 'monthly',
+      status: 'enabled',
+      isRecommended: false,
+      features: ['Everything in Pro', 'Admin billing flow', 'Settlement tracking', 'Priority support'],
+      displayOrder: 3,
+    }),
+  ];
+}
+
+function normalizePricingPackageEntry(entry) {
+  const base = createPricingPackageEntry();
+  return {
+    ...base,
+    ...(entry || {}),
+    code: String(entry?.code || base.code).trim().toUpperCase(),
+    name: String(entry?.name || '').trim(),
+    description: entry?.description || '',
+    price: Math.max(Number(entry?.price || 0), 0),
+    billingPeriod: ['monthly', 'quarterly', 'yearly', 'custom'].includes(entry?.billingPeriod) ? entry.billingPeriod : base.billingPeriod,
+    status: entry?.status === 'disabled' ? 'disabled' : 'enabled',
+    isRecommended: Boolean(entry?.isRecommended),
+    features: Array.isArray(entry?.features)
+      ? entry.features.map((feature) => String(feature || '').trim()).filter(Boolean)
+      : [],
+    displayOrder: Number(entry?.displayOrder || base.displayOrder),
+    createdAt: Number(entry?.createdAt || base.createdAt),
+    updatedAt: Number(entry?.updatedAt || base.updatedAt),
+  };
+}
+
+function normalizePricingPackages(entries) {
+  const normalized = Array.isArray(entries) && entries.length > 0
+    ? entries.map((entry) => normalizePricingPackageEntry(entry))
+    : createDefaultPricingPackages();
+  let hasRecommended = false;
+  return normalized
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .map((entry) => {
+      if (entry.isRecommended && !hasRecommended) {
+        hasRecommended = true;
+        return entry;
+      }
+      if (entry.isRecommended) {
+        return { ...entry, isRecommended: false };
+      }
+      return entry;
+    });
+}
+
+function normalizeAdminPlatformSettings(settings) {
+  const base = createDefaultAdminPlatformSettings();
+  return {
+    ...base,
+    ...(settings || {}),
+    defaultCommissionRate: Number(settings?.defaultCommissionRate ?? base.defaultCommissionRate),
+    billingNumberPrefix: String(settings?.billingNumberPrefix || base.billingNumberPrefix).trim() || base.billingNumberPrefix,
+    settlementNumberPrefix: String(settings?.settlementNumberPrefix || base.settlementNumberPrefix).trim() || base.settlementNumberPrefix,
+    defaultPaymentDueDays: Math.max(Number(settings?.defaultPaymentDueDays ?? base.defaultPaymentDueDays), 0),
+    defaultBillingCycle: ['monthly', 'biweekly', 'weekly', 'custom'].includes(settings?.defaultBillingCycle)
+      ? settings.defaultBillingCycle
+      : base.defaultBillingCycle,
+    defaultBillingNote: settings?.defaultBillingNote || '',
+    defaultSettlementNote: settings?.defaultSettlementNote || '',
+    platformCompanyName: settings?.platformCompanyName || base.platformCompanyName,
+    platformBillingAddress: settings?.platformBillingAddress || '',
+    platformBillingEmail: settings?.platformBillingEmail || '',
+    platformBillingPhone: settings?.platformBillingPhone || '',
+    internalAdminNotes: settings?.internalAdminNotes || '',
+  };
+}
+
+function createProjectSupervisorEntry() {
+  return {
+    name: '',
+    position: '',
+    phone: '',
+    email: '',
+    otherContact: '',
+    notes: '',
+  };
+}
+
+function createProjectSubcontractorEntry() {
+  return {
+    id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: '',
+    workType: '',
+    contactPerson: '',
+    phone: '',
+    email: '',
+    otherContact: '',
+    status: 'active',
+    notes: '',
+  };
+}
+
+function createProjectEntry() {
+  return {
+    name: '',
+    projectCode: '',
+    projectType: '',
+    location: '',
+    startDate: '',
+    endDate: '',
+    progress: 0,
+    status: 'active',
+    workers: 0,
+    projectValue: 0,
+    clientName: '',
+    supervisor: createProjectSupervisorEntry(),
+    subcontractors: [createProjectSubcontractorEntry()],
+  };
+}
+
+function normalizeProjectEntry(project) {
+  const base = createProjectEntry();
+  const supervisor = {
+    ...base.supervisor,
+    ...(project?.supervisor || {}),
+  };
+  const legacySubcontractor = project?.subcontractorName || project?.subcontractorCompany
+    ? [{
+      ...createProjectSubcontractorEntry(),
+      name: project?.subcontractorName || project?.subcontractorCompany || '',
+      workType: project?.subcontractWorkType || '',
+      contactPerson: project?.subcontractorContactPerson || '',
+      phone: project?.subcontractorPhone || '',
+      email: project?.subcontractorEmail || '',
+      otherContact: project?.subcontractorOtherContact || '',
+      status: project?.subcontractorStatus === 'inactive' ? 'inactive' : 'active',
+      notes: project?.subcontractorNotes || '',
+    }]
+    : [];
+
+  return {
+    ...base,
+    ...project,
+    progress: Number(project?.progress || 0),
+    workers: Number(project?.workers || 0),
+    projectValue: Number(project?.projectValue || 0),
+    supervisor,
+    subcontractors: Array.isArray(project?.subcontractors) && project.subcontractors.length > 0
+      ? project.subcontractors.map((item) => ({
+        ...createProjectSubcontractorEntry(),
+        ...item,
+        status: item?.status === 'inactive' ? 'inactive' : 'active',
+      }))
+      : legacySubcontractor.length > 0
+        ? legacySubcontractor
+        : [createProjectSubcontractorEntry()],
+  };
+}
+
+function createSupplierEntry() {
+  return {
+    id: `supplier-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    publicProfile: {
+      supplierName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      otherContact: '',
+      address: '',
+      serviceArea: '',
+      productCategory: '',
+      status: 'active',
+      notes: '',
+    },
+    internalMeta: {
+      commissionRate: 0,
+      settlementTerms: '',
+      platformNotes: '',
+      categoryAssignments: [],
+      billingContact: {
+        name: '',
+        email: '',
+        phone: '',
+      },
+    },
+  };
+}
+
+function createDefaultSupplierCategoryDefinitions() {
+  return [
+    { slug: 'cement_construction_materials', labelKey: 'supplier_category_standard_cement_construction_materials', defaultCommissionRate: 3.5 },
+    { slug: 'steel', labelKey: 'supplier_category_standard_steel', defaultCommissionRate: 2.5 },
+    { slug: 'electrical', labelKey: 'supplier_category_standard_electrical', defaultCommissionRate: 4 },
+    { slug: 'plumbing', labelKey: 'supplier_category_standard_plumbing', defaultCommissionRate: 4 },
+    { slug: 'paint', labelKey: 'supplier_category_standard_paint', defaultCommissionRate: 4.5 },
+    { slug: 'tiles', labelKey: 'supplier_category_standard_tiles', defaultCommissionRate: 4.5 },
+    { slug: 'aluminum_glass', labelKey: 'supplier_category_standard_aluminum_glass', defaultCommissionRate: 5 },
+    { slug: 'hardware', labelKey: 'supplier_category_standard_hardware', defaultCommissionRate: 4 },
+    { slug: 'tools', labelKey: 'supplier_category_standard_tools', defaultCommissionRate: 4.5 },
+    { slug: 'machinery_equipment_rental', labelKey: 'supplier_category_standard_machinery_equipment_rental', defaultCommissionRate: 6 },
+    { slug: 'interior_finishing', labelKey: 'supplier_category_standard_interior_finishing', defaultCommissionRate: 5 },
+    { slug: 'roofing_waterproofing', labelKey: 'supplier_category_standard_roofing_waterproofing', defaultCommissionRate: 5 },
+    { slug: 'air_conditioning', labelKey: 'supplier_category_standard_air_conditioning', defaultCommissionRate: 5 },
+    { slug: 'fire_protection', labelKey: 'supplier_category_standard_fire_protection', defaultCommissionRate: 5 },
+    { slug: 'safety_ppe', labelKey: 'supplier_category_standard_safety_ppe', defaultCommissionRate: 4 },
+    { slug: 'others', labelKey: 'supplier_category_standard_others', defaultCommissionRate: 3 },
+  ];
+}
+
+function createSupplierCategoryEntry(overrides = {}) {
+  return {
+    id: `supplier-category-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: '',
+    slug: '',
+    defaultCommissionRate: 0,
+    status: 'active',
+    internalNotes: '',
+    isSystem: false,
+    labelKey: '',
+    ...overrides,
+  };
+}
+
+function createDefaultSupplierCategories() {
+  return createDefaultSupplierCategoryDefinitions().map((definition) => createSupplierCategoryEntry({
+    slug: definition.slug,
+    defaultCommissionRate: definition.defaultCommissionRate,
+    status: 'active',
+    isSystem: true,
+    labelKey: definition.labelKey,
+  }));
+}
+
+function normalizeSupplierCategoryEntry(category) {
+  const base = createSupplierCategoryEntry();
+  return {
+    ...base,
+    ...(category || {}),
+    name: category?.name || '',
+    slug: category?.slug || '',
+    defaultCommissionRate: Number(category?.defaultCommissionRate || 0),
+    status: category?.status === 'inactive' ? 'inactive' : 'active',
+    internalNotes: category?.internalNotes || '',
+    isSystem: Boolean(category?.isSystem),
+    labelKey: category?.labelKey || '',
+  };
+}
+
+function normalizeSupplierCategories(categories) {
+  const defaults = createDefaultSupplierCategories();
+  if (!Array.isArray(categories) || categories.length === 0) return defaults;
+
+  const normalizedStored = categories.map((category) => normalizeSupplierCategoryEntry(category));
+  const existingSlugs = new Set(normalizedStored.map((category) => category.slug).filter(Boolean));
+  const missingDefaults = defaults.filter((category) => category.slug && !existingSlugs.has(category.slug));
+  return [...normalizedStored, ...missingDefaults];
+}
+
+function createSupplierAgreementEntry(overrides = {}) {
+  return {
+    id: `supplier-agreement-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    supplierId: '',
+    title: '',
+    agreementNumber: `AGR-${Date.now().toString().slice(-6)}`,
+    startDate: '',
+    endDate: '',
+    status: 'draft',
+    billingCycle: 'monthly',
+    billingCutoff: '',
+    paymentDueDays: 15,
+    commissionBasisNote: '',
+    billingContactName: '',
+    billingContactEmail: '',
+    billingContactPhone: '',
+    paymentMethodNote: '',
+    specialTerms: '',
+    internalNotes: '',
+    supplierSnapshot: {
+      supplierId: '',
+      supplierName: '',
+      supportedCategories: [],
+      billingContact: {
+        name: '',
+        email: '',
+        phone: '',
+      },
+      commissionSummary: '',
+    },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+function normalizeSupplierAgreementEntry(agreement) {
+  const base = createSupplierAgreementEntry();
+  return {
+    ...base,
+    ...(agreement || {}),
+    paymentDueDays: Math.max(Number(agreement?.paymentDueDays ?? base.paymentDueDays), 0),
+    status: ['draft', 'active', 'inactive', 'expired'].includes(agreement?.status) ? agreement.status : base.status,
+    billingCycle: ['monthly', 'biweekly', 'weekly', 'custom'].includes(agreement?.billingCycle) ? agreement.billingCycle : base.billingCycle,
+    supplierSnapshot: {
+      ...base.supplierSnapshot,
+      ...(agreement?.supplierSnapshot || {}),
+      supplierId: agreement?.supplierSnapshot?.supplierId || agreement?.supplierId || '',
+      supplierName: agreement?.supplierSnapshot?.supplierName || '',
+      supportedCategories: Array.isArray(agreement?.supplierSnapshot?.supportedCategories)
+        ? agreement.supplierSnapshot.supportedCategories.map((category) => ({
+            categoryId: category?.categoryId || '',
+            categorySlug: category?.categorySlug || '',
+            categoryName: category?.categoryName || '',
+            categoryStatus: category?.categoryStatus || 'active',
+            commissionMode: category?.commissionMode === 'override' ? 'override' : 'default',
+            useDefaultCommission: category?.useDefaultCommission !== false,
+            defaultCommissionRate: Number(category?.defaultCommissionRate || 0),
+            overrideCommissionRate: Number(category?.overrideCommissionRate || 0),
+            effectiveCommissionRate: Number(category?.effectiveCommissionRate || 0),
+          }))
+        : [],
+      billingContact: {
+        ...base.supplierSnapshot.billingContact,
+        ...(agreement?.supplierSnapshot?.billingContact || {}),
+        name: agreement?.supplierSnapshot?.billingContact?.name || '',
+        email: agreement?.supplierSnapshot?.billingContact?.email || '',
+        phone: agreement?.supplierSnapshot?.billingContact?.phone || '',
+      },
+      commissionSummary: agreement?.supplierSnapshot?.commissionSummary || '',
+    },
+    createdAt: Number(agreement?.createdAt || base.createdAt),
+    updatedAt: Number(agreement?.updatedAt || base.updatedAt),
+  };
+}
+
+function normalizeSupplierAgreements(agreements) {
+  if (!Array.isArray(agreements)) return [];
+  return agreements.map((agreement) => normalizeSupplierAgreementEntry(agreement));
+}
+
+function getPurchaseOrderTotalAmount(order) {
+  return (Array.isArray(order?.items) ? order.items : []).reduce((sum, item) => (
+    sum + ((Number(item?.quantity) || 0) * (Number(item?.unitPrice) || 0))
+  ), 0);
+}
+
+function getNormalizedOrderDate(order) {
+  const rawDate = order?.orderDate || '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
+  const fallbackTimestamp = Number(order?.createdAt || Date.now());
+  return new Date(fallbackTimestamp).toISOString().split('T')[0];
+}
+
+function addDaysToSpecificISODate(isoDate, days) {
+  if (!isoDate) return '';
+  const normalizedDays = Math.max(Number(days || 0), 0);
+  const parsedDate = new Date(`${isoDate}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) return isoDate;
+  parsedDate.setDate(parsedDate.getDate() + normalizedDays);
+  return parsedDate.toISOString().split('T')[0];
+}
+
+function createCommissionBillingEntry(overrides = {}) {
+  return {
+    id: `commission-billing-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    billingNumber: `CB-${Date.now().toString().slice(-6)}`,
+    supplierId: '',
+    supplierName: '',
+    agreementId: '',
+    agreementReference: '',
+    billingPeriodStart: '',
+    billingPeriodEnd: '',
+    billingPeriodLabel: '',
+    issueDate: getISODateString(),
+    dueDate: '',
+    status: 'draft',
+    grossSalesAmount: 0,
+    commissionAmount: 0,
+    notes: '',
+    sourceOrderIds: [],
+    orderSnapshots: [],
+    agreementSnapshot: {
+      agreementId: '',
+      agreementNumber: '',
+      agreementTitle: '',
+      agreementStatus: 'draft',
+      billingCycle: 'monthly',
+      billingCutoff: '',
+      paymentDueDays: 0,
+      commissionBasisNote: '',
+      billingContact: {
+        name: '',
+        email: '',
+        phone: '',
+      },
+      supplierSnapshot: createSupplierAgreementEntry().supplierSnapshot,
+    },
+    calculationSnapshot: {
+      commissionRate: 0,
+      orderCount: 0,
+      generatedAt: Date.now(),
+    },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+function normalizeCommissionBillingEntry(record) {
+  const base = createCommissionBillingEntry();
+  return {
+    ...base,
+    ...(record || {}),
+    status: ['draft', 'issued', 'paid', 'cancelled'].includes(record?.status) ? record.status : base.status,
+    grossSalesAmount: Number(record?.grossSalesAmount || 0),
+    commissionAmount: Number(record?.commissionAmount || 0),
+    sourceOrderIds: Array.isArray(record?.sourceOrderIds) ? record.sourceOrderIds.filter(Boolean) : [],
+    orderSnapshots: Array.isArray(record?.orderSnapshots)
+      ? record.orderSnapshots.map((order) => ({
+          orderId: order?.orderId || '',
+          orderNumber: order?.orderNumber || '',
+          orderDate: order?.orderDate || '',
+          status: order?.status || 'draft',
+          projectName: order?.projectName || '',
+          customerName: order?.customerName || '',
+          contractorName: order?.contractorName || '',
+          totalAmount: Number(order?.totalAmount || 0),
+        }))
+      : [],
+    agreementSnapshot: {
+      ...base.agreementSnapshot,
+      ...(record?.agreementSnapshot || {}),
+      agreementId: record?.agreementSnapshot?.agreementId || record?.agreementId || '',
+      agreementNumber: record?.agreementSnapshot?.agreementNumber || '',
+      agreementTitle: record?.agreementSnapshot?.agreementTitle || '',
+      agreementStatus: ['draft', 'active', 'inactive', 'expired'].includes(record?.agreementSnapshot?.agreementStatus)
+        ? record.agreementSnapshot.agreementStatus
+        : base.agreementSnapshot.agreementStatus,
+      billingCycle: ['monthly', 'biweekly', 'weekly', 'custom'].includes(record?.agreementSnapshot?.billingCycle)
+        ? record.agreementSnapshot.billingCycle
+        : base.agreementSnapshot.billingCycle,
+      billingCutoff: record?.agreementSnapshot?.billingCutoff || '',
+      paymentDueDays: Math.max(Number(record?.agreementSnapshot?.paymentDueDays || 0), 0),
+      commissionBasisNote: record?.agreementSnapshot?.commissionBasisNote || '',
+      billingContact: {
+        ...base.agreementSnapshot.billingContact,
+        ...(record?.agreementSnapshot?.billingContact || {}),
+        name: record?.agreementSnapshot?.billingContact?.name || '',
+        email: record?.agreementSnapshot?.billingContact?.email || '',
+        phone: record?.agreementSnapshot?.billingContact?.phone || '',
+      },
+      supplierSnapshot: normalizeSupplierAgreementEntry({
+        supplierId: record?.supplierId || '',
+        supplierSnapshot: record?.agreementSnapshot?.supplierSnapshot || {},
+      }).supplierSnapshot,
+    },
+    calculationSnapshot: {
+      ...base.calculationSnapshot,
+      ...(record?.calculationSnapshot || {}),
+      commissionRate: Number(record?.calculationSnapshot?.commissionRate || 0),
+      orderCount: Math.max(Number(record?.calculationSnapshot?.orderCount || 0), 0),
+      generatedAt: Number(record?.calculationSnapshot?.generatedAt || record?.updatedAt || base.calculationSnapshot.generatedAt),
+    },
+    createdAt: Number(record?.createdAt || base.createdAt),
+    updatedAt: Number(record?.updatedAt || base.updatedAt),
+  };
+}
+
+function normalizeCommissionBillingRecords(records) {
+  if (!Array.isArray(records)) return [];
+  return records.map((record) => normalizeCommissionBillingEntry(record));
+}
+
+function createSettlementEntry(overrides = {}) {
+  return {
+    id: `settlement-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    settlementNumber: `SET-${Date.now().toString().slice(-6)}`,
+    billingRecordId: '',
+    billingNumber: '',
+    supplierId: '',
+    supplierName: '',
+    amountDue: 0,
+    amountPaid: 0,
+    balanceRemaining: 0,
+    paymentDate: '',
+    dueDate: '',
+    paymentMethod: '',
+    paymentReference: '',
+    status: 'unpaid',
+    notes: '',
+    billingSnapshot: {
+      billingNumber: '',
+      agreementReference: '',
+      billingPeriodLabel: '',
+      issueDate: '',
+      dueDate: '',
+      grossSalesAmount: 0,
+      commissionAmount: 0,
+      supplierName: '',
+      supplierId: '',
+    },
+    paymentHistory: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+function normalizeSettlementEntry(record) {
+  const base = createSettlementEntry();
+  const normalizedAmountDue = Number(record?.amountDue || 0);
+  const normalizedAmountPaid = Math.max(Number(record?.amountPaid || 0), 0);
+  const normalizedBalance = Math.max(
+    Number(record?.balanceRemaining ?? (normalizedAmountDue - normalizedAmountPaid)),
+    0,
+  );
+  return {
+    ...base,
+    ...(record || {}),
+    amountDue: normalizedAmountDue,
+    amountPaid: normalizedAmountPaid,
+    balanceRemaining: normalizedBalance,
+    status: ['unpaid', 'partial', 'paid', 'overdue', 'cancelled'].includes(record?.status) ? record.status : base.status,
+    billingSnapshot: {
+      ...base.billingSnapshot,
+      ...(record?.billingSnapshot || {}),
+      billingNumber: record?.billingSnapshot?.billingNumber || record?.billingNumber || '',
+      agreementReference: record?.billingSnapshot?.agreementReference || '',
+      billingPeriodLabel: record?.billingSnapshot?.billingPeriodLabel || '',
+      issueDate: record?.billingSnapshot?.issueDate || '',
+      dueDate: record?.billingSnapshot?.dueDate || record?.dueDate || '',
+      grossSalesAmount: Number(record?.billingSnapshot?.grossSalesAmount || 0),
+      commissionAmount: Number(record?.billingSnapshot?.commissionAmount || 0),
+      supplierName: record?.billingSnapshot?.supplierName || record?.supplierName || '',
+      supplierId: record?.billingSnapshot?.supplierId || record?.supplierId || '',
+    },
+    paymentHistory: Array.isArray(record?.paymentHistory)
+      ? record.paymentHistory.map((entry) => ({
+          id: entry?.id || `payment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          amount: Number(entry?.amount || 0),
+          paymentDate: entry?.paymentDate || '',
+          paymentMethod: entry?.paymentMethod || '',
+          paymentReference: entry?.paymentReference || '',
+          note: entry?.note || '',
+          createdAt: Number(entry?.createdAt || Date.now()),
+        }))
+      : [],
+    createdAt: Number(record?.createdAt || base.createdAt),
+    updatedAt: Number(record?.updatedAt || base.updatedAt),
+  };
+}
+
+function normalizeSettlementRecords(records) {
+  if (!Array.isArray(records)) return [];
+  return records.map((record) => normalizeSettlementEntry(record));
+}
+
+function createSupplierProductEntry(overrides = {}) {
+  return {
+    id: `supplier-product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    productCode: `PRD-${Date.now().toString().slice(-6)}`,
+    productName: '',
+    categoryId: '',
+    categorySlug: '',
+    categoryName: '',
+    description: '',
+    unit: '',
+    price: 0,
+    minimumOrderQuantity: 1,
+    availableQuantity: 0,
+    leadTime: '',
+    deliveryArea: '',
+    productImage: {
+      dataUrl: '',
+      fileName: '',
+      mimeType: '',
+      fileSize: 0,
+      updatedAt: 0,
+    },
+    status: 'active',
+    importMeta: {
+      source: 'manual',
+      batchId: '',
+      rowNumber: null,
+      originalFileName: '',
+    },
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
+
+function normalizeSupplierProductEntry(product) {
+  const base = createSupplierProductEntry();
+  return {
+    ...base,
+    ...(product || {}),
+    productCode: product?.productCode || base.productCode,
+    productName: product?.productName || '',
+    categoryId: product?.categoryId || '',
+    categorySlug: product?.categorySlug || '',
+    categoryName: product?.categoryName || '',
+    description: product?.description || '',
+    unit: product?.unit || '',
+    price: Math.max(Number(product?.price || 0), 0),
+    minimumOrderQuantity: Math.max(Number(product?.minimumOrderQuantity ?? 1), 1),
+    availableQuantity: Math.max(Number(product?.availableQuantity || 0), 0),
+    leadTime: product?.leadTime || '',
+    deliveryArea: product?.deliveryArea || '',
+    productImage: {
+      ...base.productImage,
+      ...(product?.productImage || {}),
+      dataUrl: product?.productImage?.dataUrl || '',
+      fileName: product?.productImage?.fileName || '',
+      mimeType: product?.productImage?.mimeType || '',
+      fileSize: Math.max(Number(product?.productImage?.fileSize || 0), 0),
+      updatedAt: Number(product?.productImage?.updatedAt || 0),
+    },
+    status: product?.status === 'inactive' ? 'inactive' : 'active',
+    importMeta: {
+      ...base.importMeta,
+      ...(product?.importMeta || {}),
+      source: product?.importMeta?.source || 'manual',
+      batchId: product?.importMeta?.batchId || '',
+      rowNumber: product?.importMeta?.rowNumber ?? null,
+      originalFileName: product?.importMeta?.originalFileName || '',
+    },
+    createdAt: Number(product?.createdAt || base.createdAt),
+    updatedAt: Number(product?.updatedAt || base.updatedAt),
+  };
+}
+
+function normalizeSupplierProducts(products) {
+  if (!Array.isArray(products)) return [];
+  return products.map((product) => normalizeSupplierProductEntry(product));
+}
+
+function parseCsvText(text) {
+  const rows = [];
+  let currentRow = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentCell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(currentCell);
+      currentCell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        index += 1;
+      }
+      currentRow.push(currentCell);
+      if (currentRow.some((cell) => String(cell).trim() !== '')) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentCell = '';
+      continue;
+    }
+
+    currentCell += char;
+  }
+
+  currentRow.push(currentCell);
+  if (currentRow.some((cell) => String(cell).trim() !== '')) {
+    rows.push(currentRow);
+  }
+
+  return rows;
+}
+
+function normalizeCsvHeader(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function normalizeSupplierEntry(item) {
+  const base = createSupplierEntry();
+  const legacyPublic = {
+    supplierName: item?.supplierName || '',
+    contactPerson: item?.contactPerson || '',
+    phone: item?.phone || '',
+    email: item?.email || '',
+    otherContact: item?.otherContact || '',
+    address: item?.address || '',
+    serviceArea: item?.serviceArea || '',
+    productCategory: item?.productCategory || '',
+    status: item?.status === 'inactive' ? 'inactive' : 'active',
+    notes: item?.notes || '',
+  };
+
+  const normalizedCategoryAssignments = Array.isArray(item?.internalMeta?.categoryAssignments)
+    ? item.internalMeta.categoryAssignments.map((assignment) => ({
+        categoryId: assignment?.categoryId || '',
+        categorySlug: assignment?.categorySlug || '',
+        useDefaultCommission: assignment?.useDefaultCommission !== false,
+        overrideCommissionRate: Number(assignment?.overrideCommissionRate || 0),
+      }))
+    : [];
+
+  return {
+    ...base,
+    ...item,
+    publicProfile: {
+      ...base.publicProfile,
+      ...legacyPublic,
+      ...(item?.publicProfile || {}),
+      status: (item?.publicProfile?.status || legacyPublic.status) === 'inactive' ? 'inactive' : 'active',
+    },
+    internalMeta: {
+      ...base.internalMeta,
+      ...(item?.internalMeta || {}),
+      commissionRate: Number(item?.internalMeta?.commissionRate ?? item?.commissionRate ?? 0),
+      settlementTerms: item?.internalMeta?.settlementTerms || '',
+      platformNotes: item?.internalMeta?.platformNotes || '',
+      categoryAssignments: normalizedCategoryAssignments,
+      billingContact: {
+        ...base.internalMeta.billingContact,
+        ...(item?.internalMeta?.billingContact || {}),
+        name: item?.internalMeta?.billingContact?.name || '',
+        email: item?.internalMeta?.billingContact?.email || '',
+        phone: item?.internalMeta?.billingContact?.phone || '',
+      },
+    },
+  };
+}
+
+function normalizeSupplierDirectory(directory) {
+  if (!Array.isArray(directory)) return [];
+  return directory.map((item) => normalizeSupplierEntry(item));
+}
+
+const PERSON_TYPE_OPTIONS = [
+  'employee',
+  'skilled_worker',
+  'team_lead',
+  'supervisor',
+  'subcontractor',
+  'supplier',
+  'consultant',
+];
+
+const PERSON_TYPES_WITH_ROLE = new Set([
+  'employee',
+  'skilled_worker',
+  'team_lead',
+  'supervisor',
+  'consultant',
+]);
+
+const CONSTRUCTION_ROLE_OPTIONS = [
+  'project_manager',
+  'site_manager',
+  'project_engineer',
+  'site_engineer',
+  'supervisor',
+  'foreman',
+  'assistant_foreman',
+  'safety_officer',
+  'surveyor',
+  'planner',
+  'carpenter',
+  'steel_worker',
+  'mason',
+  'bricklayer',
+  'plasterer',
+  'tile_installer',
+  'welder',
+  'painter',
+  'ceiling_installer',
+  'roofer',
+  'aluminum_glass_installer',
+  'electrician',
+  'plumber',
+  'air_condition_technician',
+  'fire_protection_technician',
+  'network_communication_technician',
+  'maintenance_technician',
+  'crane_operator',
+  'excavator_operator',
+  'truck_driver',
+  'warehouse_staff',
+  'purchasing_staff',
+  'site_admin',
+  'general_worker',
+  'technician',
+  'helper',
+];
+
+const ROLE_OPTIONS_BY_PERSON_TYPE = {
+  employee: [
+    'project_manager',
+    'site_manager',
+    'project_engineer',
+    'site_engineer',
+    'safety_officer',
+    'surveyor',
+    'planner',
+    'warehouse_staff',
+    'purchasing_staff',
+    'site_admin',
+    'maintenance_technician',
+    'technician',
+  ],
+  skilled_worker: [
+    'carpenter',
+    'steel_worker',
+    'mason',
+    'bricklayer',
+    'plasterer',
+    'tile_installer',
+    'welder',
+    'painter',
+    'ceiling_installer',
+    'roofer',
+    'aluminum_glass_installer',
+    'electrician',
+    'plumber',
+    'air_condition_technician',
+    'fire_protection_technician',
+    'network_communication_technician',
+    'maintenance_technician',
+    'crane_operator',
+    'excavator_operator',
+    'truck_driver',
+    'general_worker',
+    'technician',
+    'helper',
+  ],
+  team_lead: [
+    'foreman',
+    'assistant_foreman',
+    'site_manager',
+    'site_engineer',
+    'warehouse_staff',
+    'site_admin',
+    'technician',
+  ],
+  supervisor: [
+    'supervisor',
+    'site_manager',
+    'project_manager',
+    'project_engineer',
+    'site_engineer',
+    'safety_officer',
+    'planner',
+  ],
+  consultant: [
+    'project_manager',
+    'project_engineer',
+    'site_engineer',
+    'surveyor',
+    'planner',
+    'safety_officer',
+    'technician',
+  ],
+};
+
+const CONSTRUCTION_ROLE_LABELS = {
+  project_manager: { LA: 'ຜູ້ຈັດການໂຄງການ', TH: 'ผู้จัดการโครงการ', EN: 'Project Manager' },
+  site_manager: { LA: 'ຜູ້ຈັດການໜ້າງານ', TH: 'ผู้จัดการหน้างาน', EN: 'Site Manager' },
+  project_engineer: { LA: 'ວິສະວະກອນໂຄງການ', TH: 'วิศวกรโครงการ', EN: 'Project Engineer' },
+  site_engineer: { LA: 'ວິສະວະກອນໜ້າງານ', TH: 'วิศวกรหน้างาน', EN: 'Site Engineer' },
+  supervisor: { LA: 'ຜູ້ຄຸມງານ', TH: 'ผู้ควบคุมงาน', EN: 'Supervisor' },
+  foreman: { LA: 'ຫົວໜ້າຄົນງານ', TH: 'โฟร์แมน', EN: 'Foreman' },
+  assistant_foreman: { LA: 'ຜູ້ຊ່ວຍຫົວໜ້າຄົນງານ', TH: 'ผู้ช่วยโฟร์แมน', EN: 'Assistant Foreman' },
+  safety_officer: { LA: 'ເຈົ້າໜ້າທີ່ຄວາມປອດໄພ', TH: 'เจ้าหน้าที่ความปลอดภัย', EN: 'Safety Officer' },
+  surveyor: { LA: 'ຊ່າງສຳຫຼວດ', TH: 'ช่างสำรวจ', EN: 'Surveyor' },
+  planner: { LA: 'ຜູ້ວາງແຜນ', TH: 'ผู้วางแผน', EN: 'Planner' },
+  carpenter: { LA: 'ຊ່າງໄມ້', TH: 'ช่างไม้', EN: 'Carpenter' },
+  steel_worker: { LA: 'ຊ່າງເຫຼັກ', TH: 'ช่างเหล็ก', EN: 'Steel Worker' },
+  mason: { LA: 'ຊ່າງປູນ', TH: 'ช่างปูน', EN: 'Mason' },
+  bricklayer: { LA: 'ຊ່າງກໍອິດ', TH: 'ช่างก่ออิฐ', EN: 'Bricklayer' },
+  plasterer: { LA: 'ຊ່າງສະຫຼາບ', TH: 'ช่างฉาบ', EN: 'Plasterer' },
+  tile_installer: { LA: 'ຊ່າງປູກະເບື້ອງ', TH: 'ช่างปูกระเบื้อง', EN: 'Tile Installer' },
+  welder: { LA: 'ຊ່າງເຊື່ອມ', TH: 'ช่างเชื่อม', EN: 'Welder' },
+  painter: { LA: 'ຊ່າງທາສີ', TH: 'ช่างทาสี', EN: 'Painter' },
+  ceiling_installer: { LA: 'ຊ່າງຕິດຕັ້ງເພດານ', TH: 'ช่างติดตั้งฝ้า', EN: 'Ceiling Installer' },
+  roofer: { LA: 'ຊ່າງຫຼັງຄາ', TH: 'ช่างหลังคา', EN: 'Roofer' },
+  aluminum_glass_installer: { LA: 'ຊ່າງອະລູມິນຽມ / ກະຈົກ', TH: 'ช่างอลูมิเนียม / กระจก', EN: 'Aluminum / Glass Installer' },
+  electrician: { LA: 'ຊ່າງໄຟຟ້າ', TH: 'ช่างไฟฟ้า', EN: 'Electrician' },
+  plumber: { LA: 'ຊ່າງປະປາ', TH: 'ช่างประปา', EN: 'Plumber' },
+  air_condition_technician: { LA: 'ຊ່າງແອ', TH: 'ช่างแอร์', EN: 'Air-condition Technician' },
+  fire_protection_technician: { LA: 'ຊ່າງລະບົບດັບເພີງ', TH: 'ช่างระบบดับเพลิง', EN: 'Fire Protection Technician' },
+  network_communication_technician: { LA: 'ຊ່າງເນັດເວີກ / ສື່ສານ', TH: 'ช่างระบบเครือข่าย / สื่อสาร', EN: 'Network / Communication Technician' },
+  maintenance_technician: { LA: 'ຊ່າງບຳລຸງຮັກສາ', TH: 'ช่างซ่อมบำรุง', EN: 'Maintenance Technician' },
+  crane_operator: { LA: 'ຄົນຂັບລົດເຄรນ', TH: 'ผู้ควบคุมเครน', EN: 'Crane Operator' },
+  excavator_operator: { LA: 'ຄົນຂັບລົດແມັກໂຄ', TH: 'ผู้ควบคุมรถขุด', EN: 'Excavator Operator' },
+  truck_driver: { LA: 'ຄົນຂັບລົດບັນທຸກ', TH: 'คนขับรถบรรทุก', EN: 'Truck Driver' },
+  warehouse_staff: { LA: 'ພະນັກງານຄັງ', TH: 'พนักงานคลัง', EN: 'Warehouse Staff' },
+  purchasing_staff: { LA: 'ພະນັກງານຈັດຊື້', TH: 'พนักงานจัดซื้อ', EN: 'Purchasing Staff' },
+  site_admin: { LA: 'ແອດມິນໜ້າງານ', TH: 'แอดมินหน้างาน', EN: 'Site Admin' },
+  general_worker: { LA: 'ຄົນງານທົ່ວໄປ', TH: 'แรงงานทั่วไป', EN: 'General Worker' },
+  technician: { LA: 'ຊ່າງເຕັກນິກ', TH: 'ช่างเทคนิค', EN: 'Technician' },
+  helper: { LA: 'ຜູ້ຊ່ວຍງານ', TH: 'ผู้ช่วยงาน', EN: 'Helper' },
+};
+
+function createWorkerEntry() {
+  return {
+    personType: 'employee',
+    name: '',
+    phone: '',
+    role: 'general_worker',
+    wage: 100000,
+    assignedSiteId: '',
+    email: '',
+    otherContact: '',
+    address: '',
+    status: 'active',
+    notes: '',
+    companyName: '',
+    contactPerson: '',
+    subcontractWorkType: '',
+    productCategory: '',
+    attendanceRate: 100,
+  };
+}
+
+function normalizeWorkerEntry(worker) {
+  const base = createWorkerEntry();
+  const legacyRole = worker?.role === 'worker'
+    ? 'general_worker'
+    : worker?.role === 'foreman'
+      ? 'foreman'
+      : worker?.role;
+  const normalizedPersonType = PERSON_TYPE_OPTIONS.includes(worker?.personType)
+    ? worker.personType
+    : (worker?.personType === 'labor' ? 'skilled_worker' : 'employee');
+  const normalizedRoleOptions = ROLE_OPTIONS_BY_PERSON_TYPE[normalizedPersonType] || CONSTRUCTION_ROLE_OPTIONS;
+  const fallbackRole = normalizedRoleOptions.includes(legacyRole) ? legacyRole : normalizedRoleOptions[0] || 'general_worker';
+
+  return {
+    ...base,
+    ...(worker || {}),
+    personType: normalizedPersonType,
+    role: PERSON_TYPES_WITH_ROLE.has(normalizedPersonType) ? fallbackRole : '',
+    wage: Math.max(Number(worker?.wage ?? base.wage), 0),
+    attendanceRate: Math.max(Number(worker?.attendanceRate ?? base.attendanceRate), 0),
+    status: worker?.status === 'inactive' ? 'inactive' : 'active',
+  };
+}
+
+function getRoleOptionsForPersonType(personType) {
+  return ROLE_OPTIONS_BY_PERSON_TYPE[personType] || CONSTRUCTION_ROLE_OPTIONS;
+}
+
+function getPersonTypeLabel(personType, t) {
+  return t(`person_type_${personType}`) || personType;
+}
+
+function getConstructionRoleLabel(role, language) {
+  return CONSTRUCTION_ROLE_LABELS[role]?.[language] || CONSTRUCTION_ROLE_LABELS[role]?.EN || role || '-';
+}
+
+function isRoleBasedWorkerType(personType) {
+  return PERSON_TYPES_WITH_ROLE.has(personType || 'employee');
+}
+
+function getWorkerPrimaryName(worker) {
+  return worker?.companyName || worker?.name || '-';
+}
+
+function getWorkerSecondaryName(worker) {
+  return worker?.companyName && worker?.contactPerson ? worker.contactPerson : worker?.phone || '-';
+}
+
+function getSupplierCategoryDisplayName(category, t) {
+  if (!category) return '-';
+  return category.labelKey ? t(category.labelKey) : (category.name || category.slug || '-');
+}
+
+function createPurchaseOrderItem() {
+  return {
+    id: `po-item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    description: '',
+    quantity: 1,
+    unitPrice: 0,
+  };
+}
+
+function createPurchaseOrderEntry() {
+  return {
+    id: `po-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    poNumber: `PO-${Date.now().toString().slice(-6)}`,
+    orderDate: getISODateString(),
+    supplierId: '',
+    customerName: '',
+    contractorName: '',
+    projectId: '',
+    projectName: '',
+    status: 'draft',
+    items: [createPurchaseOrderItem()],
+    notes: '',
+    supplierWorkflow: {
+      status: 'new',
+      responseNote: '',
+      respondedAt: 0,
+    },
+  };
+}
+
+function normalizePurchaseOrders(orders) {
+  if (!Array.isArray(orders)) return [];
+  return orders.map((order) => {
+    const base = createPurchaseOrderEntry();
+    const normalizedStatus = order?.status === 'sent' ? 'submitted' : order?.status;
+    return {
+      ...base,
+      ...order,
+      items: Array.isArray(order?.items) && order.items.length > 0
+        ? order.items.map((item) => ({
+          ...createPurchaseOrderItem(),
+          ...item,
+          quantity: Number(item?.quantity || 0),
+          unitPrice: Number(item?.unitPrice || 0),
+        }))
+        : [createPurchaseOrderItem()],
+      status: ['draft', 'submitted', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].includes(normalizedStatus) ? normalizedStatus : 'draft',
+      customerName: order?.customerName || '',
+      contractorName: order?.contractorName || '',
+      projectId: order?.projectId || '',
+      projectName: order?.projectName || '',
+      supplierWorkflow: {
+        ...base.supplierWorkflow,
+        ...(order?.supplierWorkflow || {}),
+        status: ['new', 'confirmed', 'rejected', 'preparing', 'shipped', 'delivered', 'cancelled'].includes(order?.supplierWorkflow?.status)
+          ? order.supplierWorkflow.status
+          : (
+            normalizedStatus === 'confirmed' ? 'confirmed'
+              : normalizedStatus === 'processing' ? 'preparing'
+                : normalizedStatus === 'shipped' ? 'shipped'
+                  : normalizedStatus === 'delivered' ? 'delivered'
+                    : normalizedStatus === 'cancelled' ? 'cancelled'
+                      : 'new'
+          ),
+        responseNote: order?.supplierWorkflow?.responseNote || '',
+        respondedAt: Number(order?.supplierWorkflow?.respondedAt || 0),
+      },
+    };
+  });
+}
+
+function createInventoryEntry() {
+  return {
+    name: '',
+    category: 'วัสดุก่อสร้าง',
+    quantity: 1,
+    unit: 'ชิ้น',
+    unitPrice: 0,
+    projectId: '',
+    notes: '',
+    projectUsage: {
+      usedQuantity: 0,
+    },
+  };
+}
+
+function getNormalizedMaterialUsage(item) {
+  const assignedQuantity = Math.max(Number(item?.quantity || 0), 0);
+  const usedQuantity = Math.min(
+    Math.max(Number(item?.projectUsage?.usedQuantity ?? item?.usedQuantity ?? 0), 0),
+    assignedQuantity,
+  );
+
+  return {
+    assignedQuantity,
+    usedQuantity,
+    remainingQuantity: Math.max(assignedQuantity - usedQuantity, 0),
+  };
+}
+
+function normalizeInventoryEntry(item) {
+  const base = createInventoryEntry();
+  const merged = {
+    ...base,
+    ...(item || {}),
+    projectUsage: {
+      ...base.projectUsage,
+      ...(item?.projectUsage || {}),
+    },
+  };
+  const assignedQuantity = Math.max(Number(merged.quantity || 0), 0);
+  const usedQuantity = Math.min(
+    Math.max(Number(merged.projectUsage?.usedQuantity ?? item?.usedQuantity ?? 0), 0),
+    assignedQuantity,
+  );
+
+  return {
+    ...merged,
+    quantity: assignedQuantity,
+    unitPrice: Math.max(Number(merged.unitPrice || 0), 0),
+    projectUsage: {
+      usedQuantity,
+    },
+  };
+}
+
+function createQuotationItem() {
+  return {
+    id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    description: '',
+    quantity: 1,
+    unitPrice: 0,
+  };
+}
+
+function getISODateString(date = new Date()) {
+  return date.toISOString().split('T')[0];
+}
+
+function addDaysToISODate(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return getISODateString(date);
+}
+
+function createDefaultQuotationDraft() {
+  return {
+    quotationNumber: 'QT-001',
+    issueDate: getISODateString(),
+    expiryDate: addDaysToISODate(30),
+    customerName: '',
+    customerAddress: '',
+    customerPhone: '',
+    customerEmail: '',
+    items: [createQuotationItem()],
+    discount: 0,
+    tax: 0,
+    notes: '',
+    paymentTerms: '',
+    emailRecipient: '',
+    emailCc: '',
+    emailSubject: '',
+    emailBody: '',
+  };
+}
+
+function normalizeQuotationDraft(draft) {
+  const mergedDraft = { ...createDefaultQuotationDraft(), ...draft };
+  const safeItems = Array.isArray(mergedDraft.items) && mergedDraft.items.length > 0
+    ? mergedDraft.items.map((item) => ({ ...createQuotationItem(), ...item }))
+    : [createQuotationItem()];
+  const fallbackContact = mergedDraft.customerContact || '';
+
+  return {
+    ...mergedDraft,
+    customerPhone: mergedDraft.customerPhone || fallbackContact,
+    customerEmail: mergedDraft.customerEmail || '',
+    emailCc: mergedDraft.emailCc || '',
+    items: safeItems,
+  };
+}
+
+function createMailtoLink({ recipient, cc, subject, body }) {
+  const params = new URLSearchParams();
+  if (cc) params.set('cc', cc);
+  if (subject) params.set('subject', subject);
+  if (body) params.set('body', body);
+  const query = params.toString();
+  return `mailto:${recipient || ''}${query ? `?${query}` : ''}`;
+}
+
+function createDefaultAgreementDraft() {
+  return {
+    contractNumber: 'AG-001',
+    contractDate: getISODateString(),
+    mode: 'standard',
+    employerInfo: '',
+    employerName: '',
+    employerAddress: '',
+    employerPhone: '',
+    employerEmail: '',
+    projectTitle: '',
+    clientName: '',
+    projectLocation: '',
+    clientRequirements: '',
+    specialConditions: '',
+    scopeOfWork: '',
+    timeline: '',
+    paymentTerms: '',
+    warrantyTerms: '',
+    changeOrderTerms: '',
+    terminationTerms: '',
+    clientSigner: '',
+    contractorSigner: '',
+    emailRecipient: '',
+    emailCc: '',
+    emailSubject: '',
+    emailBody: '',
+  };
+}
+
+function normalizeAgreementDraft(draft) {
+  const mergedDraft = { ...createDefaultAgreementDraft(), ...draft };
+  const fallbackInfo = mergedDraft.employerInfo || '';
+
+  return {
+    ...mergedDraft,
+    employerName: mergedDraft.employerName || mergedDraft.clientName || '',
+    employerAddress: mergedDraft.employerAddress || '',
+    employerPhone: mergedDraft.employerPhone || '',
+    employerEmail: mergedDraft.employerEmail || '',
+    employerInfo: fallbackInfo,
+    emailCc: mergedDraft.emailCc || '',
+  };
+}
+
+function generateAgreementDraftFromInputs({ draft, template, companyProfile, language }) {
+  const clientDisplay = draft.employerName || draft.clientName || draft.employerInfo || '-';
+  const locationText = draft.projectLocation || '-';
+  const requirementText = draft.clientRequirements || '-';
+  const specialConditionsText = draft.specialConditions || '';
+  const companyName = companyProfile.companyName || '-';
+  const employerLines = [
+    clientDisplay,
+    draft.employerAddress,
+    draft.employerPhone,
+    draft.employerEmail,
+  ].filter(Boolean).join('\n');
+
+  if (language === 'TH') {
+    return {
+      ...draft,
+      employerInfo: [employerLines, `สถานที่โครงการ: ${locationText}`].filter(Boolean).join('\n'),
+      scopeOfWork: draft.scopeOfWork || `ผู้รับเหมาจะดำเนินงาน "${draft.projectTitle || '-'}" ตามความต้องการของลูกค้า โดยครอบคลุมงานหลักดังนี้:\n- ${requirementText}\n- ดำเนินงานตามแบบและรายละเอียดที่ตกลงร่วมกัน\n- ประสานงานและรายงานความคืบหน้าอย่างสม่ำเสมอ`,
+      timeline: draft.timeline || `เริ่มดำเนินงานตามวันที่ในสัญญา และดำเนินงานให้แล้วเสร็จตามแผนงานที่ตกลงร่วมกัน ณ ${locationText}`,
+      paymentTerms: draft.paymentTerms || template.paymentTerms,
+      warrantyTerms: draft.warrantyTerms || `ผู้รับเหมารับประกันผลงานตามมาตรฐานวิชาชีพ และรับผิดชอบการแก้ไขข้อบกพร่องภายในระยะเวลาที่ตกลงร่วมกัน`,
+      changeOrderTerms: `หากมีการเปลี่ยนแปลงขอบเขตงาน ราคา หรือระยะเวลา ทั้งสองฝ่ายจะจัดทำบันทึกเปลี่ยนแปลงงานเป็นลายลักษณ์อักษร`,
+      terminationTerms: draft.terminationTerms || `หากฝ่ายใดฝ่ายหนึ่งผิดสัญญา อีกฝ่ายมีสิทธิบอกกล่าวและยกเลิกสัญญาได้ตามเงื่อนไขที่กฎหมายกำหนด`,
+      specialConditions: specialConditionsText,
+      contractorSigner: draft.contractorSigner || companyProfile.signerName || companyName,
+    };
+  }
+
+  if (language === 'EN') {
+    return {
+      ...draft,
+      employerInfo: [employerLines, `Project location: ${locationText}`].filter(Boolean).join('\n'),
+      scopeOfWork: draft.scopeOfWork || `The contractor shall deliver "${draft.projectTitle || '-'}" based on the client requirements below:\n- ${requirementText}\n- Execute works in line with the agreed drawings and specifications\n- Provide regular progress coordination and reporting`,
+      timeline: draft.timeline || `Work will commence from the contract date and proceed according to the mutually agreed schedule for the site at ${locationText}.`,
+      paymentTerms: draft.paymentTerms || template.paymentTerms,
+      warrantyTerms: draft.warrantyTerms || `The contractor warrants the completed work to professional standards and will remedy verified defects within the agreed warranty period.`,
+      changeOrderTerms: `Any changes to scope, price, or timeline must be documented and approved by both parties in writing.`,
+      terminationTerms: draft.terminationTerms || `If either party materially breaches this agreement, the other party may issue notice and terminate according to the agreed terms and applicable law.`,
+      specialConditions: specialConditionsText,
+      contractorSigner: draft.contractorSigner || companyProfile.signerName || companyName,
+    };
+  }
+
+  return {
+    ...draft,
+    employerInfo: [employerLines, `ສະຖານທີ່ໂຄງການ: ${locationText}`].filter(Boolean).join('\n'),
+    scopeOfWork: draft.scopeOfWork || `ຜູ້ຮັບເໝົາຈະດຳເນີນວຽກ "${draft.projectTitle || '-'}" ຕາມຄວາມຕ້ອງການຂອງລູກຄ້າ ໂດຍຄອບຄຸມ:\n- ${requirementText}\n- ດຳເນີນວຽກຕາມແບບ ແລະ ລາຍລະອຽດທີ່ຕົກລົງຮ່ວມກັນ\n- ລາຍງານຄວາມຄືບໜ້າເປັນໄລຍະ`,
+    timeline: draft.timeline || `ເລີ່ມດຳເນີນວຽກຕາມວັນທີໃນສັນຍາ ແລະ ສຳເລັດຕາມແຜນງານທີ່ຕົກລົງສຳລັບໂຄງການທີ່ ${locationText}`,
+    paymentTerms: draft.paymentTerms || template.paymentTerms,
+    warrantyTerms: draft.warrantyTerms || `ຜູ້ຮັບເໝົາຮັບປະກັນຄຸນນະພາບຜົນງານຕາມມາດຕະຖານວິຊາຊີບ ແລະ ຈະແກ້ໄຂຂໍ້ບົກພ່ອງທີ່ພົບໃນໄລຍະຮັບປະກັນ`,
+    changeOrderTerms: `ຖ້າມີການປ່ຽນແປງຂອບເຂດວຽກ ລາຄາ ຫຼື ໄລຍະເວລາ ທັງສອງຝ່າຍຈະຈັດເຮັດເອກະສານຢືນຢັນເປັນລາຍລັກອັກສອນ`,
+    terminationTerms: draft.terminationTerms || `ຖ້າຝ່າຍໃດຝ່າຍໜຶ່ງບໍ່ປະຕິບັດຕາມສັນຍາ ອີກຝ່າຍມີສິດແຈ້ງກ່ອນ ແລະ ຍົກເລີກສັນຍາຕາມເງື່ອນໄຂທີ່ກຳນົດ`,
+    specialConditions: specialConditionsText,
+    contractorSigner: draft.contractorSigner || companyProfile.signerName || companyName,
+  };
+}
+
+function createDefaultDocumentTemplateSettings() {
+  return {
+    TH: {
+      quotationHeading: 'ใบเสนอราคา',
+      quotationNotes: 'ราคานี้รวมเฉพาะขอบเขตงานที่ระบุ และอาจมีการปรับตามหน้างานจริง',
+      paymentTerms: 'ชำระเงินตามงวดงานที่ตกลงร่วมกัน',
+      agreementStandardClauses: 'คู่สัญญาตกลงปฏิบัติตามรายละเอียดงาน ระยะเวลา และเงื่อนไขที่ระบุในเอกสารฉบับนี้',
+      signatureClientLabel: 'ผู้ว่าจ้าง',
+      signatureContractorLabel: 'ผู้รับเหมา',
+      defaultDocumentWording: 'เอกสารฉบับนี้เป็นส่วนหนึ่งของการตกลงทางธุรกิจ และใช้ประกอบการอนุมัติงานหรือการดำเนินการต่อไป',
+    },
+    LA: {
+      quotationHeading: 'ໃບສະເໜີລາຄາ',
+      quotationNotes: 'ລາຄານີ້ຄອບຄຸມສະເພາະຂອບເຂດວຽກທີ່ລະບຸ ແລະ ອາດປັບຕາມສະພາບໜ້າວຽກຈິງ',
+      paymentTerms: 'ຊຳລະເງິນຕາມງວດວຽກທີ່ຕົກລົງຮ່ວມກັນ',
+      agreementStandardClauses: 'ຄູ່ສັນຍາຕົກລົງປະຕິບັດຕາມລາຍລະອຽດວຽກ ໄລຍະເວລາ ແລະ ເງື່ອນໄຂທີ່ລະບຸໃນເອກະສານນີ້',
+      signatureClientLabel: 'ຜູ້ວ່າຈ້າງ',
+      signatureContractorLabel: 'ຜູ້ຮັບເໝົາ',
+      defaultDocumentWording: 'ເອກະສານນີ້ເປັນສ່ວນໜຶ່ງຂອງການຕົກລົງທາງທຸລະກິດ ແລະ ໃຊ້ສຳລັບການອະນຸມັດງານຫຼືດຳເນີນການຕໍ່ໄປ',
+    },
+    EN: {
+      quotationHeading: 'Quotation',
+      quotationNotes: 'This pricing covers only the listed scope of work and may be adjusted based on actual site conditions.',
+      paymentTerms: 'Payment shall be made according to the mutually agreed work milestones.',
+      agreementStandardClauses: 'Both parties agree to perform according to the scope, timeline, and conditions stated in this document.',
+      signatureClientLabel: 'Client',
+      signatureContractorLabel: 'Contractor',
+      defaultDocumentWording: 'This document forms part of the business agreement and supports later approval, execution, or record keeping.',
+    },
+  };
+}
+
+const CURRENCY_TEXT = {
+  LA: 'LAK',
+  TH: 'THB',
+  EN: 'USD',
+};
+
+const PRICE_PER_PERSON_MONTH = {
+  LA: ' LAK/ຄົນ/ເດືອນ',
+  TH: ' THB/คน/เดือน',
+  EN: ' USD/user/month',
+};
+
+const WAGE_SUFFIX = {
+  LA: ' LAK/ມື້',
+  TH: ' THB/วัน',
+  EN: ' USD/day',
+};
+
+const FREE_PLAN_LABEL = {
+  LA: 'ຟຣີ',
+  TH: 'ฟรี',
+  EN: 'Free',
+};
+
+const INCLUDED_IN_PLAN_LABEL = {
+  LA: ' (ລວມໃນແພັກເກດບໍລິສັດ)',
+  TH: ' (รวมในแพ็กเกจบริษัท)',
+  EN: ' (included in company plan)',
+};
+
+function formatNumberByLanguage(value, language) {
+  const safeValue = Number(value) || 0;
+  return new Intl.NumberFormat(NUMBER_LOCALE[language] || 'en-US').format(safeValue);
+}
+
+function convertFromBaseCurrency(value, language) {
+  const safeValue = Number(value) || 0;
+  const currencyCode = DISPLAY_CURRENCY[language] || 'USD';
+  const rate = EXCHANGE_RATES[currencyCode] || 1;
+  return safeValue * rate;
+}
+
+function formatConvertedNumberByLanguage(value, language, fractionDigits = 2) {
+  const convertedValue = convertFromBaseCurrency(value, language);
+  const numberOptions = typeof fractionDigits === 'object' && fractionDigits !== null
+    ? fractionDigits
+    : { maximumFractionDigits: fractionDigits };
+  return new Intl.NumberFormat(NUMBER_LOCALE[language] || 'en-US', {
+    minimumFractionDigits: 0,
+    ...numberOptions,
+  }).format(convertedValue);
+}
+
+function formatMoneyByLanguage(value, language) {
+  return `${formatConvertedNumberByLanguage(value, language)} ${CURRENCY_TEXT[language] || 'USD'}`;
+}
+
+const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+
+function getWeatherConditionKey(code) {
+  if ([0].includes(code)) return 'weather_clear';
+  if ([1].includes(code)) return 'weather_mainly_clear';
+  if ([2].includes(code)) return 'weather_partly_cloudy';
+  if ([3].includes(code)) return 'weather_overcast';
+  if ([45, 48].includes(code)) return 'weather_fog';
+  if ([51, 53, 55, 56, 57].includes(code)) return 'weather_drizzle';
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'weather_rain';
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return 'weather_snow';
+  if ([95, 96, 99].includes(code)) return 'weather_thunderstorm';
+  return 'weather_partly_cloudy';
+}
+
+async function fetchWeatherByCoordinates(latitude, longitude) {
+  const params = new URLSearchParams({
+    latitude: String(latitude),
+    longitude: String(longitude),
+    current: 'temperature_2m,weather_code',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+    timezone: 'auto',
+    forecast_days: '2',
+  });
+
+  const response = await fetch(`${OPEN_METEO_FORECAST_URL}?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(`Weather API request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
+  const tomorrowIndex = data?.daily?.time?.length > 1 ? 1 : 0;
+
+  return {
+    latitude: data.latitude,
+    longitude: data.longitude,
+    current: {
+      temperature: data.current?.temperature_2m ?? null,
+      weatherCode: data.current?.weather_code ?? null,
+      temperatureUnit: data.current_units?.temperature_2m || '°C',
+    },
+    tomorrow: {
+      max: data.daily?.temperature_2m_max?.[tomorrowIndex] ?? null,
+      min: data.daily?.temperature_2m_min?.[tomorrowIndex] ?? null,
+      precipitationProbability: data.daily?.precipitation_probability_max?.[tomorrowIndex] ?? null,
+      weatherCode: data.daily?.weather_code?.[tomorrowIndex] ?? null,
+    },
+  };
+}
+
+// --- MAIN APPLICATION COMPONENT ---
+export default function BuildSabaideeApp() {
+  const [currentView, setCurrentView] = useState('landing');
+  const [language, setLanguage] = useState('LA');
+  const [loginRole, setLoginRole] = useState('user');
+  const [authErrorKey, setAuthErrorKey] = useState('');
+  const [authSession, setAuthSession] = useState(() => {
+    try {
+      const storedSession = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+      return storedSession ? JSON.parse(storedSession) : null;
+    } catch (error) {
+      console.error('Failed to read auth session:', error);
+      return null;
+    }
+  });
+  const [companyProfile, setCompanyProfile] = useState(() => {
+    try {
+      const storedProfile = window.localStorage.getItem(COMPANY_PROFILE_STORAGE_KEY);
+      return storedProfile ? { ...DEFAULT_COMPANY_PROFILE, ...JSON.parse(storedProfile) } : DEFAULT_COMPANY_PROFILE;
+    } catch (error) {
+      console.error('Failed to read company profile:', error);
+      return DEFAULT_COMPANY_PROFILE;
+    }
+  });
+  const [quotationDraft, setQuotationDraft] = useState(() => {
+    try {
+      const storedDraft = window.localStorage.getItem(QUOTATION_DRAFT_STORAGE_KEY);
+      return storedDraft ? normalizeQuotationDraft(JSON.parse(storedDraft)) : createDefaultQuotationDraft();
+    } catch (error) {
+      console.error('Failed to read quotation draft:', error);
+      return createDefaultQuotationDraft();
+    }
+  });
+  const [agreementDraft, setAgreementDraft] = useState(() => {
+    try {
+      const storedDraft = window.localStorage.getItem(AGREEMENT_DRAFT_STORAGE_KEY);
+      return storedDraft ? normalizeAgreementDraft(JSON.parse(storedDraft)) : createDefaultAgreementDraft();
+    } catch (error) {
+      console.error('Failed to read agreement draft:', error);
+      return createDefaultAgreementDraft();
+    }
+  });
+  const [documentTemplateSettings, setDocumentTemplateSettings] = useState(() => {
+    try {
+      const storedSettings = window.localStorage.getItem(DOCUMENT_TEMPLATE_SETTINGS_STORAGE_KEY);
+      return storedSettings ? { ...createDefaultDocumentTemplateSettings(), ...JSON.parse(storedSettings) } : createDefaultDocumentTemplateSettings();
+    } catch (error) {
+      console.error('Failed to read document template settings:', error);
+      return createDefaultDocumentTemplateSettings();
+    }
+  });
+  const [supplierDirectory, setSupplierDirectory] = useState(() => {
+    try {
+      const storedSuppliers = window.localStorage.getItem(SUPPLIER_DIRECTORY_STORAGE_KEY);
+      return storedSuppliers ? normalizeSupplierDirectory(JSON.parse(storedSuppliers)) : [];
+    } catch (error) {
+      console.error('Failed to read supplier directory:', error);
+      return [];
+    }
+  });
+  const [purchaseOrders, setPurchaseOrders] = useState(() => {
+    try {
+      const storedOrders = window.localStorage.getItem(PURCHASE_ORDERS_STORAGE_KEY);
+      return storedOrders ? normalizePurchaseOrders(JSON.parse(storedOrders)) : [];
+    } catch (error) {
+      console.error('Failed to read purchase orders:', error);
+      return [];
+    }
+  });
+  const [supplierCategories, setSupplierCategories] = useState(() => {
+    try {
+      const storedCategories = window.localStorage.getItem(SUPPLIER_CATEGORIES_STORAGE_KEY);
+      return storedCategories ? normalizeSupplierCategories(JSON.parse(storedCategories)) : createDefaultSupplierCategories();
+    } catch (error) {
+      console.error('Failed to read supplier categories:', error);
+      return createDefaultSupplierCategories();
+    }
+  });
+  const [supplierAgreements, setSupplierAgreements] = useState(() => {
+    try {
+      const storedAgreements = window.localStorage.getItem(SUPPLIER_AGREEMENTS_STORAGE_KEY);
+      return storedAgreements ? normalizeSupplierAgreements(JSON.parse(storedAgreements)) : [];
+    } catch (error) {
+      console.error('Failed to read supplier agreements:', error);
+      return [];
+    }
+  });
+  const [commissionBillingRecords, setCommissionBillingRecords] = useState(() => {
+    try {
+      const storedRecords = window.localStorage.getItem(COMMISSION_BILLING_STORAGE_KEY);
+      return storedRecords ? normalizeCommissionBillingRecords(JSON.parse(storedRecords)) : [];
+    } catch (error) {
+      console.error('Failed to read commission billing records:', error);
+      return [];
+    }
+  });
+  const [settlementRecords, setSettlementRecords] = useState(() => {
+    try {
+      const storedRecords = window.localStorage.getItem(SETTLEMENTS_STORAGE_KEY);
+      return storedRecords ? normalizeSettlementRecords(JSON.parse(storedRecords)) : [];
+    } catch (error) {
+      console.error('Failed to read settlement records:', error);
+      return [];
+    }
+  });
+  const [adminPlatformSettings, setAdminPlatformSettings] = useState(() => {
+    try {
+      const storedSettings = window.localStorage.getItem(ADMIN_PLATFORM_SETTINGS_STORAGE_KEY);
+      return storedSettings ? normalizeAdminPlatformSettings(JSON.parse(storedSettings)) : createDefaultAdminPlatformSettings();
+    } catch (error) {
+      console.error('Failed to read admin platform settings:', error);
+      return createDefaultAdminPlatformSettings();
+    }
+  });
+  const [supplierProducts, setSupplierProducts] = useState(() => {
+    try {
+      const storedProducts = window.localStorage.getItem(SUPPLIER_PRODUCTS_STORAGE_KEY);
+      return storedProducts ? normalizeSupplierProducts(JSON.parse(storedProducts)) : [];
+    } catch (error) {
+      console.error('Failed to read supplier products:', error);
+      return [];
+    }
+  });
+  const [pricingPackages, setPricingPackages] = useState(() => {
+    try {
+      const storedPackages = window.localStorage.getItem(PRICING_PACKAGES_STORAGE_KEY);
+      return storedPackages ? normalizePricingPackages(JSON.parse(storedPackages)) : createDefaultPricingPackages();
+    } catch (error) {
+      console.error('Failed to read pricing packages:', error);
+      return createDefaultPricingPackages();
+    }
+  });
+
+  // ========================================================
+  // 🔥 FIREBASE REALTIME STATE LISTENERS 🔥
+  // ========================================================
+  const [projectsList, setProjectsList] = useState([]);
+  const [workersList, setWorkersList] = useState([]);
+  const [docsList, setDocsList] = useState([]);
+  const [inventoryList, setInventoryList] = useState([]);
+  const [globalRequests, setGlobalRequests] = useState([]);
+  const [globalIssues, setGlobalIssues] = useState([]);
+  const [globalChats, setGlobalChats] = useState([]);
+
+  useEffect(() => {
+    if (!db) return; // หากยังไม่ใส่ Config ให้หยุดทำงาน
+
+    const unsubs = [];
+    const collectionsToSync = [
+      { name: 'projects', setter: setProjectsList },
+      { name: 'workers', setter: setWorkersList },
+      { name: 'docs', setter: setDocsList },
+      { name: 'inventory', setter: setInventoryList },
+      { name: 'requests', setter: setGlobalRequests },
+      { name: 'issues', setter: setGlobalIssues },
+      { name: 'chats', setter: setGlobalChats }
+    ];
+
+    collectionsToSync.forEach(col => {
+       const unsub = onSnapshot(collection(db, col.name), (snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          // เรียงลำดับแชทตามเวลาจากเก่าไปใหม่ อันอื่นใหม่ไปเก่า
+          if (col.name === 'chats') {
+             data.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+          } else {
+             data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          }
+          col.setter(data);
+       });
+       unsubs.push(unsub);
+    });
+
+    return () => unsubs.forEach(unsub => unsub()); // Cleanup listeners เมื่อปิดแอป
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COMPANY_PROFILE_STORAGE_KEY, JSON.stringify(companyProfile));
+    } catch (error) {
+      console.error('Failed to persist company profile:', error);
+    }
+  }, [companyProfile]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(QUOTATION_DRAFT_STORAGE_KEY, JSON.stringify(quotationDraft));
+    } catch (error) {
+      console.error('Failed to persist quotation draft:', error);
+    }
+  }, [quotationDraft]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(AGREEMENT_DRAFT_STORAGE_KEY, JSON.stringify(agreementDraft));
+    } catch (error) {
+      console.error('Failed to persist agreement draft:', error);
+    }
+  }, [agreementDraft]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DOCUMENT_TEMPLATE_SETTINGS_STORAGE_KEY, JSON.stringify(documentTemplateSettings));
+    } catch (error) {
+      console.error('Failed to persist document template settings:', error);
+    }
+  }, [documentTemplateSettings]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SUPPLIER_DIRECTORY_STORAGE_KEY, JSON.stringify(supplierDirectory));
+    } catch (error) {
+      console.error('Failed to persist supplier directory:', error);
+    }
+  }, [supplierDirectory]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PURCHASE_ORDERS_STORAGE_KEY, JSON.stringify(purchaseOrders));
+    } catch (error) {
+      console.error('Failed to persist purchase orders:', error);
+    }
+  }, [purchaseOrders]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SUPPLIER_CATEGORIES_STORAGE_KEY, JSON.stringify(supplierCategories));
+    } catch (error) {
+      console.error('Failed to persist supplier categories:', error);
+    }
+  }, [supplierCategories]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SUPPLIER_AGREEMENTS_STORAGE_KEY, JSON.stringify(supplierAgreements));
+    } catch (error) {
+      console.error('Failed to persist supplier agreements:', error);
+    }
+  }, [supplierAgreements]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COMMISSION_BILLING_STORAGE_KEY, JSON.stringify(commissionBillingRecords));
+    } catch (error) {
+      console.error('Failed to persist commission billing records:', error);
+    }
+  }, [commissionBillingRecords]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SETTLEMENTS_STORAGE_KEY, JSON.stringify(settlementRecords));
+    } catch (error) {
+      console.error('Failed to persist settlement records:', error);
+    }
+  }, [settlementRecords]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ADMIN_PLATFORM_SETTINGS_STORAGE_KEY, JSON.stringify(adminPlatformSettings));
+    } catch (error) {
+      console.error('Failed to persist admin platform settings:', error);
+    }
+  }, [adminPlatformSettings]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SUPPLIER_PRODUCTS_STORAGE_KEY, JSON.stringify(supplierProducts));
+    } catch (error) {
+      console.error('Failed to persist supplier products:', error);
+    }
+  }, [supplierProducts]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PRICING_PACKAGES_STORAGE_KEY, JSON.stringify(pricingPackages));
+    } catch (error) {
+      console.error('Failed to persist pricing packages:', error);
+    }
+  }, [pricingPackages]);
+
+  useEffect(() => {
+    try {
+      if (authSession) window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(authSession));
+      else window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+    } catch (error) {
+      console.error('Failed to persist auth session:', error);
+    }
+  }, [authSession]);
+
+  const navigateTo = (target) => {
+    const normalizedTarget = typeof target === 'string' ? { view: target } : (target || {});
+    const nextView = normalizedTarget.view || 'landing';
+    const requestedRole = normalizedTarget.role || VIEW_ROLE_MAP[nextView] || 'user';
+
+    if (nextView === 'logout') {
+      setAuthSession(null);
+      setAuthErrorKey('');
+      setLoginRole(normalizedTarget.role || 'user');
+      setCurrentView(normalizedTarget.redirectTo || 'landing');
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    if (nextView === 'role_login') {
+      setLoginRole(requestedRole);
+      setAuthErrorKey(normalizedTarget.errorKey || '');
+      setCurrentView('role_login');
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    if (DASHBOARD_ROLE_MAP[nextView]) {
+      const requiredRole = DASHBOARD_ROLE_MAP[nextView];
+      if (authSession?.role !== requiredRole) {
+        setLoginRole(requiredRole);
+        setAuthErrorKey('auth_guard_message');
+        setCurrentView('role_login');
+        window.scrollTo(0, 0);
+        return;
+      }
+    }
+
+    setAuthErrorKey('');
+    if (VIEW_ROLE_MAP[nextView]) setLoginRole(requestedRole);
+    setCurrentView(nextView);
+    window.scrollTo(0, 0);
+  };
+
+  const handleRoleLogin = ({ role, email, password }) => {
+    const normalizedRole = role || loginRole;
+    const account = DEMO_AUTH_ACCOUNTS[normalizedRole];
+    if (!account || account.email !== String(email || '').trim().toLowerCase() || account.password !== password) {
+      setAuthErrorKey('auth_invalid_credentials');
+      return false;
+    }
+
+    setAuthSession({
+      role: normalizedRole,
+      email: account.email,
+      displayName: account.displayName,
+      signedInAt: Date.now(),
+    });
+    setAuthErrorKey('');
+    setCurrentView(ROLE_HOME_VIEW[normalizedRole] || 'landing');
+    window.scrollTo(0, 0);
+    return true;
+  };
+
+  const toggleLanguage = () => {
+    if (language === 'LA') setLanguage('TH');
+    else if (language === 'TH') setLanguage('EN');
+    else setLanguage('LA');
+  };
+
+  const t = (key) => translations[language][key] || key;
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+      {!isFirebaseConfigured && (
+        <div className="bg-red-500 text-white text-center py-2 text-sm font-bold z-50 relative animate-pulse">
+          {t('firebase_config_warning')}
+        </div>
+      )}
+      
+      {currentView === 'landing' && <LandingPage onNavigate={navigateTo} t={t} toggleLanguage={toggleLanguage} language={language} />}
+      {currentView === 'role_login' && (
+        <RoleLoginPage
+          onNavigate={navigateTo}
+          onLogin={handleRoleLogin}
+          t={t}
+          role={loginRole}
+          setRole={setLoginRole}
+          authErrorKey={authErrorKey}
+          authSession={authSession}
+        />
+      )}
+      {currentView === 'worker' && (
+        <WorkerApp 
+          onNavigate={navigateTo} t={t} 
+          globalRequests={globalRequests} globalIssues={globalIssues} docsList={docsList} workersList={workersList} globalChats={globalChats}
+        />
+      )}
+      {currentView === 'manager' && (
+        <ManagerDashboard 
+          onNavigate={navigateTo} t={t} language={language}
+          dashboardRole="user"
+          projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
+          companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
+          quotationDraft={quotationDraft} setQuotationDraft={setQuotationDraft}
+          agreementDraft={agreementDraft} setAgreementDraft={setAgreementDraft}
+          documentTemplateSettings={documentTemplateSettings} setDocumentTemplateSettings={setDocumentTemplateSettings}
+          supplierDirectory={supplierDirectory} setSupplierDirectory={setSupplierDirectory}
+          purchaseOrders={purchaseOrders} setPurchaseOrders={setPurchaseOrders}
+          supplierCategories={supplierCategories} setSupplierCategories={setSupplierCategories}
+          supplierAgreements={supplierAgreements} setSupplierAgreements={setSupplierAgreements}
+          commissionBillingRecords={commissionBillingRecords} setCommissionBillingRecords={setCommissionBillingRecords}
+          settlementRecords={settlementRecords} setSettlementRecords={setSettlementRecords}
+          adminPlatformSettings={adminPlatformSettings} setAdminPlatformSettings={setAdminPlatformSettings}
+          pricingPackages={pricingPackages} setPricingPackages={setPricingPackages}
+        />
+      )}
+      {currentView === 'platform_owner_access' && (
+        <PlatformOwnerAccess onNavigate={navigateTo} t={t} authSession={authSession} />
+      )}
+      {currentView === 'platform_owner_dashboard' && (
+        <ManagerDashboard
+          onNavigate={navigateTo} t={t} language={language}
+          dashboardRole="platform_owner"
+          adminNavOnly={true}
+          projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
+          companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
+          quotationDraft={quotationDraft} setQuotationDraft={setQuotationDraft}
+          agreementDraft={agreementDraft} setAgreementDraft={setAgreementDraft}
+          documentTemplateSettings={documentTemplateSettings} setDocumentTemplateSettings={setDocumentTemplateSettings}
+          supplierDirectory={supplierDirectory} setSupplierDirectory={setSupplierDirectory}
+          purchaseOrders={purchaseOrders} setPurchaseOrders={setPurchaseOrders}
+          supplierCategories={supplierCategories} setSupplierCategories={setSupplierCategories}
+          supplierAgreements={supplierAgreements} setSupplierAgreements={setSupplierAgreements}
+          commissionBillingRecords={commissionBillingRecords} setCommissionBillingRecords={setCommissionBillingRecords}
+          settlementRecords={settlementRecords} setSettlementRecords={setSettlementRecords}
+          adminPlatformSettings={adminPlatformSettings} setAdminPlatformSettings={setAdminPlatformSettings}
+          pricingPackages={pricingPackages} setPricingPackages={setPricingPackages}
+        />
+      )}
+      {currentView === 'supplier_access' && (
+        <SupplierAccess onNavigate={navigateTo} t={t} authSession={authSession} />
+      )}
+      {currentView === 'supplier_dashboard' && (
+        <SupplierPortal
+          onNavigate={navigateTo}
+          t={t}
+          language={language}
+          projectsList={projectsList}
+          supplierDirectory={supplierDirectory}
+          setSupplierDirectory={setSupplierDirectory}
+          purchaseOrders={purchaseOrders}
+          setPurchaseOrders={setPurchaseOrders}
+          supplierCategories={supplierCategories}
+          supplierProducts={supplierProducts}
+          setSupplierProducts={setSupplierProducts}
+        />
+      )}
+      {currentView === 'owner' && (
+         <OwnerPortal onNavigate={navigateTo} t={t} globalChats={globalChats} docsList={docsList} language={language} />
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// 1. LANDING PAGE COMPONENT
+// ==========================================
+function LandingPage({ onNavigate, t, toggleLanguage, language }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const roleEntryCards = [
+    {
+      key: 'user',
+      title: t('landing_role_user_title'),
+      desc: t('landing_role_user_desc'),
+      cta: t('nav_login'),
+      onClick: () => onNavigate({ view: 'role_login', role: 'user' }),
+      icon: Building,
+      tone: 'bg-blue-50 text-blue-700 border-blue-200',
+      buttonClass: 'bg-blue-600 hover:bg-blue-700 text-white',
+    },
+    {
+      key: 'admin',
+      title: t('nav_platform_owner'),
+      desc: t('landing_role_admin_desc'),
+      cta: t('landing_role_enter'),
+      onClick: () => onNavigate({ view: 'role_login', role: 'admin' }),
+      icon: Database,
+      tone: 'bg-slate-100 text-slate-700 border-slate-200',
+      buttonClass: 'bg-slate-900 hover:bg-slate-800 text-white',
+    },
+    {
+      key: 'supplier',
+      title: t('nav_supplier_portal'),
+      desc: t('landing_role_supplier_desc'),
+      cta: t('landing_role_enter'),
+      onClick: () => onNavigate({ view: 'role_login', role: 'supplier' }),
+      icon: Package,
+      tone: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      buttonClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    },
+  ];
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <nav className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => onNavigate('landing')}>
+              <div className="bg-blue-600 p-2 rounded-lg">
+                <HardHat className="text-white h-6 w-6" />
+              </div>
+              <span className="font-bold text-xl text-blue-900">BuildSabaidee</span>
+            </div>
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-slate-600 hover:text-blue-600 font-medium">{t('nav_features')}</a>
+              <a href="#superapp" className="text-slate-600 hover:text-blue-600 font-medium">{t('nav_superapp')}</a>
+              <a href="#pricing" className="text-slate-600 hover:text-blue-600 font-medium">{t('nav_pricing')}</a>
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'supplier' })} className="text-slate-600 hover:text-blue-600 font-medium">
+                {t('nav_supplier_portal')}
+              </button>
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'admin' })} className="text-slate-600 hover:text-blue-600 font-medium">
+                {t('nav_platform_owner')}
+              </button>
+              <div onClick={toggleLanguage} className="flex items-center space-x-1 border border-slate-200 rounded-full px-4 py-1.5 cursor-pointer hover:bg-slate-50 transition shadow-sm">
+                <Globe className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-bold text-slate-700">{t('lang_name')}</span>
+              </div>
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="bg-blue-600 text-white px-5 py-2 rounded-full font-medium hover:bg-blue-700 transition">
+                {t('nav_login')}
+              </button>
+            </div>
+            <div className="md:hidden flex items-center space-x-4">
+              <div onClick={toggleLanguage} className="flex items-center space-x-1 border rounded-full px-3 py-1 cursor-pointer">
+                <Globe className="h-4 w-4 text-blue-500" />
+                <span className="text-xs font-bold">{t('lang_name').split(' ')[0]}</span>
+              </div>
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-600">
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t p-4 space-y-4">
+            <a href="#features" className="block text-slate-600 font-medium">{t('nav_features')}</a>
+            <a href="#pricing" className="block text-slate-600 font-medium">{t('nav_pricing')}</a>
+            <button onClick={() => onNavigate({ view: 'role_login', role: 'supplier' })} className="w-full border border-slate-300 bg-white text-slate-700 px-5 py-2 rounded-lg font-medium">
+              {t('nav_supplier_portal')}
+            </button>
+            <button onClick={() => onNavigate({ view: 'role_login', role: 'admin' })} className="w-full border border-slate-300 bg-white text-slate-700 px-5 py-2 rounded-lg font-medium">
+              {t('nav_platform_owner')}
+            </button>
+            <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="w-full bg-blue-600 text-white px-5 py-2 rounded-lg font-medium">
+              {t('nav_login')}
+            </button>
+          </div>
+        )}
+      </nav>
+
+      <section className="bg-gradient-to-br from-blue-900 to-slate-900 text-white pt-20 pb-32 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center"></div>
+        <div className="max-w-7xl mx-auto relative z-10 grid md:grid-cols-2 gap-12 items-center">
+          <div>
+            <span className="inline-block py-1 px-3 rounded-full bg-blue-500/30 text-blue-200 text-sm font-semibold mb-4 border border-blue-400/30">
+              {t('hero_badge')}
+            </span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+              {t('hero_title1')} <span className="text-orange-400">{t('hero_title2')}</span>
+            </h1>
+            <p className="text-lg text-slate-300 mb-8 max-w-xl">
+              {t('hero_desc')}
+            </p>
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="bg-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-orange-600 transition flex items-center justify-center">
+                {t('hero_btn_try')} <ChevronRight className="ml-2 h-5 w-5" />
+              </button>
+              <button onClick={() => onNavigate('worker')} className="bg-white/10 text-white border border-white/30 px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition flex items-center justify-center">
+                <Smartphone className="mr-2 h-5 w-5" /> {t('hero_btn_worker')}
+              </button>
+            </div>
+          </div>
+          <div className="relative hidden md:block">
+            <div className="absolute inset-0 bg-blue-500 rounded-full blur-[100px] opacity-20"></div>
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl shadow-2xl transform rotate-3 hover:rotate-0 transition duration-500">
+              <div className="bg-slate-800 rounded-xl overflow-hidden shadow-inner">
+                <div className="p-4 border-b border-slate-700 flex justify-between items-center">
+                  <div className="flex space-x-2"><div className="w-3 h-3 rounded-full bg-red-500"></div><div className="w-3 h-3 rounded-full bg-yellow-500"></div><div className="w-3 h-3 rounded-full bg-green-500"></div></div>
+                  <div className="text-xs text-slate-400">Manager Dashboard</div>
+                </div>
+                <div className="p-6 grid grid-cols-2 gap-4">
+                  <div className="bg-slate-700 p-4 rounded-lg"><div className="text-orange-400 text-xl font-bold">12</div><div className="text-xs text-slate-300">Active Sites</div></div>
+                  <div className="bg-slate-700 p-4 rounded-lg"><div className="text-green-400 text-xl font-bold">85%</div><div className="text-xs text-slate-300">Attendance</div></div>
+                  <div className="bg-slate-700 p-4 rounded-lg col-span-2 flex items-center justify-between">
+                    <div><div className="text-white text-sm font-bold">Vientiane Villa Project</div><div className="text-xs text-slate-400">Progress 65%</div></div>
+                    <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center"><CheckCircle className="h-5 w-5 text-white" /></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="-mt-20 px-4 relative z-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6 lg:p-8">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{t('landing_roles_title')}</h2>
+                <p className="mt-2 text-sm text-slate-600 sm:text-base">{t('landing_roles_desc')}</p>
+              </div>
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {roleEntryCards.map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                    <div className={`inline-flex rounded-2xl border px-3 py-3 ${card.tone}`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-bold text-slate-900">{card.title}</h3>
+                    <p className="mt-2 min-h-[3rem] text-sm leading-6 text-slate-600">{card.desc}</p>
+                    <button
+                      onClick={card.onClick}
+                      className={`mt-5 inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold transition ${card.buttonClass}`}
+                    >
+                      {card.cta}
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">{t('feat_title')}</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t('feat_subtitle')}</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition cursor-pointer group" onClick={() => onNavigate('worker')}>
+              <div className="bg-green-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-green-500 transition">
+                <HardHat className="h-8 w-8 text-green-600 group-hover:text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                {t('feat_worker')} <ArrowRightIcon />
+              </h3>
+              <ul className="space-y-3">
+                <FeatureItem icon={<MapPin />} text={t('feat_worker_item1')} />
+                <FeatureItem icon={<Camera />} text={t('feat_worker_item2')} />
+                <FeatureItem icon={<AlertTriangle />} text={t('feat_worker_item3')} />
+                <FeatureItem icon={<Mic />} text={t('feat_worker_item4')} />
+              </ul>
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition cursor-pointer group" onClick={() => onNavigate({ view: 'role_login', role: 'user' })}>
+              <div className="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition">
+                <Building className="h-8 w-8 text-blue-600 group-hover:text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                {t('feat_manager')} <ArrowRightIcon />
+              </h3>
+              <ul className="space-y-3">
+                <FeatureItem icon={<BarChart3 />} text={t('feat_manager_item1')} />
+                <FeatureItem icon={<CheckCircle />} text={t('feat_manager_item2')} />
+                <FeatureItem icon={<Users />} text={t('feat_manager_item3')} />
+                <FeatureItem icon={<FileText />} text={t('feat_manager_item4')} />
+              </ul>
+            </div>
+            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition cursor-pointer group" onClick={() => onNavigate('owner')}>
+              <div className="bg-orange-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-500 transition">
+                <Smartphone className="h-8 w-8 text-orange-600 group-hover:text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-4 flex items-center">
+                {t('feat_owner')} <ArrowRightIcon />
+              </h3>
+              <ul className="space-y-3">
+                <FeatureItem icon={<Clock />} text={t('feat_owner_item1')} />
+                <FeatureItem icon={<CheckCircle />} text={t('feat_owner_item2')} />
+                <FeatureItem icon={<MessageSquare />} text={t('feat_owner_item3')} />
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="superapp" className="py-20 bg-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <span className="text-blue-600 font-bold tracking-wider uppercase text-sm">{t('superapp_badge')}</span>
+            <h2 className="text-3xl font-bold text-slate-900 mt-2 mb-4">{t('superapp_title')}</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <SuperFeatureCard icon={<WifiOff />} title={t('superapp_card1_title')} color="bg-slate-700" desc={t('superapp_card1_desc')} />
+            <SuperFeatureCard icon={<Package />} title={t('superapp_card2_title')} color="bg-orange-500" desc={t('superapp_card2_desc')} />
+            <SuperFeatureCard icon={<Receipt />} title={t('superapp_card3_title')} color="bg-green-500" desc={t('superapp_card3_desc')} />
+            <SuperFeatureCard icon={<CloudRain />} title={t('superapp_card4_title')} color="bg-blue-500" desc={t('superapp_card4_desc')} />
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">{t('pricing_title')}</h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t('pricing_subtitle')}</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-lg transition bg-white relative">
+              <h3 className="text-xl font-bold text-slate-900">Basic Plan</h3>
+              <p className="text-slate-500 text-sm mt-2">{t('pricing_basic_desc')}</p>
+              <div className="my-6"><span className="text-4xl font-bold text-slate-900">{formatConvertedNumberByLanguage(5000, language)}</span><span className="text-slate-500">{PRICE_PER_PERSON_MONTH[language] || PRICE_PER_PERSON_MONTH.EN}</span></div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item1')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item2')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item3')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item4')}</li>
+              </ul>
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="w-full py-3 rounded-xl border-2 border-blue-600 text-blue-600 font-bold hover:bg-blue-50 transition">{t('pricing_start_cta')}</button>
+            </div>
+            <div className="border-2 border-blue-600 rounded-3xl p-8 shadow-xl bg-white relative transform md:-translate-y-4">
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold">{t('pricing_popular')}</div>
+              <h3 className="text-xl font-bold text-blue-900">Pro Plan</h3>
+              <p className="text-slate-500 text-sm mt-2">{t('pricing_pro_desc')}</p>
+              <div className="my-6"><span className="text-4xl font-bold text-blue-900">{formatConvertedNumberByLanguage(10000, language)}</span><span className="text-slate-500">{PRICE_PER_PERSON_MONTH[language] || PRICE_PER_PERSON_MONTH.EN}</span></div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item1')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item2')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item3')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item4')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item5')}</li>
+              </ul>
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">{t('pricing_trial_cta')}</button>
+            </div>
+            <div className="border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-lg transition bg-white">
+              <h3 className="text-xl font-bold text-slate-900">Owner / Client</h3>
+              <p className="text-slate-500 text-sm mt-2">{t('pricing_owner_desc')}</p>
+              <div className="my-6"><span className="text-4xl font-bold text-green-600">{FREE_PLAN_LABEL[language] || FREE_PLAN_LABEL.EN}</span><span className="text-slate-500">{INCLUDED_IN_PLAN_LABEL[language] || INCLUDED_IN_PLAN_LABEL.EN}</span></div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item1')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item2')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item3')}</li>
+                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item4')}</li>
+              </ul>
+              <button onClick={() => onNavigate('owner')} className="w-full py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition">{t('pricing_owner_cta')}</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="bg-slate-900 text-slate-400 py-12 text-center">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-center space-x-2 mb-6">
+            <HardHat className="text-blue-500 h-6 w-6" />
+            <span className="font-bold text-xl text-white">BuildSabaidee</span>
+          </div>
+          <p className="mb-6">The Next Generation Construction Management Super App for Laos.</p>
+          <div className="border-t border-slate-800 pt-8 text-sm">
+            &copy; 2026 BuildSabaidee. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function FeatureItem({ icon, text }) {
+  return (
+    <li className="flex items-start">
+      <div className="flex-shrink-0 h-6 w-6 text-slate-400 mr-3 mt-0.5">{React.cloneElement(icon, { className: "h-5 w-5" })}</div>
+      <span className="text-slate-600 text-sm">{text}</span>
+    </li>
+  );
+}
+
+function SuperFeatureCard({ icon, title, desc, color }) {
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition">
+      <div className={`${color} w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-white`}>{React.cloneElement(icon, { className: "h-6 w-6" })}</div>
+      <h4 className="font-bold text-slate-900 mb-2">{title}</h4>
+      <p className="text-sm text-slate-500 leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function ArrowRightIcon() {
+  return <ChevronRight className="h-5 w-5 ml-auto text-slate-400 group-hover:text-blue-500 transition transform group-hover:translate-x-1" />;
+}
+
+// ==========================================
+// 2. WORKER APP SIMULATOR (Mobile View)
+// ==========================================
+function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, workersList, globalChats }) {
+  const worker = workersList.map((entry) => normalizeWorkerEntry(entry)).find((entry) => isRoleBasedWorkerType(entry.personType)) || { id: 'temp', name: t('worker_role_worker'), assignedSiteId: '', attendanceRate: 0 };
+  const isCheckedIn = worker?.attendanceRate > 0;
+  const [activeNav, setActiveNav] = useState('home'); 
+
+  const [isReqModalOpen, setIsReqModalOpen] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+
+  const [reqItems, setReqItems] = useState('');
+  const [reqPhoto, setReqPhoto] = useState(null);
+  const [reportDesc, setReportDesc] = useState('');
+  const [reportPhoto, setReportPhoto] = useState(null);
+  const [sosDesc, setSosDesc] = useState('');
+  const [sosPhoto, setSosPhoto] = useState(null);
+
+  const [chatInput, setChatInput] = useState('');
+  const chatContainerRef = useRef(null);
+
+  // 🎙️ Firebase Audio Recorder (แปลงเป็น Base64 ส่งขึ้น Firebase)
+  const { isRecording: isRecordingAudio, startRecording, stopRecording } = useAudioRecorder(async (base64Audio) => {
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'chats'), {
+       sender: worker.name, senderRole: 'worker', text: t('voice_message_label'), audioUrl: base64Audio, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: String(worker.assignedSiteId || 1), createdAt: Date.now()
+    });
+  });
+
+  useEffect(() => {
+    if (activeNav === 'chat' && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [globalChats, activeNav]);
+
+  // FIREBASE ACTIONS
+  const handleSendChat = async () => {
+    if(!chatInput.trim()) return;
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'chats'), {
+       sender: worker.name, senderRole: 'worker', text: chatInput, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: String(worker.assignedSiteId || 1), createdAt: Date.now()
+    });
+    setChatInput('');
+  };
+
+  const handleKeyPress = (e) => { if(e.key === 'Enter') handleSendChat(); };
+
+  const toggleCheckIn = async () => {
+    if(!db) return alert(t('firebase_required'));
+    const newRate = isCheckedIn ? 0 : 100;
+    await updateDoc(doc(db, 'workers', worker.id), { attendanceRate: newRate });
+  };
+
+  const handleSimulatePhoto = (setter) => {
+    setter('https://images.unsplash.com/photo-1541888081467-548c78574163?q=80&w=400&auto=format&fit=crop');
+  };
+
+  const submitRequest = async () => {
+    if (!reqItems) { alert(t('worker_request_required')); return; }
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'requests'), {
+      title: `${t('worker_material')}: ` + (reqItems.split('\n')[0].substring(0, 20)), requestedBy: worker.name, projectId: String(worker.assignedSiteId || ''), itemsListText: reqItems, photoUrl: reqPhoto || 'https://images.unsplash.com/photo-1504307651254-35680f356f27?q=80&w=400&auto=format&fit=crop', status: 'pending', date: new Date().toISOString().split('T')[0], createdAt: Date.now()
+    });
+    setIsReqModalOpen(false); setReqItems(''); setReqPhoto(null); alert(t('worker_request_success'));
+  };
+
+  const submitReport = async () => {
+    if (!reportDesc) { alert(t('worker_report_required')); return; }
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'docs'), {
+      type: 'report', title: `${t('doc_type_report')}: ` + reportDesc.substring(0, 20), amount: 0, date: new Date().toISOString().split('T')[0], projectId: String(worker.assignedSiteId || ''), status: 'approved', submittedBy: worker.name, createdAt: Date.now()
+    });
+    setIsPhotoModalOpen(false); setReportDesc(''); setReportPhoto(null); alert(t('worker_report_success'));
+  };
+
+  const submitSos = async () => {
+    if (!sosDesc) { alert(t('worker_sos_required')); return; }
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'issues'), {
+      title: t('worker_sos'), desc: sosDesc, projectId: String(worker.assignedSiteId || ''), requestedBy: worker.name, status: 'pending', date: new Date().toISOString().split('T')[0], createdAt: Date.now()
+    });
+    setIsSosModalOpen(false); setSosDesc(''); setSosPhoto(null); alert(t('worker_sos_success'));
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-800 flex items-center justify-center p-4 relative">
+      <div className="bg-slate-100 w-full max-w-[400px] h-[800px] max-h-[90vh] rounded-[3rem] overflow-hidden shadow-2xl relative border-8 border-slate-900 flex flex-col">
+        
+        {/* Top Status Bar */}
+        <div className="bg-white pt-6 pb-4 px-6 rounded-b-3xl shadow-sm z-10 shrink-0">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">ส</div>
+              <div>
+                <div className="font-bold text-slate-800">{worker.name}</div>
+                <div className="text-xs text-slate-500 flex items-center"><MapPin className="h-3 w-3 mr-1"/> {t('worker_latest_site')}</div>
+              </div>
+            </div>
+            <button onClick={() => onNavigate('landing')} className="text-slate-400 hover:text-slate-600"><X className="h-6 w-6" /></button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          
+          {activeNav === 'home' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="bg-orange-100 text-orange-800 p-3 rounded-2xl flex items-center text-sm font-medium">
+                <WifiOff className="h-5 w-5 mr-2" /> {t('worker_offline_mode')}
+              </div>
+
+              {/* Check in */}
+              <button onClick={toggleCheckIn} className={`w-full py-8 rounded-3xl flex flex-col items-center justify-center shadow-lg transition-transform active:scale-95 ${isCheckedIn ? 'bg-slate-200 text-slate-500' : 'bg-green-500 text-white'}`}>
+                <div className={`p-4 rounded-full mb-2 ${isCheckedIn ? 'bg-slate-300' : 'bg-green-400'}`}>
+                  <MapPin className="h-10 w-10" />
+                </div>
+                <span className="text-2xl font-bold">{isCheckedIn ? t('worker_checked') : t('worker_checkin')}</span>
+                <span className="text-sm opacity-80 mt-1">{isCheckedIn ? t('worker_checkin_time') : t('worker_checkin_hint')}</span>
+              </button>
+
+              {/* Action Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setIsPhotoModalOpen(true)} className="bg-blue-500 text-white p-6 rounded-3xl flex flex-col items-center justify-center shadow-md active:scale-95">
+                  <Camera className="h-8 w-8 mb-2" />
+                  <span className="font-bold text-lg text-center leading-tight">{t('worker_photo')}</span>
+                </button>
+                <button onClick={() => setIsReqModalOpen(true)} className="bg-orange-500 text-white p-6 rounded-3xl flex flex-col items-center justify-center shadow-md active:scale-95 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition duration-500"></div>
+                  <Package className="h-8 w-8 mb-2 relative z-10" />
+                  <span className="font-bold text-lg text-center leading-tight relative z-10">{t('worker_material')}</span>
+                </button>
+              </div>
+
+              {/* Emergency SOS */}
+              <button onClick={() => setIsSosModalOpen(true)} className="w-full bg-red-500 text-white p-4 rounded-3xl flex items-center justify-center shadow-md active:scale-95 mt-4">
+                <AlertTriangle className="h-6 w-6 mr-2 flex-shrink-0" />
+                <span className="font-bold text-lg leading-tight">{t('worker_sos')}</span>
+              </button>
+            </div>
+          )}
+
+          {activeNav === 'tasks' && (
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 animate-in fade-in duration-300 min-h-full">
+              <h3 className="font-bold text-lg text-slate-800 mb-4">{t('worker_tasks_title')}</h3>
+              <div className="space-y-3">
+                <div className="flex items-start p-3 bg-slate-50 rounded-xl border border-slate-100">
+                   <div className="w-6 h-6 rounded-full border-2 border-slate-300 mr-3 mt-0.5 flex-shrink-0"></div>
+                   <div><p className="text-sm font-bold text-slate-700">{t('worker_task_1_title')}</p><p className="text-xs text-slate-500">{t('worker_task_1_time')}</p></div>
+                </div>
+                <div className="flex items-start p-3 bg-slate-50 rounded-xl border border-slate-100 opacity-50">
+                   <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center mr-3 mt-0.5 flex-shrink-0"><Check className="w-4 h-4"/></div>
+                   <div><p className="text-sm font-bold text-slate-700 line-through">{t('worker_task_2_title')}</p><p className="text-xs text-slate-500">{t('worker_task_2_done')}</p></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* REAL-TIME CHAT VIEW */}
+          {activeNav === 'chat' && (
+            <div className="bg-slate-50 rounded-3xl flex flex-col h-[calc(100vh-250px)] max-h-full overflow-hidden animate-in fade-in duration-300 border border-slate-200">
+               <div className="bg-white p-3 border-b border-slate-200 flex items-center shrink-0">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">MG</div>
+                  <span className="font-bold text-sm">{t('chat_manager_title') || 'แชทโครงการ'}</span>
+               </div>
+               
+               <div ref={chatContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto bg-slate-50">
+                 {globalChats.map(msg => {
+                   const isMe = msg.senderRole === 'worker';
+                   return (
+                     <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className={`p-3 rounded-2xl text-sm shadow-sm max-w-[90%] md:max-w-[70%] ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm'}`}>
+                          {!isMe && <div className="text-[10px] font-bold text-blue-500 mb-1">{msg.sender}</div>}
+                          {msg.audioUrl ? (
+                             <audio controls src={msg.audioUrl} className="max-w-[200px] sm:max-w-full h-10 mt-1 rounded-full outline-none bg-transparent" />
+                          ) : (
+                             msg.text
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 mx-1">{msg.time}</span>
+                     </div>
+                   )
+                 })}
+               </div>
+               
+               <div className="p-3 bg-white border-t border-slate-200 flex items-center shrink-0">
+                  <button 
+                    onMouseDown={startRecording} onMouseUp={stopRecording} onMouseLeave={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording} 
+                    className={`p-2 transition rounded-full ${isRecordingAudio ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:bg-slate-100'}`}
+                    title={t('chat_hold_record')}
+                  >
+                    <Mic className="w-5 h-5"/>
+                  </button>
+                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={handleKeyPress}
+                    className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mx-2" 
+                    placeholder={isRecordingAudio ? t('chat_recording') : (t('chat_placeholder') || 'Type message...')} disabled={isRecordingAudio}
+                  />
+                  <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`p-2 rounded-full transition ${chatInput.trim() ? 'text-blue-600 hover:bg-blue-50' : 'text-slate-300'}`}>
+                    <Send className="w-5 h-5"/>
+                  </button>
+               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Nav Bar */}
+        <div className="bg-white border-t border-slate-200 px-6 py-4 rounded-t-3xl flex justify-between shrink-0">
+          <div onClick={() => setActiveNav('home')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'home' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><HardHat className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('worker_nav_home')}</span></div>
+          <div onClick={() => setActiveNav('tasks')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'tasks' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><FileText className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('worker_nav_tasks')}</span></div>
+          <div onClick={() => setActiveNav('chat')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'chat' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><MessageSquare className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('worker_nav_chat')}</span></div>
+        </div>
+
+        {/* OVERLAYS MODALS */}
+        {isReqModalOpen && (
+          <div className="absolute inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4 backdrop-blur-sm rounded-[2.5rem]">
+             <div className="bg-white w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90%] animate-in zoom-in-95 duration-200">
+               <div className="px-5 py-4 border-b flex justify-between items-center bg-slate-50"><h3 className="font-bold text-slate-800">{t('worker_req_title')}</h3><button onClick={() => setIsReqModalOpen(false)}><X className="h-5 w-5 text-slate-500"/></button></div>
+               <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('worker_req_items')}</label><textarea value={reqItems} onChange={(e) => setReqItems(e.target.value)} className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-orange-500 h-28"></textarea></div>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('worker_req_photo')}</label>
+                     {reqPhoto ? (<div className="relative w-full h-40 rounded-xl overflow-hidden shadow-sm"><img src={reqPhoto} className="w-full h-full object-cover" alt="site" /><button onClick={() => setReqPhoto(null)} className="absolute top-2 right-2 bg-slate-900/50 p-1.5 rounded-full text-white"><X className="w-4 h-4"/></button></div>) : (<button onClick={() => handleSimulatePhoto(setReqPhoto)} className="w-full h-40 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 transition"><Camera className="w-10 h-10 mb-2 text-blue-500" /><span className="text-sm font-medium">{t('worker_req_photo_cta')}</span></button>)}
+                  </div>
+               </div>
+               <div className="p-5 border-t bg-slate-50"><button onClick={submitRequest} className="w-full bg-orange-500 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-orange-600 transition flex justify-center items-center"><Package className="w-5 h-5 mr-2" /> {t('worker_req_submit')}</button></div>
+             </div>
+          </div>
+        )}
+
+        {isPhotoModalOpen && (
+          <div className="absolute inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4 backdrop-blur-sm rounded-[2.5rem]">
+             <div className="bg-white w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90%] animate-in zoom-in-95 duration-200">
+               <div className="px-5 py-4 border-b flex justify-between items-center bg-slate-50"><h3 className="font-bold text-slate-800">{t('worker_report_title')}</h3><button onClick={() => setIsPhotoModalOpen(false)}><X className="h-5 w-5 text-slate-500"/></button></div>
+               <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('worker_report_photo')}</label>
+                     {reportPhoto ? (<div className="relative w-full h-48 rounded-xl overflow-hidden shadow-sm"><img src={reportPhoto} className="w-full h-full object-cover" alt="site" /><button onClick={() => setReportPhoto(null)} className="absolute top-2 right-2 bg-slate-900/50 p-1.5 rounded-full text-white"><X className="w-4 h-4"/></button></div>) : (<button onClick={() => handleSimulatePhoto(setReportPhoto)} className="w-full h-48 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 transition"><Camera className="w-12 h-12 mb-2 text-blue-500" /><span className="text-sm font-medium">{t('worker_report_open_camera')}</span></button>)}
+                  </div>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('worker_report_details')}</label><textarea value={reportDesc} onChange={(e) => setReportDesc(e.target.value)} className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-blue-500 h-20"></textarea></div>
+               </div>
+               <div className="p-5 border-t bg-slate-50"><button onClick={submitReport} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-blue-700 transition flex justify-center items-center"><CheckCircle className="w-5 h-5 mr-2" /> {t('worker_report_submit')}</button></div>
+             </div>
+          </div>
+        )}
+
+        {isSosModalOpen && (
+          <div className="absolute inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4 backdrop-blur-sm rounded-[2.5rem]">
+             <div className="bg-white w-full rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90%] animate-in zoom-in-95 duration-200 border-2 border-red-500">
+               <div className="px-5 py-4 border-b border-red-100 flex justify-between items-center bg-red-50"><h3 className="font-bold text-red-700 flex items-center"><AlertTriangle className="w-5 h-5 mr-2"/> {t('worker_sos')}</h3><button onClick={() => setIsSosModalOpen(false)}><X className="h-5 w-5 text-red-500"/></button></div>
+               <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('worker_sos_desc')}</label><textarea value={sosDesc} onChange={(e) => setSosDesc(e.target.value)} className="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-red-500 h-24"></textarea></div>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('worker_sos_photo_optional')}</label>
+                     {sosPhoto ? (<div className="relative w-full h-32 rounded-xl overflow-hidden shadow-sm"><img src={sosPhoto} className="w-full h-full object-cover" alt="site" /><button onClick={() => setSosPhoto(null)} className="absolute top-2 right-2 bg-slate-900/50 p-1.5 rounded-full text-white"><X className="w-4 h-4"/></button></div>) : (<button onClick={() => handleSimulatePhoto(setSosPhoto)} className="w-full h-32 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 transition"><Camera className="w-8 h-8 mb-2 text-slate-400" /><span className="text-xs font-medium">{t('worker_sos_photo_cta')}</span></button>)}
+                  </div>
+               </div>
+               <div className="p-5 border-t bg-slate-50"><button onClick={submitSos} className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-red-700 transition flex justify-center items-center animate-pulse"><AlertTriangle className="w-5 h-5 mr-2" /> {t('worker_sos_submit')}</button></div>
+             </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// 3. MANAGER DASHBOARD SIMULATOR 
+// ==========================================
+function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adminNavOnly = false, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
+  const isPlatformAdmin = dashboardRole === 'admin' || dashboardRole === 'platform_owner';
+  const [activeTab, setActiveTab] = useState(adminNavOnly ? 'admin_overview' : 'overview');
+  const [weatherState, setWeatherState] = useState({ status: 'loading', data: null, errorKey: '' });
+  const [companyProfileForm, setCompanyProfileForm] = useState(companyProfile);
+  const [companyProfileSaved, setCompanyProfileSaved] = useState(false);
+  const [quotationForm, setQuotationForm] = useState(quotationDraft);
+  const [quotationSaved, setQuotationSaved] = useState(false);
+  const [agreementForm, setAgreementForm] = useState(agreementDraft);
+  const [agreementSaved, setAgreementSaved] = useState(false);
+  const [agreementDraftGenerated, setAgreementDraftGenerated] = useState(false);
+  const [templateLanguage, setTemplateLanguage] = useState(language);
+  const [templateSaved, setTemplateSaved] = useState(false);
+  const [showQuotationPreview, setShowQuotationPreview] = useState(false);
+  const [showAgreementPreview, setShowAgreementPreview] = useState(false);
+  const [showCommissionBillingPreview, setShowCommissionBillingPreview] = useState(false);
+  const [showSettlementPreview, setShowSettlementPreview] = useState(false);
+  const [printTarget, setPrintTarget] = useState(null);
+  const [emailStatus, setEmailStatus] = useState({ quotation: '', agreement: '' });
+  const [expandedNavGroups, setExpandedNavGroups] = useState({
+    overview: true,
+    operations: true,
+    documents: true,
+    procurement: true,
+    inventory: true,
+    finance: true,
+    settings: true,
+    admin: true,
+  });
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedProjectTab, setSelectedProjectTab] = useState('overview');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [formData, setFormData] = useState(createProjectEntry());
+
+  const [workerSearchQuery, setWorkerSearchQuery] = useState('');
+  const [workerTypeFilter, setWorkerTypeFilter] = useState('all');
+  const [workerRoleFilter, setWorkerRoleFilter] = useState('all');
+  const [workerSiteFilter, setWorkerSiteFilter] = useState('all');
+  const [workerStatusFilter, setWorkerStatusFilter] = useState('all');
+  const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
+  const [editingWorkerId, setEditingWorkerId] = useState(null);
+  const [workerFormData, setWorkerFormData] = useState(createWorkerEntry());
+
+  const [docsSearchQuery, setDocsSearchQuery] = useState('');
+  const [docsFilter, setDocsFilter] = useState('all'); 
+  const [docsStatusFilter, setDocsStatusFilter] = useState('all');
+  const [selectedDocsBillingId, setSelectedDocsBillingId] = useState('');
+  const [isDocModalOpen, setIsDocModalOpen] = useState(false);
+  const [editingDocId, setEditingDocId] = useState(null);
+  const todayDate = new Date().toISOString().split('T')[0];
+  const [docFormData, setDocFormData] = useState({ type: 'invoice', title: '', amount: 0, date: todayDate, projectId: '', status: 'pending', submittedBy: t('manager_default_submitter') });
+
+  const [invSearchQuery, setInvSearchQuery] = useState('');
+  const [invProjectFilter, setInvProjectFilter] = useState('all');
+  const [inventoryViewMode, setInventoryViewMode] = useState('all');
+  const [invCategoryFilter, setInvCategoryFilter] = useState('all');
+  const [invWarehouseFilter, setInvWarehouseFilter] = useState('all');
+  const [invStatusFilter, setInvStatusFilter] = useState('all');
+  const [materialCatalogSearchQuery, setMaterialCatalogSearchQuery] = useState('');
+  const [materialCatalogCategoryFilter, setMaterialCatalogCategoryFilter] = useState('all');
+  const [materialCatalogStatusFilter, setMaterialCatalogStatusFilter] = useState('all');
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [materialLinkDraftProjectId, setMaterialLinkDraftProjectId] = useState('');
+  const [materialIssueQuantity, setMaterialIssueQuantity] = useState('1');
+  const [materialReturnQuantity, setMaterialReturnQuantity] = useState('1');
+  const [projectMaterialActionDrafts, setProjectMaterialActionDrafts] = useState({});
+  const [movementSearchQuery, setMovementSearchQuery] = useState('');
+  const [movementTypeFilter, setMovementTypeFilter] = useState('all');
+  const [movementMaterialFilter, setMovementMaterialFilter] = useState('all');
+  const [movementDateFilter, setMovementDateFilter] = useState('');
+  const [selectedMovementId, setSelectedMovementId] = useState('');
+  const [isInvModalOpen, setIsInvModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+  const [editingInvId, setEditingInvId] = useState(null);
+  const [invFormData, setInvFormData] = useState(createInventoryEntry());
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
+  const [adminSupplierStatusFilter, setAdminSupplierStatusFilter] = useState('all');
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState(null);
+  const [supplierFormData, setSupplierFormData] = useState(createSupplierEntry());
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [categoryStatusFilter, setCategoryStatusFilter] = useState('all');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [categoryFormData, setCategoryFormData] = useState(createSupplierCategoryEntry());
+  const [agreementSearchQuery, setAgreementSearchQuery] = useState('');
+  const [agreementStatusFilter, setAgreementStatusFilter] = useState('all');
+  const [selectedAgreementId, setSelectedAgreementId] = useState('');
+  const [isAgreementModalOpen, setIsAgreementModalOpen] = useState(false);
+  const [editingAgreementId, setEditingAgreementId] = useState(null);
+  const [agreementFormData, setAgreementFormData] = useState(createSupplierAgreementEntry());
+  const [commissionBillingSearchQuery, setCommissionBillingSearchQuery] = useState('');
+  const [commissionBillingStatusFilter, setCommissionBillingStatusFilter] = useState('all');
+  const [selectedCommissionBillingId, setSelectedCommissionBillingId] = useState('');
+  const [isCommissionBillingModalOpen, setIsCommissionBillingModalOpen] = useState(false);
+  const [commissionBillingFormData, setCommissionBillingFormData] = useState(createCommissionBillingEntry());
+  const [settlementSearchQuery, setSettlementSearchQuery] = useState('');
+  const [settlementStatusFilter, setSettlementStatusFilter] = useState('all');
+  const [selectedSettlementId, setSelectedSettlementId] = useState('');
+  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+  const [settlementFormData, setSettlementFormData] = useState(createSettlementEntry());
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentFormData, setPaymentFormData] = useState({
+    amount: '',
+    paymentDate: getISODateString(),
+    paymentMethod: '',
+    paymentReference: '',
+    note: '',
+  });
+  const [adminSettingsForm, setAdminSettingsForm] = useState(normalizeAdminPlatformSettings(adminPlatformSettings));
+  const [adminSettingsSaved, setAdminSettingsSaved] = useState(false);
+  const [pricingSearchQuery, setPricingSearchQuery] = useState('');
+  const [pricingStatusFilter, setPricingStatusFilter] = useState('all');
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [editingPricingPackageId, setEditingPricingPackageId] = useState(null);
+  const [pricingPackageFormData, setPricingPackageFormData] = useState(createPricingPackageEntry());
+  const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState('');
+  const [purchaseOrderForm, setPurchaseOrderForm] = useState(createPurchaseOrderEntry());
+  const [orderStatusSearchQuery, setOrderStatusSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+
+  const [chatInput, setChatInput] = useState('');
+  const chatContainerRef = useRef(null);
+  const quotationPreviewRef = useRef(null);
+  const agreementPreviewRef = useRef(null);
+  const commissionBillingPreviewRef = useRef(null);
+  const settlementPreviewRef = useRef(null);
+
+  // 🎙️ Firebase Audio Recorder สำหรับ Manager
+  const { isRecording: isRecordingAudio, startRecording, stopRecording } = useAudioRecorder(async (base64Audio) => {
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'chats'), {
+       sender: 'ผู้จัดการโครงการ', senderRole: 'manager', text: 'ส่งข้อความเสียง 🎵', audioUrl: base64Audio, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: '1', createdAt: Date.now()
+    });
+  });
+
+  useEffect(() => {
+    if (activeTab === 'chat' && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [globalChats, activeTab]);
+
+  useEffect(() => {
+    setCompanyProfileForm(companyProfile);
+  }, [companyProfile]);
+
+  useEffect(() => {
+    setQuotationForm(quotationDraft);
+  }, [quotationDraft]);
+
+  useEffect(() => {
+    setAgreementForm(agreementDraft);
+  }, [agreementDraft]);
+
+  useEffect(() => {
+    const selectedOrder = purchaseOrders.find((order) => order.id === selectedPurchaseOrderId);
+    if (selectedOrder) {
+      setPurchaseOrderForm(selectedOrder);
+      return;
+    }
+
+    if (!selectedPurchaseOrderId) {
+      setPurchaseOrderForm(createPurchaseOrderEntry());
+    }
+  }, [purchaseOrders, selectedPurchaseOrderId]);
+
+  useEffect(() => {
+    setTemplateLanguage(language);
+  }, [language]);
+
+  useEffect(() => {
+    setAdminSettingsForm(normalizeAdminPlatformSettings(adminPlatformSettings));
+  }, [adminPlatformSettings]);
+
+  useEffect(() => {
+    const groupByTab = {
+      overview: 'overview',
+      projects: 'operations',
+      workers: 'operations',
+      chat: 'operations',
+      admin_overview: 'admin',
+      admin_category_management: 'admin',
+      admin_supplier_agreements: 'admin',
+      admin_pricing_management: 'admin',
+      admin_commission_billing: 'admin',
+      quotations: 'documents',
+      contractor_agreements: 'documents',
+      supplier_directory: 'procurement',
+      purchase_orders: 'procurement',
+      order_status: 'procurement',
+      inventory: 'inventory',
+      docs: 'finance',
+      company_profile: 'settings',
+      document_settings: 'settings',
+      email_signature: 'settings',
+      admin_supplier_management: 'admin',
+      admin_platform_revenue: 'admin',
+      admin_settlements: 'admin',
+      admin_settings: 'admin',
+      ...(isPlatformAdmin ? { requests: 'procurement' } : {}),
+    };
+
+    const activeGroupId = groupByTab[activeTab];
+    if (!activeGroupId) return;
+
+    setExpandedNavGroups((prev) => (
+      prev[activeGroupId] ? prev : { ...prev, [activeGroupId]: true }
+    ));
+  }, [activeTab]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    if (!navigator.geolocation) {
+      setWeatherState({ status: 'error', data: null, errorKey: 'weather_not_supported' });
+      return undefined;
+    }
+
+    setWeatherState({ status: 'loading', data: null, errorKey: '' });
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const weatherData = await fetchWeatherByCoordinates(position.coords.latitude, position.coords.longitude);
+          if (!isCancelled) {
+            setWeatherState({ status: 'success', data: weatherData, errorKey: '' });
+          }
+        } catch (error) {
+          console.error('Weather fetch failed:', error);
+          if (!isCancelled) {
+            setWeatherState({ status: 'error', data: null, errorKey: 'weather_unavailable' });
+          }
+        }
+      },
+      (error) => {
+        const errorKey = error.code === 1 ? 'weather_permission_denied' : 'weather_unavailable';
+        if (!isCancelled) {
+          setWeatherState({ status: 'error', data: null, errorKey });
+        }
+      },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const formatTemperature = (value) => {
+    if (value === null || value === undefined) return '--';
+    return new Intl.NumberFormat(NUMBER_LOCALE[language] || 'en-US', {
+      maximumFractionDigits: 1,
+    }).format(Number(value));
+  };
+
+  const weatherConditionText = (code) => t(getWeatherConditionKey(code));
+
+  const handleCompanyProfileChange = (field, value) => {
+    setCompanyProfileSaved(false);
+    setCompanyProfileForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleCompanyLogoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      handleCompanyProfileChange('logoUrl', reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCompanySignatureUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      handleCompanyProfileChange('signatureImageUrl', reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCompanySignature = () => {
+    handleCompanyProfileChange('signatureImageUrl', '');
+  };
+
+  const handleSaveCompanyProfile = () => {
+    setCompanyProfile(companyProfileForm);
+    setCompanyProfileSaved(true);
+  };
+
+  const handleQuotationChange = (field, value) => {
+    setQuotationSaved(false);
+    setQuotationForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleQuotationItemChange = (itemId, field, value) => {
+    setQuotationSaved(false);
+    setQuotationForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => item.id === itemId ? { ...item, [field]: value } : item),
+    }));
+  };
+
+  const handleAddQuotationItem = () => {
+    setQuotationSaved(false);
+    setQuotationForm((prev) => ({
+      ...prev,
+      items: [...prev.items, createQuotationItem()],
+    }));
+  };
+
+  const handleRemoveQuotationItem = (itemId) => {
+    setQuotationSaved(false);
+    setQuotationForm((prev) => ({
+      ...prev,
+      items: prev.items.length > 1 ? prev.items.filter((item) => item.id !== itemId) : prev.items,
+    }));
+  };
+
+  const handleSaveQuotation = () => {
+    setQuotationDraft(normalizeQuotationDraft(quotationForm));
+    setQuotationSaved(true);
+  };
+
+  const handleAgreementChange = (field, value) => {
+    setAgreementSaved(false);
+    setAgreementDraftGenerated(false);
+    setAgreementForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveAgreement = () => {
+    setAgreementDraft(agreementForm);
+    setAgreementSaved(true);
+  };
+
+  const handleGenerateAgreementDraft = () => {
+    setAgreementSaved(false);
+    setAgreementForm((prev) => generateAgreementDraftFromInputs({
+      draft: { ...prev, mode: 'ai' },
+      template: currentLanguageTemplate,
+      companyProfile,
+      language,
+    }));
+    setAgreementDraftGenerated(true);
+    setEmailStatus((prev) => ({ ...prev, agreement: '' }));
+  };
+
+  const buildQuotationEmailDraft = () => ({
+    recipient: quotationForm.emailRecipient || quotationForm.customerEmail,
+    cc: quotationForm.emailCc,
+    subject: quotationForm.emailSubject || `${resolvedQuotationHeading} ${quotationForm.quotationNumber || ''}`.trim(),
+    body: quotationForm.emailBody || `${resolvedQuotationHeading}\n${t('quotation_number')}: ${quotationForm.quotationNumber || '-'}\n${t('quotation_total')}: ${formatMoneyByLanguage(quotationTotal, language)}\n\n${resolvedQuotationNotes}\n\n${resolvedQuotationPaymentTerms}`,
+  });
+
+  const buildAgreementEmailDraft = () => ({
+    recipient: agreementForm.emailRecipient || agreementForm.employerEmail,
+    cc: agreementForm.emailCc,
+    subject: agreementForm.emailSubject || `${t('contractor_agreements_title')} ${agreementForm.contractNumber || ''}`.trim(),
+    body: agreementForm.emailBody || `${t('contractor_agreements_title')}\n${t('agreement_contract_number')}: ${agreementForm.contractNumber || '-'}\n${t('agreement_project_title')}: ${agreementForm.projectTitle || '-'}\n\n${resolvedAgreementPaymentTerms}\n\n${currentLanguageTemplate.defaultDocumentWording}`,
+  });
+
+  const prepareEmailDraft = (type) => {
+    if (type === 'quotation') {
+      const draft = buildQuotationEmailDraft();
+      const nextDraft = normalizeQuotationDraft({
+        ...quotationForm,
+        emailRecipient: draft.recipient,
+        emailCc: draft.cc || '',
+        emailSubject: draft.subject,
+        emailBody: draft.body,
+      });
+      setQuotationForm(nextDraft);
+      setQuotationDraft(nextDraft);
+    } else {
+      const draft = buildAgreementEmailDraft();
+      const nextDraft = normalizeAgreementDraft({
+        ...agreementForm,
+        emailRecipient: draft.recipient,
+        emailCc: draft.cc || '',
+        emailSubject: draft.subject,
+        emailBody: draft.body,
+      });
+      setAgreementForm(nextDraft);
+      setAgreementDraft(nextDraft);
+    }
+
+    setEmailStatus((prev) => ({ ...prev, [type]: 'prepared' }));
+  };
+
+  const openEmailDraft = (type) => {
+    const draft = type === 'quotation' ? buildQuotationEmailDraft() : buildAgreementEmailDraft();
+    if (type === 'quotation') {
+      setQuotationDraft(normalizeQuotationDraft({
+        ...quotationForm,
+        emailRecipient: draft.recipient,
+        emailCc: draft.cc || '',
+        emailSubject: draft.subject,
+        emailBody: draft.body,
+      }));
+    } else {
+      setAgreementDraft(normalizeAgreementDraft({
+        ...agreementForm,
+        emailRecipient: draft.recipient,
+        emailCc: draft.cc || '',
+        emailSubject: draft.subject,
+        emailBody: draft.body,
+      }));
+    }
+    const mailtoLink = createMailtoLink(draft);
+    window.location.href = mailtoLink;
+    setEmailStatus((prev) => ({ ...prev, [type]: 'ready' }));
+  };
+
+  const handlePrintDocument = (type) => {
+    if (type === 'quotation') setShowQuotationPreview(true);
+    if (type === 'agreement') setShowAgreementPreview(true);
+    if (type === 'commission_billing') setShowCommissionBillingPreview(true);
+    if (type === 'settlement') setShowSettlementPreview(true);
+    setPrintTarget(type);
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setPrintTarget(null), 300);
+    }, 100);
+  };
+
+  const buildExportHtmlDocument = ({ title, lang, bodyHtml }) => `<!DOCTYPE html>
+<html lang="${lang}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      .document-export-wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      .print-document {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 20px;
+        padding: 32px;
+      }
+      .document-header {
+        margin-bottom: 24px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        border: 1px solid #e2e8f0;
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f8fafc;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #475569;
+      }
+      .rounded-xl, .rounded-2xl {
+        border-radius: 16px;
+      }
+      .border, .border-b, .border-t {
+        border-color: #cbd5e1 !important;
+      }
+      .bg-slate-50, .bg-violet-50 {
+        background: #f8fafc !important;
+      }
+      .bg-white {
+        background: #ffffff !important;
+      }
+      .text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600, .text-slate-500, .text-emerald-700 {
+        color: inherit !important;
+      }
+      .shadow-sm {
+        box-shadow: none !important;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .whitespace-pre-wrap {
+        white-space: pre-wrap;
+      }
+      @media print {
+        body {
+          background: #ffffff;
+        }
+        .document-export-wrap {
+          max-width: none;
+          padding: 0;
+        }
+        .print-document {
+          border: none;
+          border-radius: 0;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="document-export-wrap">
+      ${bodyHtml}
+    </main>
+  </body>
+</html>`;
+
+  const sanitizeExportFileName = (value, fallback) => {
+    const cleaned = String(value || fallback || 'document').trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '-');
+    return cleaned || fallback || 'document';
+  };
+
+  const handleExportDocument = (type) => {
+    const configMap = {
+      quotation: {
+        ensurePreview: () => setShowQuotationPreview(true),
+        ref: quotationPreviewRef,
+        title: quotationForm.quotationNumber || t('quotation_number'),
+        filename: `${sanitizeExportFileName(quotationForm.quotationNumber, 'quotation')}.html`,
+      },
+      agreement: {
+        ensurePreview: () => setShowAgreementPreview(true),
+        ref: agreementPreviewRef,
+        title: agreementForm.contractNumber || t('agreement_contract_number'),
+        filename: `${sanitizeExportFileName(agreementForm.contractNumber, 'contractor-agreement')}.html`,
+      },
+      commission_billing: {
+        ensurePreview: () => setShowCommissionBillingPreview(true),
+        ref: commissionBillingPreviewRef,
+        title: selectedCommissionBillingRecord?.billingNumber || t('admin_commission_billing_title'),
+        filename: `${sanitizeExportFileName(selectedCommissionBillingRecord?.billingNumber, 'commission-billing')}.html`,
+      },
+      settlement: {
+        ensurePreview: () => setShowSettlementPreview(true),
+        ref: settlementPreviewRef,
+        title: selectedSettlementRecord?.settlementNumber || t('admin_settlement_detail_title'),
+        filename: `${sanitizeExportFileName(selectedSettlementRecord?.settlementNumber, 'settlement')}.html`,
+      },
+    };
+
+    const config = configMap[type];
+    if (!config) return;
+    config.ensurePreview();
+
+    window.setTimeout(() => {
+      const exportNode = config.ref.current;
+      if (!exportNode) {
+        alert(t('export_document_failed'));
+        return;
+      }
+
+      const languageCode = language === 'TH' ? 'th' : language === 'LA' ? 'lo' : 'en';
+      const html = buildExportHtmlDocument({
+        title: config.title,
+        lang: languageCode,
+        bodyHtml: exportNode.outerHTML,
+      });
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.download = config.filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    }, 140);
+  };
+
+  const toggleNavGroup = (groupId) => {
+    setExpandedNavGroups((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
+  };
+
+  const activeTemplateSettings = documentTemplateSettings[templateLanguage] || documentTemplateSettings.EN;
+  const currentLanguageTemplate = documentTemplateSettings[language] || documentTemplateSettings.EN;
+
+  const handleTemplateSettingChange = (field, value) => {
+    setTemplateSaved(false);
+    setDocumentTemplateSettings((prev) => ({
+      ...prev,
+      [templateLanguage]: {
+        ...(prev[templateLanguage] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSaveTemplateSettings = () => {
+    setTemplateSaved(true);
+  };
+
+  const resolvedQuotationHeading = currentLanguageTemplate.quotationHeading || t('quotations_title');
+  const resolvedQuotationNotes = quotationForm.notes || currentLanguageTemplate.quotationNotes || '';
+  const resolvedQuotationPaymentTerms = quotationForm.paymentTerms || currentLanguageTemplate.paymentTerms || '';
+  const resolvedAgreementPaymentTerms = agreementForm.paymentTerms || currentLanguageTemplate.paymentTerms || '';
+  const resolvedAgreementWarrantyTerms = agreementForm.warrantyTerms || currentLanguageTemplate.agreementStandardClauses || '';
+  const resolvedAgreementChangeOrderTerms = agreementForm.changeOrderTerms || currentLanguageTemplate.agreementStandardClauses || '';
+  const resolvedAgreementTerminationTerms = agreementForm.terminationTerms || currentLanguageTemplate.agreementStandardClauses || '';
+  const resolvedClientSignatureLabel = currentLanguageTemplate.signatureClientLabel || t('agreement_signer_client');
+  const resolvedContractorSignatureLabel = currentLanguageTemplate.signatureContractorLabel || t('agreement_signer_contractor');
+
+  const quotationSubtotal = quotationForm.items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0);
+  const quotationDiscount = Number(quotationForm.discount) || 0;
+  const quotationTax = Number(quotationForm.tax) || 0;
+  const quotationTotal = quotationSubtotal - quotationDiscount + quotationTax;
+  const docsBillingRecords = [
+    ...docsList.map((docItem) => ({
+      id: `billing-${docItem.id}`,
+      sourceId: docItem.id,
+      recordType: docItem.type === 'invoice' ? 'billing' : docItem.type,
+      number: docItem.documentNumber || String(docItem.id || '').slice(0, 8).toUpperCase() || '-',
+      title: docItem.title || '-',
+      customerName: docItem.customerName || docItem.submittedBy || '-',
+      issueDate: docItem.date || '-',
+      status: docItem.status || 'pending',
+      amount: Number(docItem.amount) || 0,
+      projectId: docItem.projectId || '',
+      note: docItem.title || '',
+    })),
+    {
+      id: 'quotation-draft',
+      sourceId: 'quotation-draft',
+      recordType: 'quotation',
+      number: quotationForm.quotationNumber || '-',
+      title: resolvedQuotationHeading,
+      customerName: quotationForm.customerName || '-',
+      issueDate: quotationForm.issueDate || '-',
+      status: 'draft',
+      amount: quotationTotal,
+      projectId: '',
+      note: resolvedQuotationNotes || '',
+    },
+    {
+      id: 'agreement-draft',
+      sourceId: 'agreement-draft',
+      recordType: 'agreement',
+      number: agreementForm.contractNumber || '-',
+      title: t('contractor_agreements_title'),
+      customerName: agreementForm.employerName || agreementForm.clientName || '-',
+      issueDate: agreementForm.contractDate || '-',
+      status: 'draft',
+      amount: 0,
+      projectId: '',
+      note: agreementForm.projectTitle || '',
+    },
+  ];
+  const filteredDocsBillingRecords = docsBillingRecords.filter((record) => {
+    const search = docsSearchQuery.toLowerCase();
+    const matchesSearch = !search
+      || record.number?.toLowerCase().includes(search)
+      || record.customerName?.toLowerCase().includes(search)
+      || record.title?.toLowerCase().includes(search);
+    const matchesType = docsFilter === 'all' || record.recordType === docsFilter;
+    const matchesStatus = docsStatusFilter === 'all' || record.status === docsStatusFilter;
+    return matchesSearch && matchesType && matchesStatus;
+  });
+  const selectedDocsBillingRecord = docsBillingRecords.find((record) => record.id === selectedDocsBillingId)
+    || filteredDocsBillingRecords[0]
+    || null;
+  const docsBillingTotalValue = docsBillingRecords.reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
+  const docsBillingPendingCount = docsBillingRecords.filter((record) => ['pending', 'draft'].includes(record.status)).length;
+
+  const renderWeatherSummary = () => {
+    if (weatherState.status === 'loading') {
+      return t('weather_loading');
+    }
+
+    if (weatherState.status === 'error') {
+      return t(weatherState.errorKey || 'weather_unavailable');
+    }
+
+    const { current, tomorrow, latitude, longitude } = weatherState.data;
+    return `${t('weather_now')}: ${formatTemperature(current.temperature)}${current.temperatureUnit} ${weatherConditionText(current.weatherCode)} | ${t('weather_tomorrow')}: ${weatherConditionText(tomorrow.weatherCode)} ${formatTemperature(tomorrow.max)}${current.temperatureUnit}/${formatTemperature(tomorrow.min)}${current.temperatureUnit} | ${t('weather_rain_chance')} ${Math.round(tomorrow.precipitationProbability || 0)}% | ${t('weather_at_location')} ${Number(latitude).toFixed(2)}, ${Number(longitude).toFixed(2)}`;
+  };
+
+  // FIREBASE ACTIONS (Manager)
+  const handleSendChat = async () => {
+    if(!chatInput.trim()) return;
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'chats'), {
+       sender: 'ผู้จัดการโครงการ', senderRole: 'manager', text: chatInput, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: '1', createdAt: Date.now()
+    });
+    setChatInput('');
+  };
+  const handleKeyPress = (e) => { if(e.key === 'Enter') handleSendChat(); };
+
+  // Helper Function สำหรับใส่ข้อมูลทดสอบกรณีฐานข้อมูลว่าง
+  const seedDatabase = async () => {
+    if(!db) return alert(t('firebase_required'));
+    try {
+      const p1 = await addDoc(collection(db, 'projects'), { name: "วิลล่าริมโขง หลวงพระบาง", location: "หลวงพระบาง", progress: 75, status: "active", workers: 15, createdAt: Date.now() });
+      await addDoc(collection(db, 'workers'), { ...normalizeWorkerEntry({ name: "สมชาย ไชยยะ", phone: "020 9876 5432", role: "general_worker", wage: 150000, assignedSiteId: p1.id, attendanceRate: 0 }), createdAt: Date.now() });
+      await addDoc(collection(db, 'inventory'), { name: 'ปูนซีเมนต์ ตราช้าง', category: 'วัสดุก่อสร้าง', quantity: 50, unit: 'ถุง', unitPrice: 45000, projectId: p1.id, createdAt: Date.now() });
+      alert(t('seed_success'));
+    } catch(e) {
+      console.error(e);
+      alert(t('seed_error'));
+    }
+  };
+
+  const handleUpdateDocStatus = async (id, newStatus) => {
+    if(!db) return; await updateDoc(doc(db, 'docs', id), { status: newStatus });
+  };
+  
+  const handleSaveInv = async () => {
+    if (!invFormData.name) return;
+    if(!db) return alert(t('firebase_required'));
+    const normalizedInventory = normalizeInventoryEntry(invFormData);
+    if (editingInvId) await updateDoc(doc(db, 'inventory', editingInvId), normalizedInventory);
+    else await addDoc(collection(db, 'inventory'), { ...normalizedInventory, createdAt: Date.now() });
+    setIsInvModalOpen(false);
+  };
+  const handleDeleteInv = async (id) => { if(db) await deleteDoc(doc(db, 'inventory', id)); setIsInvModalOpen(false); };
+  const handleUpdateMaterialProjectLink = async (material, nextProjectId, requireConfirm = true) => {
+    if (!material) return;
+    const currentProjectId = String(material.projectId || '');
+    const targetProjectId = String(nextProjectId || '');
+    if (currentProjectId === targetProjectId) return;
+    if (requireConfirm) {
+      const confirmed = window.confirm(t(targetProjectId ? 'inventory_link_confirm_change' : 'inventory_link_confirm_unlink'));
+      if (!confirmed) return;
+    }
+    if(!db) return alert(t('firebase_required'));
+    await updateDoc(doc(db, 'inventory', material.id), { projectId: targetProjectId });
+    setMaterialLinkDraftProjectId(targetProjectId);
+    alert(t('inventory_link_saved'));
+  };
+  const handleUpdateProjectMaterialUsage = async (material, nextUsedQuantity) => {
+    if (!material) return;
+    if(!db) return alert(t('firebase_required'));
+    const normalized = normalizeInventoryEntry(material);
+    const assignedQuantity = Math.max(Number(normalized.quantity || 0), 0);
+    const usedQuantity = Math.min(Math.max(Number(nextUsedQuantity || 0), 0), assignedQuantity);
+    await updateDoc(doc(db, 'inventory', material.id), {
+      projectUsage: {
+        usedQuantity,
+      },
+    });
+    alert(t('project_material_usage_saved'));
+  };
+  const handleIssueMaterialToProject = async (material, amount) => {
+    if (!material?.projectId) return alert(t('project_material_not_linked'));
+    const issueAmount = Number(amount || 0);
+    if (!Number.isFinite(issueAmount) || issueAmount <= 0) return alert(t('project_material_invalid_qty'));
+    if(!db) return alert(t('firebase_required'));
+    const normalized = normalizeInventoryEntry(material);
+    await updateDoc(doc(db, 'inventory', material.id), {
+      quantity: Math.max(Number(normalized.quantity || 0), 0) + issueAmount,
+      projectUsage: {
+        usedQuantity: normalized.projectUsage.usedQuantity,
+      },
+    });
+    alert(t('project_material_usage_saved'));
+  };
+  const handleReturnMaterialFromProject = async (material, amount) => {
+    if (!material?.projectId) return alert(t('project_material_not_linked'));
+    const returnAmount = Number(amount || 0);
+    if (!Number.isFinite(returnAmount) || returnAmount <= 0) return alert(t('project_material_invalid_qty'));
+    const usage = getNormalizedMaterialUsage(material);
+    if (returnAmount > usage.remainingQuantity) return alert(t('project_material_return_exceeds'));
+    const confirmed = window.confirm(t('project_material_confirm_return'));
+    if (!confirmed) return;
+    if(!db) return alert(t('firebase_required'));
+    await updateDoc(doc(db, 'inventory', material.id), {
+      quantity: Math.max(usage.assignedQuantity - returnAmount, usage.usedQuantity),
+      projectUsage: {
+        usedQuantity: usage.usedQuantity,
+      },
+    });
+    alert(t('project_material_usage_saved'));
+  };
+  
+  const handleSimulateImport = async () => {
+    if(db) await addDoc(collection(db, 'inventory'), { name: 'ท่อ PVC 4 นิ้ว (Imported)', category: 'ประปา', quantity: 20, unit: 'เส้น', unitPrice: 35000, projectId: '', createdAt: Date.now() });
+    setIsImportModalOpen(false); alert(t('boq_import_success'));
+  };
+  const handleSimulateScan = async () => {
+    if(db) await addDoc(collection(db, 'inventory'), { name: 'อุปกรณ์ฮาร์ดแวร์ทั่วไป (Scanned)', category: 'อื่นๆ', quantity: 1, unit: 'ชุด', unitPrice: 550000, projectId: '', createdAt: Date.now() });
+    setIsScanModalOpen(false); alert(t('receipt_scan_success'));
+  };
+
+  const handleSave = async () => {
+    if (!formData.name) return; 
+    if(!db) return alert(t('firebase_required'));
+    const normalizedProject = normalizeProjectEntry(formData);
+    if (editingId) await updateDoc(doc(db, 'projects', editingId), normalizedProject);
+    else await addDoc(collection(db, 'projects'), { ...normalizedProject, createdAt: Date.now() });
+    setIsModalOpen(false);
+  };
+  const handleDelete = async (id) => { if(db) await deleteDoc(doc(db, 'projects', id)); setIsModalOpen(false); };
+  
+  const handleSaveWorker = async () => {
+    const normalizedWorker = normalizeWorkerEntry(workerFormData);
+    const requiresPersonName = PERSON_TYPES_WITH_ROLE.has(normalizedWorker.personType);
+    if (requiresPersonName && !normalizedWorker.name.trim()) return alert(t('worker_person_required'));
+    if (!requiresPersonName && !normalizedWorker.companyName.trim()) return alert(t('worker_company_required'));
+    if(!db) return alert(t('firebase_required'));
+    if (editingWorkerId) await updateDoc(doc(db, 'workers', editingWorkerId), normalizedWorker);
+    else await addDoc(collection(db, 'workers'), { ...normalizedWorker, createdAt: Date.now() });
+    setIsWorkerModalOpen(false);
+  };
+  const handleDeleteWorker = async (id) => { if(db) await deleteDoc(doc(db, 'workers', id)); setIsWorkerModalOpen(false); };
+  
+  const handleSaveDoc = async () => {
+    if (!docFormData.title) return;
+    if(!db) return alert(t('firebase_required'));
+    if (editingDocId) await updateDoc(doc(db, 'docs', editingDocId), docFormData);
+    else await addDoc(collection(db, 'docs'), { ...docFormData, createdAt: Date.now() });
+    setIsDocModalOpen(false);
+  };
+  const handleDeleteDoc = async (id) => { if(db) await deleteDoc(doc(db, 'docs', id)); setIsDocModalOpen(false); };
+  const updateSupplierPublicField = (field, value) => {
+    setSupplierFormData((prev) => ({
+      ...prev,
+      publicProfile: {
+        ...prev.publicProfile,
+        [field]: value,
+      },
+    }));
+  };
+  const updateSupplierInternalField = (field, value) => {
+    setSupplierFormData((prev) => ({
+      ...prev,
+      internalMeta: {
+        ...prev.internalMeta,
+        [field]: value,
+      },
+    }));
+  };
+  const handleToggleSupplierCategoryAssignment = (category, checked) => {
+    if (!category) return;
+    setSupplierFormData((prev) => {
+      const currentAssignments = Array.isArray(prev.internalMeta?.categoryAssignments) ? prev.internalMeta.categoryAssignments : [];
+      if (!checked) {
+        return {
+          ...prev,
+          internalMeta: {
+            ...prev.internalMeta,
+            categoryAssignments: currentAssignments.filter((assignment) => assignment.categoryId !== category.id),
+          },
+        };
+      }
+
+      if (currentAssignments.some((assignment) => assignment.categoryId === category.id)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        internalMeta: {
+          ...prev.internalMeta,
+          categoryAssignments: [
+            ...currentAssignments,
+            {
+              categoryId: category.id,
+              categorySlug: category.slug || '',
+              useDefaultCommission: true,
+              overrideCommissionRate: Number(category.defaultCommissionRate || 0),
+            },
+          ],
+        },
+      };
+    });
+  };
+  const updateSupplierCategoryAssignment = (categoryId, field, value) => {
+    setSupplierFormData((prev) => ({
+      ...prev,
+      internalMeta: {
+        ...prev.internalMeta,
+        categoryAssignments: (prev.internalMeta?.categoryAssignments || []).map((assignment) => (
+          assignment.categoryId === categoryId
+            ? {
+                ...assignment,
+                [field]: field === 'overrideCommissionRate' ? Number(value || 0) : value,
+              }
+            : assignment
+        )),
+      },
+    }));
+  };
+  const slugifyCategoryValue = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  const handleSaveSupplier = () => {
+    if (!supplierFormData.publicProfile.supplierName) return;
+    const normalizedSupplier = normalizeSupplierEntry({
+      ...supplierFormData,
+      publicProfile: {
+        ...supplierFormData.publicProfile,
+        status: supplierFormData.publicProfile.status === 'inactive' ? 'inactive' : 'active',
+      },
+      internalMeta: {
+        ...supplierFormData.internalMeta,
+        commissionRate: Number(supplierFormData.internalMeta.commissionRate || 0),
+      },
+      updatedAt: Date.now(),
+    });
+
+    setSupplierDirectory((prev) => {
+      if (editingSupplierId) {
+        return prev.map((supplier) => (supplier.id === editingSupplierId ? normalizedSupplier : supplier));
+      }
+      return [...prev, { ...normalizedSupplier, createdAt: normalizedSupplier.createdAt || Date.now() }];
+    });
+
+    setIsSupplierModalOpen(false);
+  };
+  const handleToggleSupplierStatus = (supplierId, nextStatus) => {
+    setSupplierDirectory((prev) => prev.map((supplier) => (
+      supplier.id === supplierId
+        ? normalizeSupplierEntry({
+            ...supplier,
+            publicProfile: {
+              ...(supplier.publicProfile || {}),
+              status: nextStatus,
+            },
+            updatedAt: Date.now(),
+          })
+        : supplier
+    )));
+  };
+  const handleDeleteSupplier = (id) => {
+    setSupplierDirectory((prev) => prev.filter((supplier) => supplier.id !== id));
+    setIsSupplierModalOpen(false);
+  };
+  const openAddCategoryModal = () => {
+    setEditingCategoryId(null);
+    setCategoryFormData(createSupplierCategoryEntry());
+    setIsCategoryModalOpen(true);
+  };
+  const openEditCategoryModal = (category) => {
+    setEditingCategoryId(category.id);
+    setCategoryFormData(normalizeSupplierCategoryEntry(category));
+    setIsCategoryModalOpen(true);
+  };
+  const updateCategoryField = (field, value) => {
+    setCategoryFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+  const handleSaveCategory = () => {
+    const trimmedName = categoryFormData.name.trim();
+    const nextSlug = slugifyCategoryValue(categoryFormData.slug || trimmedName);
+    if (!trimmedName && !categoryFormData.labelKey) return;
+
+    const normalizedCategory = normalizeSupplierCategoryEntry({
+      ...categoryFormData,
+      name: categoryFormData.labelKey ? trimmedName : trimmedName,
+      slug: nextSlug,
+      updatedAt: Date.now(),
+    });
+
+    setSupplierCategories((prev) => {
+      if (editingCategoryId) {
+        return prev.map((category) => (category.id === editingCategoryId ? normalizedCategory : category));
+      }
+      return [...prev, { ...normalizedCategory, createdAt: Date.now() }];
+    });
+    setIsCategoryModalOpen(false);
+  };
+  const handleToggleCategoryStatus = (categoryId, nextStatus) => {
+    setSupplierCategories((prev) => prev.map((category) => (
+      category.id === categoryId
+        ? normalizeSupplierCategoryEntry({
+            ...category,
+            status: nextStatus,
+            updatedAt: Date.now(),
+          })
+        : category
+    )));
+  };
+  const handleDeleteCategory = (categoryId) => {
+    setSupplierCategories((prev) => prev.filter((category) => category.id !== categoryId));
+    setIsCategoryModalOpen(false);
+  };
+  const buildSupplierAgreementBasisNote = (supplier) => {
+    if (!supplier) return '';
+    const assignments = getSupplierAssignmentSummariesForRender(supplier);
+    if (!assignments.length) {
+      return `${t('supplier_commission_rate')}: ${formatConvertedNumberByLanguage(supplier.internalMeta?.commissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
+    }
+    return assignments
+      .map((assignment) => `${assignment.categoryName}: ${formatConvertedNumberByLanguage(assignment.effectiveCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`)
+      .join(', ');
+  };
+  const buildSupplierAgreementSnapshot = (supplier) => {
+    if (!supplier) return createSupplierAgreementEntry().supplierSnapshot;
+    const assignments = getSupplierAssignmentSummariesForRender(supplier);
+    const billingContact = supplier.internalMeta?.billingContact || {};
+    return {
+      supplierId: supplier.id || '',
+      supplierName: supplier.publicProfile?.supplierName || '',
+      supportedCategories: assignments.map((assignment) => ({
+        categoryId: assignment.categoryId || '',
+        categorySlug: assignment.categorySlug || '',
+        categoryName: assignment.categoryName || '',
+        categoryStatus: assignment.categoryStatus || 'active',
+        commissionMode: assignment.useDefaultCommission !== false ? 'default' : 'override',
+        useDefaultCommission: assignment.useDefaultCommission !== false,
+        defaultCommissionRate: Number(assignment.defaultCommissionRate || 0),
+        overrideCommissionRate: Number(assignment.overrideCommissionRate || 0),
+        effectiveCommissionRate: Number(assignment.effectiveCommissionRate || 0),
+      })),
+      billingContact: {
+        name: billingContact.name || supplier.publicProfile?.contactPerson || '',
+        email: billingContact.email || supplier.publicProfile?.email || '',
+        phone: billingContact.phone || supplier.publicProfile?.phone || '',
+      },
+      commissionSummary: buildSupplierAgreementBasisNote(supplier),
+    };
+  };
+  const openAddAgreementModal = () => {
+    setEditingAgreementId(null);
+    setAgreementFormData(normalizeSupplierAgreementEntry({
+      ...createSupplierAgreementEntry(),
+      billingCycle: adminSettingsForm.defaultBillingCycle || 'monthly',
+      paymentDueDays: adminSettingsForm.defaultPaymentDueDays || 15,
+      commissionBasisNote: adminSettingsForm.defaultBillingNote || '',
+      paymentMethodNote: adminSettingsForm.defaultSettlementNote || '',
+    }));
+    setIsAgreementModalOpen(true);
+  };
+  const openEditAgreementModal = (agreement) => {
+    setEditingAgreementId(agreement.id);
+    setAgreementFormData(normalizeSupplierAgreementEntry(agreement));
+    setIsAgreementModalOpen(true);
+  };
+  const updateAgreementField = (field, value) => {
+    setAgreementFormData((prev) => {
+      const next = {
+        ...prev,
+        [field]: field === 'paymentDueDays' ? Number(value || 0) : value,
+      };
+      if (field === 'supplierId') {
+        const supplier = supplierDirectory.find((entry) => entry.id === value);
+        if (supplier) {
+          const supplierSnapshot = buildSupplierAgreementSnapshot(supplier);
+          const billingContact = supplier.internalMeta?.billingContact || {};
+          const currentAgreementSupplierId = prev.supplierSnapshot?.supplierId || prev.supplierId || '';
+          const isNewSupplierSelection = currentAgreementSupplierId !== supplier.id;
+          if (isNewSupplierSelection || !next.billingContactName) {
+            next.billingContactName = billingContact.name || supplier.publicProfile?.contactPerson || '';
+          }
+          if (isNewSupplierSelection || !next.billingContactEmail) {
+            next.billingContactEmail = billingContact.email || supplier.publicProfile?.email || '';
+          }
+          if (isNewSupplierSelection || !next.billingContactPhone) {
+            next.billingContactPhone = billingContact.phone || supplier.publicProfile?.phone || '';
+          }
+          next.commissionBasisNote = next.commissionBasisNote || buildSupplierAgreementBasisNote(supplier);
+          next.supplierSnapshot = {
+            ...supplierSnapshot,
+            billingContact: {
+              ...supplierSnapshot.billingContact,
+              name: next.billingContactName || supplierSnapshot.billingContact.name,
+              email: next.billingContactEmail || supplierSnapshot.billingContact.email,
+              phone: next.billingContactPhone || supplierSnapshot.billingContact.phone,
+            },
+            commissionSummary: next.commissionBasisNote || supplierSnapshot.commissionSummary,
+          };
+        }
+      }
+      if (field === 'billingContactName' || field === 'billingContactEmail' || field === 'billingContactPhone' || field === 'commissionBasisNote') {
+        next.supplierSnapshot = {
+          ...normalizeSupplierAgreementEntry(prev).supplierSnapshot,
+          ...(next.supplierSnapshot || {}),
+          billingContact: {
+            ...normalizeSupplierAgreementEntry(prev).supplierSnapshot.billingContact,
+            ...(next.supplierSnapshot?.billingContact || {}),
+            name: field === 'billingContactName' ? value : next.billingContactName,
+            email: field === 'billingContactEmail' ? value : next.billingContactEmail,
+            phone: field === 'billingContactPhone' ? value : next.billingContactPhone,
+          },
+          commissionSummary: field === 'commissionBasisNote' ? value : next.commissionBasisNote,
+        };
+      }
+      return next;
+    });
+  };
+  const handleSaveSupplierAgreement = () => {
+    if (!agreementFormData.supplierId || !agreementFormData.title.trim()) return;
+    const supplier = supplierDirectory.find((entry) => entry.id === agreementFormData.supplierId);
+    const supplierSnapshot = supplier ? buildSupplierAgreementSnapshot(supplier) : normalizeSupplierAgreementEntry(agreementFormData).supplierSnapshot;
+    const normalizedAgreement = normalizeSupplierAgreementEntry({
+      ...agreementFormData,
+      supplierSnapshot: {
+        ...supplierSnapshot,
+        billingContact: {
+          ...supplierSnapshot.billingContact,
+          name: agreementFormData.billingContactName || supplierSnapshot.billingContact.name,
+          email: agreementFormData.billingContactEmail || supplierSnapshot.billingContact.email,
+          phone: agreementFormData.billingContactPhone || supplierSnapshot.billingContact.phone,
+        },
+        commissionSummary: agreementFormData.commissionBasisNote || supplierSnapshot.commissionSummary,
+      },
+      updatedAt: Date.now(),
+      createdAt: editingAgreementId ? agreementFormData.createdAt : Date.now(),
+    });
+    setSupplierAgreements((prev) => {
+      if (editingAgreementId) {
+        return prev.map((agreement) => agreement.id === editingAgreementId ? normalizedAgreement : agreement);
+      }
+      return [...prev, normalizedAgreement];
+    });
+    setIsAgreementModalOpen(false);
+  };
+  const handleDeleteSupplierAgreement = (agreementId) => {
+    setSupplierAgreements((prev) => prev.filter((agreement) => agreement.id !== agreementId));
+    if (selectedAgreementId === agreementId) setSelectedAgreementId('');
+    setIsAgreementModalOpen(false);
+  };
+  const getSupplierAgreementsForBilling = (supplierId) => {
+    if (!supplierId) return [];
+    return supplierAgreements
+      .filter((agreement) => agreement.supplierId === supplierId)
+      .sort((a, b) => {
+        const statusRank = (status) => ({ active: 0, draft: 1, inactive: 2, expired: 3 }[status] ?? 4);
+        return statusRank(a.status) - statusRank(b.status) || Number(b.updatedAt || 0) - Number(a.updatedAt || 0);
+      });
+  };
+  const getCommissionEligibleOrders = (supplierId, billingPeriodStart, billingPeriodEnd) => {
+    if (!supplierId) return [];
+    return purchaseOrders.filter((order) => {
+      if (order.supplierId !== supplierId) return false;
+      if (['draft', 'cancelled'].includes(order.status)) return false;
+      const orderDate = getNormalizedOrderDate(order);
+      if (billingPeriodStart && orderDate < billingPeriodStart) return false;
+      if (billingPeriodEnd && orderDate > billingPeriodEnd) return false;
+      return true;
+    });
+  };
+  const buildCommissionBillingPreview = (draft) => {
+    const normalizedDraft = normalizeCommissionBillingEntry(draft);
+    const supplier = supplierDirectory.find((entry) => entry.id === normalizedDraft.supplierId);
+    const agreement = supplierAgreements.find((entry) => entry.id === normalizedDraft.agreementId)
+      || getSupplierAgreementsForBilling(normalizedDraft.supplierId)[0]
+      || null;
+    const agreementSnapshot = agreement ? normalizeSupplierAgreementEntry(agreement) : createSupplierAgreementEntry();
+    const eligibleOrders = getCommissionEligibleOrders(
+      normalizedDraft.supplierId,
+      normalizedDraft.billingPeriodStart,
+      normalizedDraft.billingPeriodEnd,
+    );
+    const sourceOrders = eligibleOrders.map((order) => ({
+      orderId: order.id,
+      orderNumber: order.poNumber || '-',
+      orderDate: getNormalizedOrderDate(order),
+      status: order.status || 'draft',
+      projectName: order.projectName || '',
+      customerName: order.customerName || '',
+      contractorName: order.contractorName || '',
+      totalAmount: getPurchaseOrderTotalAmount(order),
+    }));
+    const supplierCommissionRate = Number(supplier?.internalMeta?.commissionRate || 0);
+    const grossSalesAmount = sourceOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const commissionAmount = sourceOrders.reduce((sum, order) => sum + (order.totalAmount * (supplierCommissionRate / 100)), 0);
+    const agreementReference = agreement
+      ? [agreement.agreementNumber, agreement.title].filter(Boolean).join(' | ')
+      : '';
+    const issueDate = normalizedDraft.issueDate || getISODateString();
+    const dueDate = normalizedDraft.dueDate || addDaysToSpecificISODate(issueDate, agreementSnapshot.paymentDueDays || 0);
+    const billingPeriodLabel = normalizedDraft.billingPeriodStart && normalizedDraft.billingPeriodEnd
+      ? `${normalizedDraft.billingPeriodStart} - ${normalizedDraft.billingPeriodEnd}`
+      : normalizedDraft.billingPeriodStart || normalizedDraft.billingPeriodEnd || '';
+
+    return {
+      supplier,
+      agreement,
+      agreementSnapshot,
+      sourceOrders,
+      grossSalesAmount,
+      commissionAmount,
+      supplierCommissionRate,
+      issueDate,
+      dueDate,
+      billingPeriodLabel,
+      agreementReference,
+      supplierName: supplier?.publicProfile?.supplierName || agreementSnapshot.supplierSnapshot?.supplierName || '',
+    };
+  };
+  const openAddCommissionBillingModal = () => {
+    setCommissionBillingFormData(normalizeCommissionBillingEntry({
+      ...createCommissionBillingEntry(),
+      billingNumber: `${adminSettingsForm.billingNumberPrefix || 'CB'}-${Date.now().toString().slice(-6)}`,
+      notes: adminSettingsForm.defaultBillingNote || '',
+    }));
+    setIsCommissionBillingModalOpen(true);
+  };
+  const updateCommissionBillingField = (field, value) => {
+    setCommissionBillingFormData((prev) => {
+      const next = {
+        ...prev,
+        [field]: value,
+      };
+      if (field === 'supplierId') {
+        const nextAgreement = getSupplierAgreementsForBilling(value)[0] || null;
+        next.agreementId = nextAgreement?.id || '';
+        const nextAgreementSnapshot = nextAgreement ? normalizeSupplierAgreementEntry(nextAgreement) : createSupplierAgreementEntry();
+        next.supplierName = supplierDirectory.find((entry) => entry.id === value)?.publicProfile?.supplierName || '';
+        next.agreementReference = nextAgreement ? [nextAgreement.agreementNumber, nextAgreement.title].filter(Boolean).join(' | ') : '';
+        next.issueDate = next.issueDate || getISODateString();
+        next.dueDate = addDaysToSpecificISODate(next.issueDate, nextAgreementSnapshot.paymentDueDays || 0);
+      }
+      if (field === 'agreementId') {
+        const nextAgreement = supplierAgreements.find((entry) => entry.id === value) || null;
+        const nextAgreementSnapshot = nextAgreement ? normalizeSupplierAgreementEntry(nextAgreement) : createSupplierAgreementEntry();
+        next.agreementReference = nextAgreement ? [nextAgreement.agreementNumber, nextAgreement.title].filter(Boolean).join(' | ') : '';
+        next.dueDate = addDaysToSpecificISODate(next.issueDate || getISODateString(), nextAgreementSnapshot.paymentDueDays || 0);
+      }
+      if (field === 'issueDate') {
+        const nextAgreement = supplierAgreements.find((entry) => entry.id === next.agreementId) || null;
+        const nextAgreementSnapshot = nextAgreement ? normalizeSupplierAgreementEntry(nextAgreement) : createSupplierAgreementEntry();
+        next.dueDate = addDaysToSpecificISODate(value || getISODateString(), nextAgreementSnapshot.paymentDueDays || 0);
+      }
+      return next;
+    });
+  };
+  const handleSaveCommissionBilling = () => {
+    const preview = buildCommissionBillingPreview(commissionBillingFormData);
+    if (!commissionBillingFormData.supplierId || !commissionBillingFormData.agreementId || preview.sourceOrders.length === 0) return;
+    const normalizedRecord = normalizeCommissionBillingEntry({
+      ...commissionBillingFormData,
+      supplierName: preview.supplierName,
+      agreementReference: preview.agreementReference,
+      billingPeriodLabel: preview.billingPeriodLabel,
+      issueDate: preview.issueDate,
+      dueDate: preview.dueDate,
+      grossSalesAmount: preview.grossSalesAmount,
+      commissionAmount: preview.commissionAmount,
+      sourceOrderIds: preview.sourceOrders.map((order) => order.orderId),
+      orderSnapshots: preview.sourceOrders,
+      agreementSnapshot: {
+        agreementId: preview.agreement?.id || '',
+        agreementNumber: preview.agreement?.agreementNumber || '',
+        agreementTitle: preview.agreement?.title || '',
+        agreementStatus: preview.agreement?.status || 'draft',
+        billingCycle: preview.agreementSnapshot.billingCycle,
+        billingCutoff: preview.agreementSnapshot.billingCutoff,
+        paymentDueDays: preview.agreementSnapshot.paymentDueDays,
+        commissionBasisNote: preview.agreementSnapshot.commissionBasisNote || preview.agreementSnapshot.supplierSnapshot?.commissionSummary || '',
+        billingContact: {
+          name: preview.agreementSnapshot.billingContactName || preview.agreementSnapshot.supplierSnapshot?.billingContact?.name || '',
+          email: preview.agreementSnapshot.billingContactEmail || preview.agreementSnapshot.supplierSnapshot?.billingContact?.email || '',
+          phone: preview.agreementSnapshot.billingContactPhone || preview.agreementSnapshot.supplierSnapshot?.billingContact?.phone || '',
+        },
+        supplierSnapshot: preview.agreementSnapshot.supplierSnapshot,
+      },
+      calculationSnapshot: {
+        commissionRate: preview.supplierCommissionRate,
+        orderCount: preview.sourceOrders.length,
+        generatedAt: Date.now(),
+      },
+      updatedAt: Date.now(),
+      createdAt: Date.now(),
+    });
+    setCommissionBillingRecords((prev) => [normalizedRecord, ...prev]);
+    setSelectedCommissionBillingId(normalizedRecord.id);
+    setIsCommissionBillingModalOpen(false);
+  };
+  const handleCommissionBillingStatusChange = (recordId, status) => {
+    setCommissionBillingRecords((prev) => prev.map((record) => (
+      record.id === recordId
+        ? normalizeCommissionBillingEntry({
+            ...record,
+            status,
+            updatedAt: Date.now(),
+          })
+        : record
+    )));
+  };
+  const getEffectiveSettlementStatus = (record) => {
+    const normalizedRecord = normalizeSettlementEntry(record);
+    if (normalizedRecord.status === 'cancelled') return 'cancelled';
+    if (normalizedRecord.balanceRemaining <= 0 && normalizedRecord.amountDue > 0) return 'paid';
+    if (normalizedRecord.amountPaid > 0 && normalizedRecord.balanceRemaining > 0) {
+      if (normalizedRecord.dueDate && normalizedRecord.dueDate < getISODateString()) return 'overdue';
+      return 'partial';
+    }
+    if (normalizedRecord.dueDate && normalizedRecord.dueDate < getISODateString()) return 'overdue';
+    return 'unpaid';
+  };
+  const buildSettlementDraftFromBillingRecord = (billingRecord) => {
+    if (!billingRecord) return createSettlementEntry();
+    const normalizedBilling = normalizeCommissionBillingEntry(billingRecord);
+    return normalizeSettlementEntry({
+      billingRecordId: normalizedBilling.id,
+      billingNumber: normalizedBilling.billingNumber,
+      supplierId: normalizedBilling.supplierId,
+      supplierName: normalizedBilling.supplierName,
+      amountDue: normalizedBilling.commissionAmount,
+      amountPaid: 0,
+      balanceRemaining: normalizedBilling.commissionAmount,
+      dueDate: normalizedBilling.dueDate,
+      notes: normalizedBilling.notes,
+      billingSnapshot: {
+        billingNumber: normalizedBilling.billingNumber,
+        agreementReference: normalizedBilling.agreementReference,
+        billingPeriodLabel: normalizedBilling.billingPeriodLabel,
+        issueDate: normalizedBilling.issueDate,
+        dueDate: normalizedBilling.dueDate,
+        grossSalesAmount: normalizedBilling.grossSalesAmount,
+        commissionAmount: normalizedBilling.commissionAmount,
+        supplierName: normalizedBilling.supplierName,
+        supplierId: normalizedBilling.supplierId,
+      },
+    });
+  };
+  const openAddSettlementModal = () => {
+    setSettlementFormData(normalizeSettlementEntry({
+      ...createSettlementEntry(),
+      settlementNumber: `${adminSettingsForm.settlementNumberPrefix || 'SET'}-${Date.now().toString().slice(-6)}`,
+      notes: adminSettingsForm.defaultSettlementNote || '',
+    }));
+    setIsSettlementModalOpen(true);
+  };
+  const updateSettlementField = (field, value) => {
+    setSettlementFormData((prev) => {
+      const next = {
+        ...prev,
+        [field]: ['amountDue', 'amountPaid'].includes(field) ? Number(value || 0) : value,
+      };
+      if (field === 'billingRecordId') {
+        const billingRecord = commissionBillingRecords.find((record) => record.id === value);
+        if (billingRecord) {
+          return buildSettlementDraftFromBillingRecord(billingRecord);
+        }
+      }
+      const amountDue = Number(field === 'amountDue' ? value : next.amountDue || 0);
+      const amountPaid = Number(field === 'amountPaid' ? value : next.amountPaid || 0);
+      next.balanceRemaining = Math.max(amountDue - amountPaid, 0);
+      next.status = getEffectiveSettlementStatus(next);
+      return next;
+    });
+  };
+  const handleSaveSettlement = () => {
+    if (!settlementFormData.billingRecordId) return;
+    const normalizedRecord = normalizeSettlementEntry({
+      ...settlementFormData,
+      balanceRemaining: Math.max(Number(settlementFormData.amountDue || 0) - Number(settlementFormData.amountPaid || 0), 0),
+      status: getEffectiveSettlementStatus(settlementFormData),
+      updatedAt: Date.now(),
+      createdAt: Date.now(),
+    });
+    setSettlementRecords((prev) => {
+      const existingIndex = prev.findIndex((record) => record.billingRecordId === normalizedRecord.billingRecordId);
+      if (existingIndex >= 0) {
+        return prev.map((record, index) => (index === existingIndex ? normalizedRecord : record));
+      }
+      return [normalizedRecord, ...prev];
+    });
+    setCommissionBillingRecords((prev) => prev.map((record) => (
+      record.id === normalizedRecord.billingRecordId
+        ? normalizeCommissionBillingEntry({
+            ...record,
+            status: record.status === 'cancelled' ? 'cancelled' : 'issued',
+            updatedAt: Date.now(),
+          })
+        : record
+    )));
+    setSelectedSettlementId(normalizedRecord.id);
+    setIsSettlementModalOpen(false);
+  };
+  const openRecordPaymentModal = (record) => {
+    const normalizedRecord = normalizeSettlementEntry(record);
+    setSelectedSettlementId(normalizedRecord.id);
+    setPaymentFormData({
+      amount: normalizedRecord.balanceRemaining ? String(normalizedRecord.balanceRemaining) : '',
+      paymentDate: getISODateString(),
+      paymentMethod: normalizedRecord.paymentMethod || '',
+      paymentReference: '',
+      note: '',
+    });
+    setIsPaymentModalOpen(true);
+  };
+  const handleRecordSettlementPayment = () => {
+    if (!selectedSettlementId) return;
+    const paymentAmount = Math.max(Number(paymentFormData.amount || 0), 0);
+    if (!paymentAmount) return;
+    let syncedBillingRecordId = '';
+    let syncedBillingStatus = 'issued';
+    setSettlementRecords((prev) => prev.map((record) => {
+      if (record.id !== selectedSettlementId) return record;
+      const normalizedRecord = normalizeSettlementEntry(record);
+      const nextAmountPaid = normalizedRecord.amountPaid + paymentAmount;
+      const nextRecord = normalizeSettlementEntry({
+        ...normalizedRecord,
+        amountPaid: nextAmountPaid,
+        balanceRemaining: Math.max(normalizedRecord.amountDue - nextAmountPaid, 0),
+        paymentDate: paymentFormData.paymentDate || normalizedRecord.paymentDate,
+        paymentMethod: paymentFormData.paymentMethod || normalizedRecord.paymentMethod,
+        paymentReference: paymentFormData.paymentReference || normalizedRecord.paymentReference,
+        notes: [normalizedRecord.notes, paymentFormData.note].filter(Boolean).join('\n'),
+        paymentHistory: [
+          ...(normalizedRecord.paymentHistory || []),
+          {
+            id: `payment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            amount: paymentAmount,
+            paymentDate: paymentFormData.paymentDate || '',
+            paymentMethod: paymentFormData.paymentMethod || '',
+            paymentReference: paymentFormData.paymentReference || '',
+            note: paymentFormData.note || '',
+            createdAt: Date.now(),
+          },
+        ],
+        updatedAt: Date.now(),
+      });
+      const finalizedRecord = normalizeSettlementEntry({
+        ...nextRecord,
+        status: getEffectiveSettlementStatus(nextRecord),
+      });
+      syncedBillingRecordId = finalizedRecord.billingRecordId;
+      syncedBillingStatus = finalizedRecord.balanceRemaining <= 0 ? 'paid' : 'issued';
+      return finalizedRecord;
+    }));
+    if (syncedBillingRecordId) {
+      setCommissionBillingRecords((prev) => prev.map((record) => (
+        record.id === syncedBillingRecordId
+          ? normalizeCommissionBillingEntry({
+              ...record,
+              status: syncedBillingStatus,
+              updatedAt: Date.now(),
+            })
+          : record
+      )));
+    }
+    setIsPaymentModalOpen(false);
+  };
+  const handleSettlementStatusChange = (recordId, status) => {
+    setSettlementRecords((prev) => prev.map((record) => {
+      if (record.id !== recordId) return record;
+      const normalizedRecord = normalizeSettlementEntry(record);
+      return normalizeSettlementEntry({
+        ...normalizedRecord,
+        status,
+        updatedAt: Date.now(),
+      });
+    }));
+    const targetRecord = settlementRecords.find((record) => record.id === recordId);
+    if (targetRecord?.billingRecordId) {
+      setCommissionBillingRecords((prev) => prev.map((record) => (
+        record.id === targetRecord.billingRecordId
+          ? normalizeCommissionBillingEntry({
+              ...record,
+              status: status === 'paid' ? 'paid' : status === 'cancelled' ? 'cancelled' : 'issued',
+              updatedAt: Date.now(),
+            })
+          : record
+      )));
+    }
+  };
+  const updateAdminSettingsField = (field, value) => {
+    setAdminSettingsForm((prev) => normalizeAdminPlatformSettings({
+      ...prev,
+      [field]: ['defaultCommissionRate', 'defaultPaymentDueDays'].includes(field) ? Number(value || 0) : value,
+    }));
+    setAdminSettingsSaved(false);
+  };
+  const handleSaveAdminSettings = () => {
+    setAdminPlatformSettings(normalizeAdminPlatformSettings(adminSettingsForm));
+    setAdminSettingsSaved(true);
+    window.setTimeout(() => setAdminSettingsSaved(false), 2200);
+  };
+  const handlePurchaseOrderChange = (field, value) => {
+    setPurchaseOrderForm((prev) => ({ ...prev, [field]: value }));
+  };
+  const handlePurchaseOrderItemChange = (itemId, field, value) => {
+    setPurchaseOrderForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => (item.id === itemId ? { ...item, [field]: field === 'description' ? value : Number(value) } : item)),
+    }));
+  };
+  const handleAddPurchaseOrderItem = () => {
+    setPurchaseOrderForm((prev) => ({ ...prev, items: [...prev.items, createPurchaseOrderItem()] }));
+  };
+  const handleRemovePurchaseOrderItem = (itemId) => {
+    setPurchaseOrderForm((prev) => ({
+      ...prev,
+      items: prev.items.length > 1 ? prev.items.filter((item) => item.id !== itemId) : prev.items,
+    }));
+  };
+  const handleSavePurchaseOrder = () => {
+    if (!purchaseOrderForm.supplierId) return;
+    const normalizedOrder = normalizePurchaseOrders([{ ...purchaseOrderForm }])[0];
+    setPurchaseOrders((prev) => {
+      const exists = prev.some((order) => order.id === normalizedOrder.id);
+      if (exists) return prev.map((order) => (order.id === normalizedOrder.id ? normalizedOrder : order));
+      return [normalizedOrder, ...prev];
+    });
+    setSelectedPurchaseOrderId(normalizedOrder.id);
+  };
+  const handleCreatePurchaseOrder = () => {
+    const nextOrder = createPurchaseOrderEntry();
+    setSelectedPurchaseOrderId('');
+    setPurchaseOrderForm(nextOrder);
+  };
+  const handleDeletePurchaseOrder = (orderId) => {
+    setPurchaseOrders((prev) => prev.filter((order) => order.id !== orderId));
+    if (selectedPurchaseOrderId === orderId) {
+      setSelectedPurchaseOrderId('');
+      setPurchaseOrderForm(createPurchaseOrderEntry());
+    }
+  };
+  const handlePurchaseOrderStatusChange = (orderId, status) => {
+    setPurchaseOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
+    if (selectedPurchaseOrderId === orderId) {
+      setPurchaseOrderForm((prev) => ({ ...prev, status }));
+    }
+  };
+
+  const resolveIssue = async (id) => { if(db) await updateDoc(doc(db, 'issues', id), { status: 'resolved' }); }
+  const handleUpdateReqStatus = async (id, newStatus) => { if(db) await updateDoc(doc(db, 'requests', id), { status: newStatus }); };
+
+  // Filters & Calculations
+  const filteredDocs = docsList.filter(d => (docsFilter === 'all' || d.type === docsFilter) && (d.title?.toLowerCase().includes(docsSearchQuery.toLowerCase())));
+  const getInventoryWarehouseInfo = (item) => {
+    const project = projectsList.find((p) => String(p.id) === String(item?.projectId));
+    if (!item?.projectId) {
+      return {
+        key: 'central',
+        label: t('inventory_central_stock'),
+        warehouseType: 'central',
+      };
+    }
+
+    return {
+      key: `project-${item.projectId}`,
+      label: `${project?.name || t('unassigned_site')} · ${t('inventory_project_stock')}`,
+      warehouseType: 'project',
+    };
+  };
+  const materialCategories = [...new Set(inventoryList.map((item) => item.category).filter(Boolean))];
+  const getMaterialStockStatusKey = (item) => {
+    const quantity = Number(item?.quantity || 0);
+    if (quantity <= 0) return 'stock_status_out';
+    if (quantity <= 5) return 'stock_status_low';
+    return 'stock_status_ok';
+  };
+  const inventoryWarehouseOptions = [
+    { key: 'all', label: t('inventory_filter_all_warehouses') },
+    { key: 'central', label: t('inventory_central_stock') },
+    ...projectsList.map((project) => ({
+      key: `project-${project.id}`,
+      label: `${project.name} · ${t('inventory_project_stock')}`,
+    })),
+  ];
+  const filteredInventory = inventoryList.filter((item) => {
+    const search = invSearchQuery.toLowerCase();
+    const warehouseInfo = getInventoryWarehouseInfo(item);
+    const code = String(item.id || '').toLowerCase();
+    const matchesSearch = !search
+      || item.name?.toLowerCase().includes(search)
+      || item.category?.toLowerCase().includes(search)
+      || code.includes(search);
+    const matchesProject = invProjectFilter === 'all' || String(item.projectId || '') === String(invProjectFilter);
+    const matchesCategory = invCategoryFilter === 'all' || item.category === invCategoryFilter;
+    const matchesWarehouse = invWarehouseFilter === 'all' || warehouseInfo.key === invWarehouseFilter;
+    const statusKey = getMaterialStockStatusKey(item);
+    const statusValue = statusKey === 'stock_status_out' ? 'out' : statusKey === 'stock_status_low' ? 'low' : 'ok';
+    const matchesStatus = invStatusFilter === 'all' || statusValue === invStatusFilter;
+    return matchesSearch && matchesProject && matchesCategory && matchesWarehouse && matchesStatus;
+  });
+  const totalBudget = filteredInventory.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+  const totalInventoryItems = filteredInventory.length;
+  const lowStockItems = filteredInventory.filter((item) => Number(item.quantity) > 0 && Number(item.quantity) <= 5);
+  const outOfStockItems = filteredInventory.filter((item) => Number(item.quantity) <= 0);
+  const filteredMaterialCatalog = filteredInventory.filter((item) => {
+    const search = materialCatalogSearchQuery.toLowerCase();
+    const matchesSearch = !search || item.name?.toLowerCase().includes(search) || item.category?.toLowerCase().includes(search);
+    const matchesCategory = materialCatalogCategoryFilter === 'all' || item.category === materialCatalogCategoryFilter;
+    const statusKey = getMaterialStockStatusKey(item);
+    const statusValue = statusKey === 'stock_status_out' ? 'out' : statusKey === 'stock_status_low' ? 'low' : 'ok';
+    const matchesStatus = materialCatalogStatusFilter === 'all' || statusValue === materialCatalogStatusFilter;
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+  const selectedMaterial = (() => {
+    const material = inventoryList.find((item) => item.id === selectedMaterialId)
+      || filteredMaterialCatalog[0]
+      || null;
+    return material ? normalizeInventoryEntry(material) : null;
+  })();
+  const inventoryByProjectGroups = [...new Map(filteredInventory.map((item) => {
+    const project = projectsList.find((p) => String(p.id) === String(item.projectId));
+    const key = item.projectId ? `project-${item.projectId}` : 'central';
+    const label = item.projectId ? project?.name || t('unassigned_site') : t('inventory_central_stock');
+    return [key, null];
+  })).keys()].map((groupKey) => {
+    const items = filteredInventory.filter((item) => ((item.projectId ? `project-${item.projectId}` : 'central') === groupKey));
+    const firstItem = items[0];
+    const project = projectsList.find((p) => String(p.id) === String(firstItem?.projectId));
+    return {
+      key: groupKey,
+      label: firstItem?.projectId ? project?.name || t('unassigned_site') : t('inventory_central_stock'),
+      items,
+      value: items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0),
+    };
+  });
+  const inventoryByWarehouseGroups = inventoryWarehouseOptions
+    .filter((option) => option.key !== 'all')
+    .map((option) => {
+      const items = filteredInventory.filter((item) => getInventoryWarehouseInfo(item).key === option.key);
+      return {
+        ...option,
+        items,
+        value: items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0),
+      };
+    })
+    .filter((group) => group.items.length > 0);
+  const inventoryMovements = inventoryList.map((item) => {
+    const quantity = Number(item.quantity || 0);
+    const movementType = item.movementType || (quantity <= 0 ? 'outbound' : 'inbound');
+    const timestamp = Number(item.updatedAt || item.createdAt || Date.now());
+    return {
+      id: `movement-${item.id}`,
+      materialId: item.id,
+      movementType,
+      materialName: item.name || '-',
+      quantity: Math.abs(quantity),
+      unit: item.unit || '-',
+      date: new Date(timestamp).toISOString().split('T')[0],
+      note: item.reference || item.notes || t('stock_movement_updated'),
+      balance: quantity,
+      category: item.category || '',
+      projectId: item.projectId || '',
+      timestamp,
+    };
+  }).sort((a, b) => b.timestamp - a.timestamp);
+  const filteredInventoryMovements = inventoryMovements.filter((movement) => {
+    const search = movementSearchQuery.toLowerCase();
+    const matchesSearch = !search
+      || movement.materialName.toLowerCase().includes(search)
+      || movement.note.toLowerCase().includes(search);
+    const matchesType = movementTypeFilter === 'all' || movement.movementType === movementTypeFilter;
+    const matchesMaterial = movementMaterialFilter === 'all' || movement.materialId === movementMaterialFilter;
+    const matchesDate = !movementDateFilter || movement.date === movementDateFilter;
+    return matchesSearch && matchesType && matchesMaterial && matchesDate;
+  });
+  const selectedMovement = inventoryMovements.find((movement) => movement.id === selectedMovementId)
+    || filteredInventoryMovements[0]
+    || null;
+  const inventoryValueByCategory = materialCategories.map((category) => {
+    const items = inventoryList.filter((item) => item.category === category);
+    const value = items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0);
+    return {
+      category,
+      itemCount: items.length,
+      value,
+    };
+  }).sort((a, b) => b.value - a.value);
+  const highestValueMaterials = [...inventoryList]
+    .map((item) => ({
+      ...item,
+      stockValue: (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
+    }))
+    .sort((a, b) => b.stockValue - a.stockValue)
+    .slice(0, 5);
+  const lowStockHighValueMaterials = [...inventoryList]
+    .filter((item) => Number(item.quantity) > 0 && Number(item.quantity) <= 5)
+    .map((item) => ({
+      ...item,
+      stockValue: (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
+    }))
+    .sort((a, b) => b.stockValue - a.stockValue)
+    .slice(0, 5);
+  const outOfStockValueImpact = outOfStockItems.reduce((sum, item) => sum + (Number(item.unitPrice) || 0), 0);
+  const recentStockMovements = [...filteredInventory]
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+    .slice(0, 5);
+  const filteredProjects = projectsList.filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const selectedProject = projectsList.find((project) => project.id === selectedProjectId)
+    || filteredProjects[0]
+    || null;
+  const selectedProjectMaterials = selectedProject
+    ? inventoryList.filter((item) => String(item.projectId || '') === String(selectedProject.id))
+    : [];
+  const selectedProjectMaterialValue = selectedProjectMaterials.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0);
+  const getProjectMaterialDraftValue = (materialId, field) => {
+    const value = projectMaterialActionDrafts?.[materialId]?.[field];
+    return value === undefined ? '1' : value;
+  };
+  const updateProjectMaterialDraftValue = (materialId, field, value) => {
+    setProjectMaterialActionDrafts((current) => ({
+      ...current,
+      [materialId]: {
+        issue: '1',
+        return: '1',
+        ...(current[materialId] || {}),
+        [field]: value,
+      },
+    }));
+  };
+  const normalizedWorkers = workersList.map((worker) => normalizeWorkerEntry(worker));
+  const availableWorkerRoleOptions = [...new Set(normalizedWorkers.filter((worker) => worker.role).map((worker) => worker.role))];
+  const filteredWorkers = normalizedWorkers.filter((worker) => {
+    const search = workerSearchQuery.toLowerCase();
+    const assignedProject = projectsList.find((project) => String(project.id) === String(worker.assignedSiteId));
+    const matchesSearch = !search
+      || worker.name?.toLowerCase().includes(search)
+      || worker.companyName?.toLowerCase().includes(search)
+      || worker.contactPerson?.toLowerCase().includes(search)
+      || worker.phone?.toLowerCase().includes(search)
+      || worker.email?.toLowerCase().includes(search)
+      || getConstructionRoleLabel(worker.role, language).toLowerCase().includes(search)
+      || getPersonTypeLabel(worker.personType, t).toLowerCase().includes(search)
+      || assignedProject?.name?.toLowerCase().includes(search);
+    const matchesType = workerTypeFilter === 'all' || worker.personType === workerTypeFilter;
+    const matchesRole = workerRoleFilter === 'all' || worker.role === workerRoleFilter;
+    const matchesSite = workerSiteFilter === 'all'
+      || (workerSiteFilter === 'unassigned' ? !worker.assignedSiteId : String(worker.assignedSiteId || '') === workerSiteFilter);
+    const matchesStatus = workerStatusFilter === 'all' || worker.status === workerStatusFilter;
+    return matchesSearch && matchesType && matchesRole && matchesSite && matchesStatus;
+  });
+  const activeWorkersCount = filteredWorkers.filter((worker) => worker.status === 'active').length;
+  const assignedWorkerSitesCount = new Set(filteredWorkers.map((worker) => worker.assignedSiteId).filter(Boolean)).size;
+  const filteredSuppliers = supplierDirectory.filter((supplier) => {
+    const search = supplierSearchQuery.toLowerCase();
+    const publicProfile = supplier.publicProfile || {};
+    return (
+      publicProfile.supplierName?.toLowerCase().includes(search)
+      || publicProfile.contactPerson?.toLowerCase().includes(search)
+      || publicProfile.productCategory?.toLowerCase().includes(search)
+    );
+  });
+  function getSupplierAssignmentSummariesForRender(supplier) {
+    const assignments = supplier?.internalMeta?.categoryAssignments || [];
+    return assignments.map((assignment) => {
+      const matchedCategory = supplierCategories.find((category) => category.id === assignment.categoryId)
+        || supplierCategories.find((category) => category.slug && category.slug === assignment.categorySlug);
+      const defaultCommissionRate = Number(matchedCategory?.defaultCommissionRate || 0);
+      const effectiveCommissionRate = assignment.useDefaultCommission !== false
+        ? defaultCommissionRate
+        : Number(assignment.overrideCommissionRate || 0);
+      return {
+        ...assignment,
+        categoryName: matchedCategory ? getSupplierCategoryDisplayName(matchedCategory, t) : (assignment.categorySlug || '-'),
+        defaultCommissionRate,
+        effectiveCommissionRate,
+      };
+    });
+  }
+  const filteredAdminSuppliers = supplierDirectory.filter((supplier) => {
+    const search = supplierSearchQuery.toLowerCase();
+    const publicProfile = supplier.publicProfile || {};
+    const internalMeta = supplier.internalMeta || {};
+    const assignmentMatches = getSupplierAssignmentSummariesForRender(supplier).some((assignment) => assignment.categoryName.toLowerCase().includes(search));
+    const matchesSearch = !search
+      || publicProfile.supplierName?.toLowerCase().includes(search)
+      || publicProfile.contactPerson?.toLowerCase().includes(search)
+      || publicProfile.phone?.toLowerCase().includes(search)
+      || publicProfile.email?.toLowerCase().includes(search)
+      || publicProfile.productCategory?.toLowerCase().includes(search)
+      || publicProfile.address?.toLowerCase().includes(search)
+      || internalMeta.settlementTerms?.toLowerCase().includes(search)
+      || internalMeta.platformNotes?.toLowerCase().includes(search)
+      || assignmentMatches;
+    const matchesStatus = adminSupplierStatusFilter === 'all' || publicProfile.status === adminSupplierStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const adminSupplierCategoryCount = new Set(
+    supplierDirectory
+      .map((supplier) => supplier.publicProfile?.productCategory)
+      .filter(Boolean)
+  ).size;
+  const adminActiveSuppliersCount = supplierDirectory.filter((supplier) => supplier.publicProfile?.status !== 'inactive').length;
+  const adminInactiveSuppliersCount = supplierDirectory.filter((supplier) => supplier.publicProfile?.status === 'inactive').length;
+  const filteredSupplierCategories = supplierCategories.filter((category) => {
+    const search = categorySearchQuery.toLowerCase();
+    const displayName = getSupplierCategoryDisplayName(category, t).toLowerCase();
+    const matchesSearch = !search
+      || displayName.includes(search)
+      || category.slug?.toLowerCase().includes(search)
+      || category.internalNotes?.toLowerCase().includes(search);
+    const matchesStatus = categoryStatusFilter === 'all' || category.status === categoryStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const activeSupplierCategoriesCount = supplierCategories.filter((category) => category.status !== 'inactive').length;
+  const inactiveSupplierCategoriesCount = supplierCategories.filter((category) => category.status === 'inactive').length;
+  const customSupplierCategoriesCount = supplierCategories.filter((category) => !category.isSystem).length;
+  const filteredSupplierAgreements = supplierAgreements.filter((agreement) => {
+    const supplier = supplierDirectory.find((entry) => entry.id === agreement.supplierId);
+    const search = agreementSearchQuery.toLowerCase();
+    const matchesSearch = !search
+      || agreement.title?.toLowerCase().includes(search)
+      || agreement.agreementNumber?.toLowerCase().includes(search)
+      || supplier?.publicProfile?.supplierName?.toLowerCase().includes(search)
+      || agreement.billingContactName?.toLowerCase().includes(search)
+      || agreement.billingContactEmail?.toLowerCase().includes(search);
+    const matchesStatus = agreementStatusFilter === 'all' || agreement.status === agreementStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const activeSupplierAgreementsCount = supplierAgreements.filter((agreement) => agreement.status === 'active').length;
+  const expiringSupplierAgreementsCount = supplierAgreements.filter((agreement) => agreement.endDate && agreement.status === 'active').length;
+  const selectedSupplierAgreement = supplierAgreements.find((agreement) => agreement.id === selectedAgreementId)
+    || filteredSupplierAgreements[0]
+    || null;
+  const filteredCommissionBillingRecords = commissionBillingRecords.filter((record) => {
+    const search = commissionBillingSearchQuery.toLowerCase();
+    const matchesSearch = !search
+      || record.billingNumber?.toLowerCase().includes(search)
+      || record.supplierName?.toLowerCase().includes(search)
+      || record.agreementReference?.toLowerCase().includes(search)
+      || record.notes?.toLowerCase().includes(search);
+    const matchesStatus = commissionBillingStatusFilter === 'all' || record.status === commissionBillingStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const selectedCommissionBillingRecord = commissionBillingRecords.find((record) => record.id === selectedCommissionBillingId)
+    || filteredCommissionBillingRecords[0]
+    || null;
+  const totalCommissionBillingCount = commissionBillingRecords.length;
+  const openCommissionBillingCount = commissionBillingRecords.filter((record) => ['draft', 'issued'].includes(record.status)).length;
+  const paidCommissionBillingCount = commissionBillingRecords.filter((record) => record.status === 'paid').length;
+  const commissionBillingPreview = buildCommissionBillingPreview(commissionBillingFormData);
+  const settlementRecordsWithStatus = settlementRecords.map((record) => {
+    const normalizedRecord = normalizeSettlementEntry(record);
+    return {
+      ...normalizedRecord,
+      effectiveStatus: getEffectiveSettlementStatus(normalizedRecord),
+    };
+  });
+  const filteredSettlementRecords = settlementRecordsWithStatus.filter((record) => {
+    const search = settlementSearchQuery.toLowerCase();
+    const matchesSearch = !search
+      || record.settlementNumber?.toLowerCase().includes(search)
+      || record.billingNumber?.toLowerCase().includes(search)
+      || record.supplierName?.toLowerCase().includes(search)
+      || record.paymentReference?.toLowerCase().includes(search)
+      || record.notes?.toLowerCase().includes(search);
+    const matchesStatus = settlementStatusFilter === 'all' || record.effectiveStatus === settlementStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const selectedSettlementRecord = settlementRecordsWithStatus.find((record) => record.id === selectedSettlementId)
+    || filteredSettlementRecords[0]
+    || null;
+  const totalSettlementCount = settlementRecords.length;
+  const unpaidSettlementCount = settlementRecordsWithStatus.filter((record) => ['unpaid', 'partial'].includes(record.effectiveStatus)).length;
+  const overdueSettlementCount = settlementRecordsWithStatus.filter((record) => record.effectiveStatus === 'overdue').length;
+  const paidSettlementCount = settlementRecordsWithStatus.filter((record) => record.effectiveStatus === 'paid').length;
+  const platformIdentity = {
+    companyName: adminSettingsForm.platformCompanyName || '-',
+    billingAddress: adminSettingsForm.platformBillingAddress || '-',
+    billingEmail: adminSettingsForm.platformBillingEmail || '-',
+    billingPhone: adminSettingsForm.platformBillingPhone || '-',
+  };
+  const commissionBillingPrintSourceOrders = selectedCommissionBillingRecord?.orderSnapshots || [];
+  const settlementPrintBillingSnapshot = selectedSettlementRecord?.billingSnapshot || {};
+  const platformRevenueOperationalStatuses = new Set(['submitted', 'confirmed', 'processing', 'shipped', 'delivered']);
+  const filteredOrderStatuses = purchaseOrders.filter((order) => {
+    const supplier = supplierDirectory.find((item) => item.id === order.supplierId);
+    const supplierName = supplier?.publicProfile?.supplierName?.toLowerCase() || '';
+    const search = orderStatusSearchQuery.toLowerCase();
+    const matchesSearch = !search || order.poNumber?.toLowerCase().includes(search) || supplierName.includes(search);
+    const matchesFilter = orderStatusFilter === 'all' || order.status === orderStatusFilter;
+    return matchesSearch && matchesFilter;
+  });
+  const purchaseOrderTotal = purchaseOrderForm.items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+  const platformRevenueRecords = purchaseOrders.map((order) => {
+    const supplier = supplierDirectory.find((item) => item.id === order.supplierId);
+    const orderTotal = order.items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0);
+    const commissionRate = Number(supplier?.internalMeta?.commissionRate || 0);
+    const estimatedCommission = orderTotal * (commissionRate / 100);
+    const rawDate = order.orderDate || '';
+    const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+      ? rawDate
+      : new Date(Number(order.createdAt || Date.now())).toISOString().split('T')[0];
+    return {
+      id: `platform-revenue-${order.id}`,
+      orderId: order.id,
+      orderNumber: order.poNumber || '-',
+      supplierId: supplier?.id || '',
+      supplierName: supplier?.publicProfile?.supplierName || '-',
+      status: order.status || 'draft',
+      orderTotal,
+      commissionRate,
+      estimatedCommission,
+      date: normalizedDate,
+      timestamp: new Date(normalizedDate).getTime() || Number(order.createdAt || 0),
+      periodKey: normalizedDate.slice(0, 7),
+      notes: order.notes || '',
+    };
+  }).filter((record) => record.orderTotal > 0);
+  const relevantPlatformRevenueRecords = platformRevenueRecords.filter((record) => record.status !== 'cancelled');
+  const realizedPlatformRevenueRecords = relevantPlatformRevenueRecords.filter((record) => platformRevenueOperationalStatuses.has(record.status));
+  const totalPlatformRevenue = realizedPlatformRevenueRecords.reduce((sum, record) => sum + record.estimatedCommission, 0);
+  const estimatedTotalCommission = relevantPlatformRevenueRecords.reduce((sum, record) => sum + record.estimatedCommission, 0);
+  const totalPlatformOrderVolume = realizedPlatformRevenueRecords.reduce((sum, record) => sum + record.orderTotal, 0);
+  const platformCommissionBySupplier = supplierDirectory
+    .map((supplier) => {
+      const supplierRecords = relevantPlatformRevenueRecords.filter((record) => record.supplierId === supplier.id);
+      if (!supplierRecords.length) return null;
+      return {
+        supplierId: supplier.id,
+        supplierName: supplier.publicProfile?.supplierName || '-',
+        commissionRate: Number(supplier.internalMeta?.commissionRate || 0),
+        orderCount: supplierRecords.length,
+        orderVolume: supplierRecords.reduce((sum, record) => sum + record.orderTotal, 0),
+        estimatedCommission: supplierRecords.reduce((sum, record) => sum + record.estimatedCommission, 0),
+        status: supplier.publicProfile?.status || 'active',
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.estimatedCommission - a.estimatedCommission);
+  const platformRevenueByPeriod = [...relevantPlatformRevenueRecords]
+    .reduce((acc, record) => {
+      const current = acc.get(record.periodKey) || {
+        periodKey: record.periodKey,
+        orderCount: 0,
+        orderVolume: 0,
+        estimatedCommission: 0,
+      };
+      current.orderCount += 1;
+      current.orderVolume += record.orderTotal;
+      current.estimatedCommission += record.estimatedCommission;
+      acc.set(record.periodKey, current);
+      return acc;
+    }, new Map())
+    .values();
+  const sortedPlatformRevenueByPeriod = Array.from(platformRevenueByPeriod)
+    .sort((a, b) => b.periodKey.localeCompare(a.periodKey))
+    .slice(0, 6);
+  const recentPlatformRevenueRecords = [...relevantPlatformRevenueRecords]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 6);
+  const approvedRevenueRecords = docsBillingRecords.filter((record) => record.recordType === 'quotation' || (record.recordType === 'billing' && record.status === 'approved'));
+  const expenseRecords = [
+    ...purchaseOrders.map((order) => ({
+      id: `expense-po-${order.id}`,
+      category: 'purchase_orders',
+      title: order.poNumber || t('purchase_orders_title'),
+      date: order.orderDate || '-',
+      amount: order.items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0),
+      note: supplierDirectory.find((supplier) => supplier.id === order.supplierId)?.publicProfile?.supplierName || '',
+    })),
+    ...inventoryList.map((item) => ({
+      id: `expense-inv-${item.id}`,
+      category: 'inventory',
+      title: item.name || '-',
+      date: item.createdAt ? new Date(Number(item.createdAt)).toISOString().split('T')[0] : '-',
+      amount: (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
+      note: item.category || '',
+    })),
+  ];
+  const totalRevenue = approvedRevenueRecords.reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
+  const totalExpense = expenseRecords.reduce((sum, record) => sum + (Number(record.amount) || 0), 0);
+  const netBalance = totalRevenue - totalExpense;
+  const recentFinanceRecords = [
+    ...approvedRevenueRecords.map((record) => ({
+      id: `finance-revenue-${record.id}`,
+      type: 'revenue',
+      title: record.title || record.number,
+      date: record.issueDate || '-',
+      amount: record.amount,
+      note: record.customerName || '',
+    })),
+    ...expenseRecords.map((record) => ({
+      id: `finance-expense-${record.id}`,
+      type: 'expense',
+      title: record.title,
+      date: record.date,
+      amount: record.amount,
+      note: record.note,
+    })),
+  ]
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .slice(0, 6);
+  const financeSummaryByCategory = [
+    {
+      key: 'revenue',
+      label: t('finance_revenue_category'),
+      amount: totalRevenue,
+    },
+    {
+      key: 'expense',
+      label: t('finance_expense_category'),
+      amount: totalExpense,
+    },
+  ];
+  const humanWorkers = workersList
+    .map((worker) => normalizeWorkerEntry(worker))
+    .filter((worker) => isRoleBasedWorkerType(worker.personType));
+
+  useEffect(() => {
+    if (!filteredMaterialCatalog.length) {
+      if (selectedMaterialId) setSelectedMaterialId('');
+      return;
+    }
+
+    if (!filteredMaterialCatalog.some((item) => item.id === selectedMaterialId)) {
+      setSelectedMaterialId(filteredMaterialCatalog[0].id);
+    }
+  }, [filteredMaterialCatalog, selectedMaterialId]);
+
+  useEffect(() => {
+    setMaterialLinkDraftProjectId(String(selectedMaterial?.projectId || ''));
+  }, [selectedMaterial?.id, selectedMaterial?.projectId]);
+
+  useEffect(() => {
+    setMaterialIssueQuantity('1');
+    setMaterialReturnQuantity('1');
+  }, [selectedMaterial?.id]);
+
+  useEffect(() => {
+    if (!filteredInventoryMovements.length) {
+      if (selectedMovementId) setSelectedMovementId('');
+      return;
+    }
+
+    if (!filteredInventoryMovements.some((movement) => movement.id === selectedMovementId)) {
+      setSelectedMovementId(filteredInventoryMovements[0].id);
+    }
+  }, [filteredInventoryMovements, selectedMovementId]);
+
+  useEffect(() => {
+    if (!filteredDocsBillingRecords.length) {
+      if (selectedDocsBillingId) setSelectedDocsBillingId('');
+      return;
+    }
+
+    if (!filteredDocsBillingRecords.some((record) => record.id === selectedDocsBillingId)) {
+      setSelectedDocsBillingId(filteredDocsBillingRecords[0].id);
+    }
+  }, [filteredDocsBillingRecords, selectedDocsBillingId]);
+
+  useEffect(() => {
+    if (!filteredProjects.length) {
+      if (selectedProjectId) setSelectedProjectId('');
+      return;
+    }
+
+    if (!filteredProjects.some((project) => project.id === selectedProjectId)) {
+      setSelectedProjectId(filteredProjects[0].id);
+    }
+  }, [filteredProjects, selectedProjectId]);
+
+  useEffect(() => {
+    setSelectedProjectTab('overview');
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (!filteredSupplierAgreements.length) {
+      if (selectedAgreementId) setSelectedAgreementId('');
+      return;
+    }
+
+    if (!filteredSupplierAgreements.some((agreement) => agreement.id === selectedAgreementId)) {
+      setSelectedAgreementId(filteredSupplierAgreements[0].id);
+    }
+  }, [filteredSupplierAgreements, selectedAgreementId]);
+
+  useEffect(() => {
+    if (!filteredCommissionBillingRecords.length) {
+      if (selectedCommissionBillingId) setSelectedCommissionBillingId('');
+      return;
+    }
+
+    if (!filteredCommissionBillingRecords.some((record) => record.id === selectedCommissionBillingId)) {
+      setSelectedCommissionBillingId(filteredCommissionBillingRecords[0].id);
+    }
+  }, [filteredCommissionBillingRecords, selectedCommissionBillingId]);
+
+  useEffect(() => {
+    if (!filteredSettlementRecords.length) {
+      if (selectedSettlementId) setSelectedSettlementId('');
+      return;
+    }
+
+    if (!filteredSettlementRecords.some((record) => record.id === selectedSettlementId)) {
+      setSelectedSettlementId(filteredSettlementRecords[0].id);
+    }
+  }, [filteredSettlementRecords, selectedSettlementId]);
+
+  const pendingReqsCount = globalRequests.filter(r => r.status === 'pending').length;
+  const pendingIssuesCount = globalIssues.filter(i => i.status === 'pending').length;
+
+  const userNavGroups = [
+    {
+      id: 'overview',
+      labelKey: 'nav_group_overview',
+      icon: BarChart3,
+      items: [
+        { tab: 'overview', labelKey: 'manager_menu_overview', icon: BarChart3, showDot: pendingIssuesCount > 0 },
+      ],
+    },
+    {
+      id: 'operations',
+      labelKey: 'nav_group_operations',
+      icon: HardHat,
+      items: [
+        { tab: 'projects', labelKey: 'manager_menu_projects', icon: Building },
+        { tab: 'workers', labelKey: 'manager_menu_workers', icon: Users },
+        { tab: 'chat', labelKey: 'manager_menu_chat', icon: MessageSquare },
+      ],
+    },
+    {
+      id: 'documents',
+      labelKey: 'nav_group_documents',
+      icon: FileText,
+      items: [
+        { tab: 'quotations', labelKey: 'manager_menu_quotations', icon: Receipt },
+        { tab: 'contractor_agreements', labelKey: 'manager_menu_contractor_agreements', icon: FileText },
+      ],
+    },
+    {
+      id: 'procurement',
+      labelKey: 'nav_group_procurement',
+      icon: Inbox,
+      items: [
+        { tab: 'supplier_directory', labelKey: 'manager_menu_supplier_directory', icon: Building },
+        { tab: 'purchase_orders', labelKey: 'manager_menu_purchase_orders', icon: Receipt },
+        { tab: 'order_status', labelKey: 'manager_menu_order_status', icon: Clock },
+      ],
+    },
+    {
+      id: 'inventory',
+      labelKey: 'nav_group_inventory',
+      icon: Package,
+      items: [
+        { tab: 'inventory', labelKey: 'manager_menu_inventory', icon: Package },
+      ],
+    },
+    {
+      id: 'finance',
+      labelKey: 'nav_group_finance',
+      icon: DollarSign,
+      items: [
+        { tab: 'docs', labelKey: 'manager_menu_docs', icon: DollarSign },
+      ],
+    },
+    {
+      id: 'settings',
+      labelKey: 'nav_group_settings',
+      icon: Database,
+      items: [
+        { tab: 'company_profile', labelKey: 'manager_menu_company_profile', icon: Building },
+        { tab: 'document_settings', labelKey: 'manager_menu_document_settings', icon: Database },
+        { tab: 'email_signature', labelKey: 'manager_menu_email_signature', icon: Send },
+      ],
+    },
+    ...(isPlatformAdmin ? [{
+      id: 'admin',
+      labelKey: 'nav_group_admin',
+      icon: Database,
+      items: [
+        { tab: 'admin_supplier_management', labelKey: 'manager_menu_admin_supplier_management', icon: Building },
+        { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
+        { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
+        { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
+        { tab: 'admin_settings', labelKey: 'manager_menu_admin_settings', icon: Database },
+      ],
+    }] : []),
+  ];
+  const adminNavGroups = [
+    {
+      id: 'admin',
+      labelKey: 'nav_group_admin',
+      icon: Database,
+      items: [
+        { tab: 'admin_overview', labelKey: 'manager_menu_admin_overview', icon: Database },
+        { tab: 'admin_category_management', labelKey: 'manager_menu_admin_category_management', icon: Inbox },
+        { tab: 'admin_supplier_management', labelKey: 'manager_menu_admin_supplier_management', icon: Building },
+        { tab: 'admin_pricing_management', labelKey: 'manager_menu_admin_pricing_management', icon: DollarSign },
+        { tab: 'admin_supplier_agreements', labelKey: 'manager_menu_admin_supplier_agreements', icon: FileText },
+        { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
+        { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
+        { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
+        { tab: 'admin_settings', labelKey: 'manager_menu_admin_settings', icon: Database },
+      ],
+    },
+  ];
+  const navGroups = adminNavOnly ? adminNavGroups : userNavGroups;
+  const mobileNavItems = navGroups.flatMap((group) => group.items);
+
+  const sectionTitleMap = {
+    overview: t('manager_overview'),
+    admin_overview: t('admin_overview_title'),
+    admin_category_management: t('admin_category_management_title'),
+    admin_pricing_management: t('admin_pricing_management_title'),
+    admin_supplier_agreements: t('admin_supplier_agreements_title'),
+    admin_commission_billing: t('admin_commission_billing_title'),
+    projects: t('manager_tab_projects_title'),
+    workers: t('manager_tab_workers_title'),
+    docs: t('manager_tab_docs_title'),
+    company_profile: t('company_profile_title'),
+    quotations: t('quotations_title'),
+    contractor_agreements: t('contractor_agreements_title'),
+    document_settings: t('document_settings_title'),
+    email_signature: t('email_signature_title'),
+    inventory: t('manager_tab_inv_title'),
+    supplier_directory: t('supplier_directory_title'),
+    purchase_orders: t('purchase_orders_title'),
+    order_status: t('order_status_title'),
+    admin_supplier_management: t('admin_supplier_management_title'),
+    admin_platform_revenue: t('admin_platform_revenue_title'),
+    admin_settlements: t('admin_settlements_title'),
+    admin_settings: t('admin_settings_title'),
+    chat: t('manager_menu_chat'),
+    ...(isPlatformAdmin ? { requests: t('req_tab_title') } : {}),
+  };
+
+  const knownSectionTabs = new Set(Object.keys(sectionTitleMap));
+
+  const openAddInvModal = () => { setEditingInvId(null); setInvFormData(createInventoryEntry()); setIsInvModalOpen(true); };
+  const openEditInvModal = (item) => { setEditingInvId(item.id); setInvFormData(normalizeInventoryEntry(item)); setIsInvModalOpen(true); };
+  const openAddSupplierModal = () => { setEditingSupplierId(null); setSupplierFormData(createSupplierEntry()); setIsSupplierModalOpen(true); };
+  const openEditSupplierModal = (supplier) => { setEditingSupplierId(supplier.id); setSupplierFormData(normalizeSupplierEntry(supplier)); setIsSupplierModalOpen(true); };
+  const openAddPricingPackageModal = () => {
+    setEditingPricingPackageId(null);
+    setPricingPackageFormData(createPricingPackageEntry({
+      code: '',
+      name: '',
+      description: '',
+      price: 0,
+      billingPeriod: 'monthly',
+      status: 'enabled',
+      isRecommended: pricingPackages.every((entry) => !entry.isRecommended),
+      features: [],
+      displayOrder: pricingPackages.length + 1,
+    }));
+    setIsPricingModalOpen(true);
+  };
+  const openEditPricingPackageModal = (entry) => {
+    setEditingPricingPackageId(entry.id);
+    setPricingPackageFormData(normalizePricingPackageEntry(entry));
+    setIsPricingModalOpen(true);
+  };
+  const updatePricingPackageField = (field, value) => {
+    setPricingPackageFormData((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleSavePricingPackage = () => {
+    const normalizedEntry = normalizePricingPackageEntry({
+      ...pricingPackageFormData,
+      code: pricingPackageFormData.code || pricingPackageFormData.name,
+      updatedAt: Date.now(),
+    });
+    if (!normalizedEntry.name) return;
+
+    setPricingPackages((prev) => {
+      const next = editingPricingPackageId
+        ? prev.map((entry) => (entry.id === editingPricingPackageId ? normalizedEntry : entry))
+        : [...prev, normalizedEntry];
+
+      return next
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map((entry) => ({
+          ...entry,
+          isRecommended: normalizedEntry.isRecommended ? entry.id === normalizedEntry.id : (entry.id === normalizedEntry.id ? entry.isRecommended : entry.isRecommended),
+        }));
+    });
+    setIsPricingModalOpen(false);
+  };
+  const togglePricingPackageStatus = (packageId) => {
+    setPricingPackages((prev) => prev.map((entry) => (
+      entry.id === packageId
+        ? { ...entry, status: entry.status === 'enabled' ? 'disabled' : 'enabled', updatedAt: Date.now() }
+        : entry
+    )));
+  };
+  const setPricingPackageRecommended = (packageId) => {
+    setPricingPackages((prev) => prev.map((entry) => ({
+      ...entry,
+      isRecommended: entry.id === packageId,
+      updatedAt: entry.id === packageId ? Date.now() : entry.updatedAt,
+    })));
+  };
+  const clearPricingPackageRecommended = (packageId) => {
+    setPricingPackages((prev) => prev.map((entry) => (
+      entry.id === packageId
+        ? { ...entry, isRecommended: false, updatedAt: Date.now() }
+        : entry
+    )));
+  };
+  const handleProjectFormChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+  const handleProjectSupervisorChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      supervisor: {
+        ...prev.supervisor,
+        [field]: value,
+      },
+    }));
+  };
+  const handleProjectSubcontractorChange = (subcontractorId, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      subcontractors: prev.subcontractors.map((item) => (
+        item.id === subcontractorId ? { ...item, [field]: value } : item
+      )),
+    }));
+  };
+  const handleAddProjectSubcontractor = () => {
+    setFormData((prev) => ({
+      ...prev,
+      subcontractors: [...prev.subcontractors, createProjectSubcontractorEntry()],
+    }));
+  };
+  const handleRemoveProjectSubcontractor = (subcontractorId) => {
+    setFormData((prev) => ({
+      ...prev,
+      subcontractors: prev.subcontractors.length > 1
+        ? prev.subcontractors.filter((item) => item.id !== subcontractorId)
+        : prev.subcontractors,
+    }));
+  };
+  const openAddModal = () => { setEditingId(null); setFormData(createProjectEntry()); setIsModalOpen(true); };
+  const openEditModal = (project) => { setEditingId(project.id); setFormData(normalizeProjectEntry(project)); setIsModalOpen(true); };
+  const openAddWorkerModal = () => { setEditingWorkerId(null); setWorkerFormData(createWorkerEntry()); setIsWorkerModalOpen(true); };
+  const openEditWorkerModal = (worker) => { setEditingWorkerId(worker.id); setWorkerFormData(normalizeWorkerEntry(worker)); setIsWorkerModalOpen(true); };
+  const openAddDocModal = () => { setEditingDocId(null); setDocFormData({ type: 'invoice', title: '', amount: 0, date: todayDate, projectId: '', status: 'pending', submittedBy: t('manager_default_submitter') }); setIsDocModalOpen(true); };
+  const openEditDocModal = (doc) => { setEditingDocId(doc.id); setDocFormData({ ...doc }); setIsDocModalOpen(true); };
+  const normalizedWorkerForm = normalizeWorkerEntry(workerFormData);
+  const workerRoleOptions = getRoleOptionsForPersonType(normalizedWorkerForm.personType);
+  const isSubcontractorType = normalizedWorkerForm.personType === 'subcontractor';
+  const isSupplierType = normalizedWorkerForm.personType === 'supplier';
+  const isPersonType = PERSON_TYPES_WITH_ROLE.has(normalizedWorkerForm.personType);
+  const isAdminSupplierSection = activeTab === 'admin_supplier_management';
+  const availableActiveSupplierCategories = supplierCategories.filter((category) => category.status !== 'inactive');
+  const normalizedPricingPackageForm = normalizePricingPackageEntry(pricingPackageFormData);
+  const filteredPricingPackages = pricingPackages.filter((entry) => {
+    const matchesSearch = !pricingSearchQuery || [entry.code, entry.name, entry.description, ...(entry.features || [])]
+      .join(' ')
+      .toLowerCase()
+      .includes(pricingSearchQuery.toLowerCase());
+    const matchesStatus = pricingStatusFilter === 'all' || entry.status === pricingStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  const activePricingPackageCount = pricingPackages.filter((entry) => entry.status === 'enabled').length;
+  const recommendedPricingPackage = pricingPackages.find((entry) => entry.isRecommended) || null;
+
+  return (
+    <div className="min-h-dvh md:min-h-screen bg-slate-100 flex relative">
+      {/* Sidebar */}
+      <div className="hidden w-64 shrink-0 bg-slate-900 text-white md:sticky md:top-0 md:flex md:h-dvh md:flex-col">
+        <div className="p-4 flex items-center space-x-2 border-b border-slate-800">
+          <HardHat className="text-blue-400 h-8 w-8" />
+          <span className="font-bold text-xl">BuildSabaidee</span>
+        </div>
+        <div className="p-4 flex-1 overflow-y-auto">
+          <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-4">{t('dashboard_main_menu')}</div>
+          <nav className="space-y-3">
+            {navGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const isExpanded = expandedNavGroups[group.id];
+
+              return (
+                <div key={group.id} className="rounded-xl border border-slate-800 bg-slate-950/40 overflow-hidden">
+                  <button onClick={() => toggleNavGroup(group.id)} className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-800/70 transition">
+                    <div className="flex items-center space-x-3">
+                      <GroupIcon className="h-5 w-5 text-slate-300" />
+                      <span className="text-sm font-semibold text-slate-100">{t(group.labelKey)}</span>
+                    </div>
+                    {isExpanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                  </button>
+                  {isExpanded && (
+                    <div className="px-2 pb-2 space-y-1 border-t border-slate-800/80">
+                      {group.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        const isActive = activeTab === item.tab;
+
+                        return (
+                          <button
+                            key={item.tab}
+                            onClick={() => setActiveTab(item.tab)}
+                            className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
+                              isActive
+                                ? 'bg-blue-600 text-white'
+                                : 'text-slate-300 hover:bg-slate-800'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <ItemIcon className="h-4 w-4" />
+                              <span>{t(item.labelKey)}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {item.showDot && <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>}
+                              {item.count > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{item.count}</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="p-4 border-t border-slate-800">
+          <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="flex items-center space-x-3 text-slate-400 hover:text-white w-full p-2">
+            <LogOut className="h-5 w-5" /> <span>{adminNavOnly ? t('admin_back_home') : t('manager_logout')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden bg-slate-50">
+        {/* Header */}
+        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10 shrink-0">
+          <h1 className="text-xl font-bold text-slate-800">
+            {sectionTitleMap[activeTab] || t('manager_menu_' + activeTab)}
+          </h1>
+          <div className="flex items-center space-x-4">
+            <div className={`px-3 py-1 rounded-full text-sm font-medium items-center hidden md:flex ${
+              weatherState.status === 'success'
+                ? 'bg-blue-50 text-blue-700'
+                : weatherState.status === 'loading'
+                  ? 'bg-slate-100 text-slate-600'
+                  : 'bg-amber-50 text-amber-700'
+            }`}>
+              <CloudRain className="h-4 w-4 mr-2 shrink-0" /> {renderWeatherSummary()}
+            </div>
+            <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
+              MG
+            </div>
+            <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="md:hidden text-slate-500">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </header>
+        <div className="border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {mobileNavItems.map((item) => {
+              const ItemIcon = item.icon;
+              const isActive = activeTab === item.tab;
+              return (
+                <button
+                  key={item.tab}
+                  onClick={() => setActiveTab(item.tab)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  <ItemIcon className="h-4 w-4" />
+                  <span>{t(item.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dashboard Content */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+          
+          {isFirebaseConfigured && projectsList.length === 0 && activeTab === 'overview' && (
+             <button onClick={seedDatabase} className="w-full bg-blue-100 text-blue-700 p-4 rounded-xl border border-blue-200 mb-6 font-bold hover:bg-blue-200 transition shadow-sm flex justify-center items-center">
+                <Database className="w-5 h-5 mr-2"/> {t('dashboard_seed')}
+             </button>
+          )}
+
+          {adminNavOnly && activeTab === 'admin_overview' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+                    <Database className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_overview_title')}</h3>
+                    <p className="text-sm text-slate-600">{t('admin_overview_desc')}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { tab: 'admin_category_management', titleKey: 'admin_category_management_title', descKey: 'admin_category_management_desc', icon: Inbox },
+                  { tab: 'admin_supplier_management', titleKey: 'admin_supplier_management_title', descKey: 'admin_supplier_management_desc', icon: Building },
+                  { tab: 'admin_pricing_management', titleKey: 'admin_pricing_management_title', descKey: 'admin_pricing_management_desc', icon: DollarSign },
+                  { tab: 'admin_supplier_agreements', titleKey: 'admin_supplier_agreements_title', descKey: 'admin_supplier_agreements_desc', icon: FileText },
+                  { tab: 'admin_commission_billing', titleKey: 'admin_commission_billing_title', descKey: 'admin_commission_billing_desc', icon: Receipt },
+                  { tab: 'admin_platform_revenue', titleKey: 'admin_platform_revenue_title', descKey: 'admin_platform_revenue_desc', icon: DollarSign },
+                  { tab: 'admin_settlements', titleKey: 'admin_settlements_title', descKey: 'admin_settlements_desc', icon: Receipt },
+                  { tab: 'admin_settings', titleKey: 'admin_settings_title', descKey: 'admin_settings_desc', icon: Database },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.tab}
+                      onClick={() => setActiveTab(item.tab)}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-blue-200 hover:shadow-md"
+                    >
+                      <div className="mb-4 inline-flex rounded-2xl bg-blue-50 p-3 text-blue-700">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <h4 className="text-base font-semibold text-slate-900">{t(item.titleKey)}</h4>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{t(item.descKey)}</p>
+                      <p className="mt-3 text-xs font-medium text-blue-700">{t('open_section_hint')}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ----- TAB: OVERVIEW ----- */}
+          {!adminNavOnly && activeTab === 'overview' && (
+            <>
+              {/* Top Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <StatCard title={t('overview_stat_active_sites')} value={projectsList.filter(p => p.status === 'active').length} icon={<Building />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('overview_stat_attendance')} value={`${humanWorkers.filter((w) => w.attendanceRate > 0).length}/${humanWorkers.length}`} icon={<Users />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('overview_stat_sos')} value={pendingIssuesCount} icon={<AlertTriangle />} color={pendingIssuesCount > 0 ? "text-red-600" : "text-slate-400"} bg={pendingIssuesCount > 0 ? "bg-red-100" : "bg-slate-200"} />
+                <StatCard title={t('overview_stat_requests')} value={pendingReqsCount} icon={<Inbox />} color={pendingReqsCount > 0 ? "text-orange-600" : "text-slate-400"} bg={pendingReqsCount > 0 ? "bg-orange-100" : "bg-slate-200"} />
+              </div>
+
+              {/* SOS Alerts Area (if any) */}
+              {pendingIssuesCount > 0 && (
+                 <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-5 shadow-sm">
+                    <h3 className="font-bold text-red-700 mb-3 flex items-center"><AlertTriangle className="h-5 w-5 mr-2" /> {t('overview_sos_title')}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       {globalIssues.filter(i => i.status === 'pending').map(issue => (
+                          <div key={issue.id} className="bg-white p-4 rounded-lg border border-red-100 shadow-sm flex justify-between items-center">
+                             <div>
+                                <div className="font-bold text-slate-800">{issue.title}</div>
+                                <div className="text-sm text-slate-600">{issue.desc}</div>
+                                <div className="text-xs text-slate-400 mt-1">{t('overview_by')} {issue.requestedBy} | {t('overview_site')}: {projectsList.find(p=>String(p.id)===String(issue.projectId))?.name}</div>
+                             </div>
+                             <button onClick={() => resolveIssue(issue.id)} className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200 transition whitespace-nowrap">{t('overview_acknowledge')}</button>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 className="font-bold text-slate-800">{t('overview_current_sites')}</h3>
+                    <button onClick={() => setActiveTab('projects')} className="text-blue-600 text-sm font-medium hover:underline">{t('dashboard_view_all')}</button>
+                  </div>
+                  <div className="p-0">
+                    {projectsList.slice(0, 3).map(p => (
+                      <ProjectRow key={p.id} name={p.name} progress={p.progress} status={p.status} workers={p.workers} hasAlert={p.status === 'delayed'} t={t} />
+                    ))}
+                    {projectsList.length === 0 && <div className="p-6 text-center text-slate-500">{t('overview_no_sites')}</div>}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h3 className="font-bold text-slate-800 mb-4 flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-orange-500" /> {t('overview_pending_docs')} ({docsList.filter(d => d.status === 'pending').length})</h3>
+                    <div className="space-y-3">
+                      {docsList.filter(d => d.status === 'pending').slice(0, 2).map(doc => (
+                        <div key={doc.id} className="bg-orange-50 p-3 rounded-lg border border-orange-100">
+                          <div className="text-sm font-bold text-slate-800">{doc.title}</div>
+                          <div className="text-xs text-slate-500 mt-1 mb-2">{t('overview_by')} {doc.submittedBy} {Number(doc.amount) > 0 && `| ${t('overview_amount')} ${formatMoneyByLanguage(doc.amount, language)}`}</div>
+                          <div className="flex space-x-2">
+                            <button onClick={() => handleUpdateDocStatus(doc.id, 'approved')} className="flex-1 bg-green-500 text-white text-xs py-1.5 rounded font-medium">{t('btn_approve')}</button>
+                            <button onClick={() => handleUpdateDocStatus(doc.id, 'rejected')} className="flex-1 bg-white border border-slate-300 text-slate-600 text-xs py-1.5 rounded font-medium">{t('btn_reject')}</button>
+                          </div>
+                        </div>
+                      ))}
+                      {docsList.filter(d => d.status === 'pending').length === 0 && (
+                        <div className="text-sm text-slate-500 text-center py-2">{t('overview_no_pending_docs')}</div>
+                      )}
+                    </div>
+                    <button onClick={() => setActiveTab('docs')} className="w-full mt-3 text-sm text-center text-blue-600 font-medium">{t('overview_manage_all_docs')}</button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ----- TAB: PROJECTS ----- */}
+          {activeTab === 'projects' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                 <div className="relative w-full max-w-md">
+                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="h-5 w-5 text-slate-400" /></div>
+                   <input type="text" placeholder={t('search_placeholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                 </div>
+                 <button onClick={openAddModal} className="w-full sm:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center hover:bg-blue-700 transition shadow-sm">
+                    <Building className="h-5 w-5 mr-2" /> {t('add_project')}
+                 </button>
+               </div>
+               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                 <div className="space-y-4">
+                   <div className="grid grid-cols-1 gap-4 lg:hidden">
+                     {filteredProjects.map((project) => (
+                       <div key={project.id} className={`rounded-2xl border p-4 shadow-sm transition ${selectedProject?.id === project.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                         <div className="flex items-start justify-between gap-3">
+                           <button type="button" onClick={() => setSelectedProjectId(project.id)} className="text-left">
+                             <div className="font-bold text-slate-800">{project.name}</div>
+                             <div className="mt-1 text-xs text-slate-500 flex items-center"><MapPin className="h-3 w-3 mr-1"/> {project.location}</div>
+                           </button>
+                           <button onClick={() => openEditModal(project)} className="text-sm font-medium text-blue-600">{t('dashboard_edit')}</button>
+                         </div>
+                                             <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                           <div>
+                             <div className="text-xs text-slate-400">{t('table_progress')}</div>
+                             <div className="font-semibold text-slate-700">{formatNumberByLanguage(project.progress || 0, language)}%</div>
+                           </div>
+                           <div>
+                             <div className="text-xs text-slate-400">{t('project_team_summary')}</div>
+                             <div className="font-semibold text-slate-700">{formatNumberByLanguage(project.workers || 0, language)} {t('workers_unit')}</div>
+                           </div>
+                         </div>
+                         <div className="mt-4">
+                           <button type="button" onClick={() => setSelectedProjectId(project.id)} className="text-sm font-medium text-blue-700">{t('project_open_details')}</button>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+
+                   <div className="hidden overflow-hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm lg:block">
+                     <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
+                           <tr><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('table_project_name')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('table_progress')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('label_status')}</th><th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase">{t('table_actions')}</th></tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-200">
+                           {filteredProjects.map(p => (
+                             <tr key={p.id} className={`transition ${selectedProject?.id === p.id ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+                               <td className="px-6 py-4">
+                                 <button type="button" onClick={() => setSelectedProjectId(p.id)} className="text-left">
+                                   <div className="font-bold text-slate-800 text-sm hover:text-blue-700">{p.name}</div>
+                                   <div className="text-xs text-slate-500 flex items-center mt-1"><MapPin className="h-3 w-3 mr-1"/> {p.location} | {p.workers} {t('workers_unit')}</div>
+                                 </button>
+                               </td>
+                               <td className="px-6 py-4"><div className="flex items-center"><span className="text-sm font-bold text-blue-600 w-10">{p.progress}%</span><div className="w-24 md:w-32 bg-slate-200 rounded-full h-2 ml-2"><div className="bg-blue-600 h-2 rounded-full" style={{ width: `${p.progress}%` }}></div></div></div></td>
+                               <td className="px-6 py-4">
+                                 {p.status === 'active' && <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] md:text-xs font-bold">{t('status_active')}</span>}
+                                 {p.status === 'delayed' && <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-[10px] md:text-xs font-bold flex items-center w-max"><AlertCircle className="h-3 w-3 mr-1"/> {t('status_delayed')}</span>}
+                                 {p.status === 'completed' && <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-[10px] md:text-xs font-bold">{t('status_completed')}</span>}
+                               </td>
+                               <td className="px-6 py-4 text-right whitespace-nowrap"><button onClick={() => openEditModal(p)} className="text-blue-600 hover:text-blue-900 text-sm font-medium mr-4">{t('dashboard_edit')}</button><button type="button" onClick={() => setSelectedProjectId(p.id)} className="text-sm font-medium text-slate-600 hover:text-slate-900">{t('project_open_details')}</button></td>
+                             </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                   </div>
+                 </div>
+
+                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5">
+                   <h3 className="text-lg font-bold text-slate-800">{t('project_detail_title')}</h3>
+                   {selectedProject ? (
+                     (() => {
+                       const project = normalizeProjectEntry(selectedProject);
+                       const projectTabs = [
+                         { key: 'overview', label: t('project_tab_overview') },
+                         { key: 'progress', label: t('project_tab_progress') },
+                         { key: 'team', label: t('project_tab_team') },
+                         { key: 'subcontractors', label: t('project_tab_subcontractors') },
+                         { key: 'materials', label: t('project_tab_materials') },
+                         { key: 'notes', label: t('project_tab_notes') },
+                       ];
+                       const activeSubcontractors = project.subcontractors.filter((item) => item.name || item.contactPerson || item.workType);
+                       const lowProjectMaterials = selectedProjectMaterials.filter((item) => Number(item.quantity || 0) > 0 && Number(item.quantity || 0) <= 5);
+                       const projectAlerts = [
+                         project.status === 'delayed' ? t('project_alert_delayed') : '',
+                         lowProjectMaterials.length > 0 ? t('project_alert_low_materials') : '',
+                         !project.supervisor.name || !project.supervisor.phone ? t('project_alert_missing_supervisor') : '',
+                         activeSubcontractors.length === 0 ? t('project_alert_no_subcontractors') : '',
+                       ].filter(Boolean);
+                       return (
+                         <div className="mt-4 space-y-5">
+                           <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 space-y-4">
+                             <div className="flex items-start justify-between gap-4">
+                               <div>
+                                 <div className="text-xl font-bold text-slate-900">{project.name}</div>
+                                 <div className="mt-1 text-sm text-slate-500">{project.projectCode || '-'} {project.projectType ? `• ${t(`project_type_${project.projectType}`)}` : ''}</div>
+                                 <div className="mt-2 text-sm text-slate-500">{project.clientName || '-'} {project.location ? `• ${project.location}` : ''}</div>
+                               </div>
+                               <div>
+                                 {project.status === 'active' && <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">{t('status_active')}</span>}
+                                 {project.status === 'delayed' && <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">{t('status_delayed')}</span>}
+                                 {project.status === 'completed' && <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">{t('status_completed')}</span>}
+                               </div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_progress_summary')}</div>
+                                 <div className="mt-2 text-2xl font-bold text-blue-700">{formatNumberByLanguage(project.progress || 0, language)}%</div>
+                               </div>
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_status_summary')}</div>
+                                 <div className="mt-2 text-lg font-bold text-slate-900">{t(`status_${project.status}`)}</div>
+                               </div>
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_team_summary')}</div>
+                                 <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(project.workers || 0, language)}</div>
+                                 <div className="text-xs text-slate-500">{t('workers_unit')}</div>
+                               </div>
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_summary_subcontractors')}</div>
+                                 <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(activeSubcontractors.length, language)}</div>
+                               </div>
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_value')}</div>
+                                 <div className="mt-2 text-lg font-bold text-slate-900">{formatMoneyByLanguage(project.projectValue || 0, language)}</div>
+                               </div>
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_summary_materials')}</div>
+                                 <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedProjectMaterials.length, language)}</div>
+                                 <div className="text-xs text-slate-500">{formatMoneyByLanguage(selectedProjectMaterialValue, language)}</div>
+                               </div>
+                             </div>
+                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_schedule_summary')}</div>
+                                 <div className="mt-2 font-semibold text-slate-800">{project.startDate || '-'} - {project.endDate || '-'}</div>
+                               </div>
+                               <div className="rounded-xl bg-white border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_supervisor_name')}</div>
+                                 <div className="mt-2 font-semibold text-slate-800">{project.supervisor.name || '-'}</div>
+                                 <div className="mt-1 text-sm text-slate-500">{project.supervisor.position || '-'}</div>
+                               </div>
+                             </div>
+                           </div>
+
+                           {projectAlerts.length > 0 && (
+                             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">{t('project_alerts_title')}</div>
+                               <div className="mt-3 space-y-2">
+                                 {projectAlerts.map((alertText, index) => (
+                                   <div key={`${alertText}-${index}`} className="flex items-start gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm text-amber-900">
+                                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                                     <span>{alertText}</span>
+                                   </div>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+
+                           <div className="overflow-x-auto pb-1">
+                             <div className="flex min-w-max gap-2">
+                               {projectTabs.map((tab) => (
+                                 <button
+                                   key={tab.key}
+                                   type="button"
+                                   onClick={() => setSelectedProjectTab(tab.key)}
+                                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${selectedProjectTab === tab.key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                 >
+                                   {tab.label}
+                                 </button>
+                               ))}
+                             </div>
+                           </div>
+
+                           {selectedProjectTab === 'overview' && (
+                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                               <div className="rounded-2xl border border-slate-200 p-4">
+                                 <div className="space-y-3 text-sm">
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_code')}</div><div className="mt-1 font-medium text-slate-800">{project.projectCode || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_type')}</div><div className="mt-1 font-medium text-slate-800">{project.projectType ? t(`project_type_${project.projectType}`) : '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_client_name')}</div><div className="mt-1 font-medium text-slate-800">{project.clientName || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_value')}</div><div className="mt-1 font-medium text-slate-800">{formatMoneyByLanguage(project.projectValue || 0, language)}</div></div>
+                                 </div>
+                               </div>
+                               <div className="rounded-2xl border border-slate-200 p-4">
+                                 <div className="space-y-3 text-sm">
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_site_address')}</div><div className="mt-1 font-medium text-slate-800">{project.location || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_start_date')}</div><div className="mt-1 font-medium text-slate-800">{project.startDate || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_end_date')}</div><div className="mt-1 font-medium text-slate-800">{project.endDate || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('label_progress')}</div><div className="mt-1 font-medium text-slate-800">{formatNumberByLanguage(project.progress || 0, language)}%</div></div>
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+
+                           {selectedProjectTab === 'progress' && (
+                             <div className="space-y-4">
+                               <div className="rounded-2xl border border-slate-200 p-4">
+                                 <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_progress_summary')}</div>
+                                 <div className="mt-3 flex items-center gap-3">
+                                   <div className="text-3xl font-bold text-blue-700">{formatNumberByLanguage(project.progress || 0, language)}%</div>
+                                   <div className="flex-1 rounded-full bg-slate-200 h-3 overflow-hidden">
+                                     <div className="h-3 rounded-full bg-blue-600" style={{ width: `${project.progress || 0}%` }}></div>
+                                   </div>
+                                 </div>
+                               </div>
+                               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_current_milestone')}</div>
+                                   <div className="mt-2 font-semibold text-slate-800">{t(`status_${project.status}`)}</div>
+                                 </div>
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_schedule_summary')}</div>
+                                   <div className="mt-2 font-semibold text-slate-800">{project.startDate || '-'} - {project.endDate || '-'}</div>
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+
+                           {selectedProjectTab === 'team' && (
+                             <div className="space-y-4">
+                               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_team_summary')}</div>
+                                   <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(project.workers || 0, language)}</div>
+                                   <div className="text-sm text-slate-500">{t('workers_unit')}</div>
+                                 </div>
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_supervisor_name')}</div>
+                                   <div className="mt-2 font-semibold text-slate-800">{project.supervisor.name || '-'}</div>
+                                   <div className="mt-1 text-sm text-slate-500">{project.supervisor.position || '-'}</div>
+                                 </div>
+                               </div>
+                               <div className="rounded-2xl border border-slate-200 p-4">
+                                 <h4 className="font-semibold text-slate-800">{t('project_section_supervisor')}</h4>
+                                 <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_supervisor_name')}</div><div className="mt-1 font-medium text-slate-800">{project.supervisor.name || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_supervisor_position')}</div><div className="mt-1 font-medium text-slate-800">{project.supervisor.position || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('label_phone')}</div><div className="mt-1 font-medium text-slate-800">{project.supervisor.phone || '-'}</div></div>
+                                   <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('company_email')}</div><div className="mt-1 font-medium text-slate-800">{project.supervisor.email || '-'}</div></div>
+                                   <div className="sm:col-span-2"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_other_contact')}</div><div className="mt-1 font-medium text-slate-800">{project.supervisor.otherContact || '-'}</div></div>
+                                   <div className="sm:col-span-2"><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_supervisor_notes')}</div><div className="mt-1 rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 text-slate-700">{project.supervisor.notes || '-'}</div></div>
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+
+                           {selectedProjectTab === 'subcontractors' && (
+                             <div className="rounded-2xl border border-slate-200 p-4">
+                               <h4 className="font-semibold text-slate-800">{t('project_section_subcontractor')}</h4>
+                               <div className="mt-4 space-y-3">
+                                 {project.subcontractors.length > 0 ? project.subcontractors.map((subcontractor, index) => (
+                                   <div key={subcontractor.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                       <div>
+                                         <div className="font-semibold text-slate-800">{subcontractor.name || `${t('project_subcontractor_entry')} ${index + 1}`}</div>
+                                         <div className="mt-1 text-sm text-slate-500">{subcontractor.workType || '-'}</div>
+                                       </div>
+                                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${subcontractor.status === 'inactive' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>{subcontractor.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}</span>
+                                     </div>
+                                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+                                       <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_subcontractor_contact_person')}</div><div className="mt-1 font-medium text-slate-800">{subcontractor.contactPerson || '-'}</div></div>
+                                       <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('label_phone')}</div><div className="mt-1 font-medium text-slate-800">{subcontractor.phone || '-'}</div></div>
+                                       <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('company_email')}</div><div className="mt-1 font-medium text-slate-800">{subcontractor.email || '-'}</div></div>
+                                       <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_other_contact')}</div><div className="mt-1 font-medium text-slate-800">{subcontractor.otherContact || '-'}</div></div>
+                                       <div className="sm:col-span-2"><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_subcontractor_notes')}</div><div className="mt-1 rounded-xl bg-white border border-slate-200 px-3 py-2 text-slate-700">{subcontractor.notes || '-'}</div></div>
+                                     </div>
+                                   </div>
+                                 )) : (
+                                   <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">{t('project_detail_empty')}</div>
+                                 )}
+                               </div>
+                             </div>
+                           )}
+
+                           {selectedProjectTab === 'materials' && (
+                             <div className="space-y-4">
+                               <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('stock_total_items')}</div>
+                                   <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedProjectMaterials.length, language)}</div>
+                                 </div>
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('stock_low_items')}</div>
+                                   <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedProjectMaterials.filter((item) => Number(item.quantity || 0) > 0 && Number(item.quantity || 0) <= 5).length, language)}</div>
+                                 </div>
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('stock_out_items')}</div>
+                                   <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedProjectMaterials.filter((item) => Number(item.quantity || 0) <= 0).length, language)}</div>
+                                 </div>
+                                 <div className="rounded-2xl border border-slate-200 p-4">
+                                   <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_materials_summary')}</div>
+                                   <div className="mt-2 text-lg font-bold text-slate-900">{formatMoneyByLanguage(selectedProjectMaterialValue, language)}</div>
+                                 </div>
+                               </div>
+                               <div className="rounded-2xl border border-slate-200 p-4">
+                                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                   <div>
+                                     <div className="text-xs uppercase tracking-wide text-slate-400">{t('project_materials_summary')}</div>
+                                     <div className="mt-1 text-sm text-slate-600">{selectedProjectMaterials.length > 0 ? `${formatNumberByLanguage(selectedProjectMaterials.length, language)} ${t('stock_total_items')}` : t('project_materials_placeholder')}</div>
+                                   </div>
+                                   {selectedProjectMaterials.length > 0 && (
+                                     <button
+                                       type="button"
+                                       onClick={() => {
+                                         setActiveTab('inventory');
+                                         setInventoryViewMode('all');
+                                         setInvProjectFilter(selectedProject.id);
+                                         setSelectedMaterialId(selectedProjectMaterials[0].id);
+                                       }}
+                                       className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                     >
+                                       {t('material_catalog_open_details')}
+                                     </button>
+                                   )}
+                                 </div>
+                                 <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                                   {t('project_material_link_basis')}
+                                 </div>
+                                 <div className="mt-4">
+                                   {selectedProjectMaterials.length > 0 ? (
+                                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                                       {[...selectedProjectMaterials]
+                                         .sort((a, b) => (((Number(b.quantity) || 0) * (Number(b.unitPrice) || 0)) - ((Number(a.quantity) || 0) * (Number(a.unitPrice) || 0))))
+                                         .map((item) => {
+                                           const normalizedItem = normalizeInventoryEntry(item);
+                                           const usage = getNormalizedMaterialUsage(normalizedItem);
+                                           const statusKey = getMaterialStockStatusKey(item);
+                                           const totalValue = (Number(normalizedItem.quantity) || 0) * (Number(normalizedItem.unitPrice) || 0);
+                                           return (
+                                             <button
+                                               key={item.id}
+                                               type="button"
+                                               onClick={() => {
+                                                 setSelectedMaterialId(item.id);
+                                                 setInventoryViewMode('all');
+                                                 setInvProjectFilter(selectedProject.id);
+                                                 setActiveTab('inventory');
+                                               }}
+                                               className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-slate-300 hover:bg-white"
+                                             >
+                                               <div className="flex items-start justify-between gap-4">
+                                                 <div>
+                                                   <div className="font-semibold text-slate-800">{normalizedItem.name}</div>
+                                                   <div className="mt-1 text-xs text-slate-500">{normalizedItem.category || '-'} · {t('inventory_code')}: {item.id}</div>
+                                                   <div className="mt-2 inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                                                     {t('inventory_linked_project_label')}: {project.name}
+                                                   </div>
+                                                 </div>
+                                                 <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : statusKey === 'stock_status_low' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                                   {t(statusKey)}
+                                                 </span>
+                                               </div>
+                                               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                                 <div>
+                                                   <div className="text-xs text-slate-400">{t('project_material_assigned')}</div>
+                                                   <div className="font-medium text-slate-700">{formatNumberByLanguage(usage.assignedQuantity, language)} {normalizedItem.unit || '-'}</div>
+                                                 </div>
+                                                 <div>
+                                                   <div className="text-xs text-slate-400">{t('project_material_used')}</div>
+                                                   <div className="font-medium text-slate-700">{formatNumberByLanguage(usage.usedQuantity, language)} {normalizedItem.unit || '-'}</div>
+                                                 </div>
+                                                 <div>
+                                                   <div className="text-xs text-slate-400">{t('project_material_remaining')}</div>
+                                                   <div className="font-medium text-slate-700">{formatNumberByLanguage(usage.remainingQuantity, language)} {normalizedItem.unit || '-'}</div>
+                                                 </div>
+                                                 <div>
+                                                   <div className="text-xs text-slate-400">{t('label_total_price')}</div>
+                                                   <div className="font-medium text-slate-700">{formatMoneyByLanguage(totalValue, language)}</div>
+                                               </div>
+                                             </div>
+                                             <div className="mt-4 rounded-xl border border-slate-200 bg-white/80 p-3">
+                                               <div className="text-xs text-slate-500">{t('project_material_quantity_hint')}</div>
+                                               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                 <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+                                                   <label className="block text-xs font-medium text-emerald-700">{t('project_material_issue_qty')}</label>
+                                                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                                     <input
+                                                       type="number"
+                                                       min="0"
+                                                       step="0.01"
+                                                       value={getProjectMaterialDraftValue(item.id, 'issue')}
+                                                       onClick={(event) => event.stopPropagation()}
+                                                       onChange={(event) => updateProjectMaterialDraftValue(item.id, 'issue', event.target.value)}
+                                                       className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                                     />
+                                                     <button
+                                                       type="button"
+                                                       onClick={async (event) => {
+                                                         event.stopPropagation();
+                                                         await handleIssueMaterialToProject(normalizedItem, getProjectMaterialDraftValue(item.id, 'issue'));
+                                                       }}
+                                                       className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                                                     >
+                                                       {t('project_material_issue')}
+                                                     </button>
+                                                   </div>
+                                                 </div>
+                                                 <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                                                   <label className="block text-xs font-medium text-amber-700">{t('project_material_return_qty')}</label>
+                                                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                                     <input
+                                                       type="number"
+                                                       min="0"
+                                                       step="0.01"
+                                                       value={getProjectMaterialDraftValue(item.id, 'return')}
+                                                       onClick={(event) => event.stopPropagation()}
+                                                       onChange={(event) => updateProjectMaterialDraftValue(item.id, 'return', event.target.value)}
+                                                       className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                                     />
+                                                     <button
+                                                       type="button"
+                                                       onClick={async (event) => {
+                                                         event.stopPropagation();
+                                                         await handleReturnMaterialFromProject(normalizedItem, getProjectMaterialDraftValue(item.id, 'return'));
+                                                       }}
+                                                       className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                                                     >
+                                                       {t('project_material_return')}
+                                                     </button>
+                                                   </div>
+                                                 </div>
+                                               </div>
+                                             </div>
+                                             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                                               <button
+                                                 type="button"
+                                                 onClick={(event) => {
+                                                   event.stopPropagation();
+                                                   openEditInvModal(normalizedItem);
+                                                 }}
+                                                 className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                               >
+                                                 {t('project_material_adjust')}
+                                               </button>
+                                               <button
+                                                 type="button"
+                                                 onClick={async (event) => {
+                                                   event.stopPropagation();
+                                                   await handleUpdateMaterialProjectLink(normalizedItem, '', true);
+                                                 }}
+                                                 className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+                                               >
+                                                 {t('inventory_unlink_material')}
+                                               </button>
+                                             </div>
+                                           </button>
+                                         );
+                                       })}
+                                     </div>
+                                   ) : (
+                                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">{t('project_materials_placeholder')}</div>
+                                   )}
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+
+                           {selectedProjectTab === 'notes' && (
+                             <div className="rounded-2xl border border-slate-200 p-4">
+                               <h4 className="font-semibold text-slate-800">{t('project_tab_notes')}</h4>
+                               <div className="mt-4 space-y-3">
+                                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{project.notes || project.supervisor.notes || project.subcontractors.map((item) => item.notes).filter(Boolean).join('\n\n') || t('project_notes_placeholder')}</div>
+                               </div>
+                             </div>
+                           )}
+                         </div>
+                       );
+                     })()
+                   ) : (
+                     <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-sm text-slate-500">
+                       {t('project_detail_empty')}
+                     </div>
+                   )}
+                 </div>
+               </div>
+            </div>
+          )}
+
+          {/* ----- TAB: WORKERS ----- */}
+          {activeTab === 'workers' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+               <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                   <div className="relative w-full lg:max-w-md">
+                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="h-5 w-5 text-slate-400" /></div>
+                     <input type="text" placeholder={t('worker_search_placeholder')} value={workerSearchQuery} onChange={(e) => setWorkerSearchQuery(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                   </div>
+                   <button onClick={openAddWorkerModal} className="w-full lg:w-auto bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center hover:bg-green-700 transition"><Users className="h-5 w-5 mr-2" /> {t('add_worker')}</button>
+                 </div>
+                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                   <select value={workerTypeFilter} onChange={(e) => setWorkerTypeFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                     <option value="all">{t('worker_filter_all_types')}</option>
+                     {PERSON_TYPE_OPTIONS.map((type) => (
+                       <option key={type} value={type}>{getPersonTypeLabel(type, t)}</option>
+                     ))}
+                   </select>
+                   <select value={workerRoleFilter} onChange={(e) => setWorkerRoleFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                     <option value="all">{t('worker_filter_all_roles')}</option>
+                     {availableWorkerRoleOptions.map((role) => (
+                       <option key={role} value={role}>{getConstructionRoleLabel(role, language)}</option>
+                     ))}
+                   </select>
+                   <select value={workerSiteFilter} onChange={(e) => setWorkerSiteFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                     <option value="all">{t('worker_filter_all_sites')}</option>
+                     <option value="unassigned">{t('unassigned_site')}</option>
+                     {projectsList.map((project) => (
+                       <option key={project.id} value={project.id}>{project.name}</option>
+                     ))}
+                   </select>
+                   <select value={workerStatusFilter} onChange={(e) => setWorkerStatusFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                     <option value="all">{t('worker_filter_all_statuses')}</option>
+                     <option value="active">{t('entity_status_active')}</option>
+                     <option value="inactive">{t('entity_status_inactive')}</option>
+                   </select>
+                 </div>
+                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                     <div className="text-sm text-slate-500">{t('worker_summary_people')}</div>
+                     <div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(filteredWorkers.length, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                     <div className="text-sm text-emerald-700">{t('worker_summary_active')}</div>
+                     <div className="mt-2 text-2xl font-bold text-emerald-900">{formatNumberByLanguage(activeWorkersCount, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                     <div className="text-sm text-blue-700">{t('worker_summary_sites')}</div>
+                     <div className="mt-2 text-2xl font-bold text-blue-900">{formatNumberByLanguage(assignedWorkerSitesCount, language)}</div>
+                   </div>
+                 </div>
+                 <div className="text-sm text-slate-500">{t('worker_results_count')}: {formatNumberByLanguage(filteredWorkers.length, language)}</div>
+               </div>
+
+               <div className="grid gap-4 md:hidden">
+                 {filteredWorkers.map((w) => {
+                   const assignedProject = projectsList.find((p) => String(p.id) === String(w.assignedSiteId));
+                   const isRoleBasedType = PERSON_TYPES_WITH_ROLE.has(w.personType);
+                   const typeTone = w.personType === 'supplier'
+                     ? 'bg-orange-100 text-orange-700'
+                     : w.personType === 'subcontractor'
+                       ? 'bg-violet-100 text-violet-700'
+                       : w.personType === 'supervisor'
+                         ? 'bg-blue-100 text-blue-700'
+                         : w.personType === 'team_lead'
+                           ? 'bg-cyan-100 text-cyan-700'
+                           : w.personType === 'consultant'
+                             ? 'bg-amber-100 text-amber-700'
+                             : 'bg-emerald-100 text-emerald-700';
+                   return (
+                     <div key={w.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                       <div className="flex items-start justify-between gap-3">
+                         <div className="min-w-0">
+                           <div className="text-sm font-bold text-slate-900">{getWorkerPrimaryName(w)}</div>
+                           <div className="mt-1 text-xs text-slate-500">{getWorkerSecondaryName(w)}</div>
+                         </div>
+                         <button onClick={() => openEditWorkerModal(w)} className="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-slate-50">{t('worker_mobile_details')}</button>
+                       </div>
+                       <div className="mt-3 flex flex-wrap gap-2">
+                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${typeTone}`}>{getPersonTypeLabel(w.personType, t)}</span>
+                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${w.status === 'inactive' ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-700'}`}>{t(w.status === 'inactive' ? 'entity_status_inactive' : 'entity_status_active')}</span>
+                       </div>
+                       <div className="mt-4 grid grid-cols-1 gap-3 text-sm">
+                         <div>
+                           <div className="text-xs uppercase tracking-wide text-slate-400">{t('worker_table_type_role')}</div>
+                           <div className="mt-1 font-medium text-slate-800">{isRoleBasedType ? getConstructionRoleLabel(w.role, language) : (w.subcontractWorkType || w.productCategory || '-')}</div>
+                         </div>
+                         <div>
+                           <div className="text-xs uppercase tracking-wide text-slate-400">{t('worker_table_site_status')}</div>
+                           <div className="mt-1 text-slate-700">{assignedProject ? assignedProject.name : t('unassigned_site')}</div>
+                         </div>
+                         <div>
+                           <div className="text-xs uppercase tracking-wide text-slate-400">{t('worker_table_contact')}</div>
+                           <div className="mt-1 text-slate-700">{w.contactPerson || w.email || w.phone || '-'}</div>
+                         </div>
+                       </div>
+                     </div>
+                   );
+                 })}
+               </div>
+
+               <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden overflow-x-auto">
+                 <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                       <tr><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('table_identity_phone')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('worker_table_type_role')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('worker_table_site_status')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('worker_table_contact')}</th><th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase">{t('table_actions')}</th></tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                       {filteredWorkers.map(w => {
+                         const assignedProject = projectsList.find(p => String(p.id) === String(w.assignedSiteId));
+                         const isRoleBasedType = PERSON_TYPES_WITH_ROLE.has(w.personType);
+                         const typeTone = w.personType === 'supplier'
+                           ? 'bg-orange-100 text-orange-700'
+                           : w.personType === 'subcontractor'
+                             ? 'bg-violet-100 text-violet-700'
+                             : w.personType === 'supervisor'
+                               ? 'bg-blue-100 text-blue-700'
+                               : w.personType === 'team_lead'
+                                 ? 'bg-cyan-100 text-cyan-700'
+                                 : w.personType === 'consultant'
+                                   ? 'bg-amber-100 text-amber-700'
+                                   : 'bg-emerald-100 text-emerald-700';
+                         return (
+                           <tr key={w.id} className="hover:bg-slate-50 transition">
+                             <td className="px-6 py-4"><div className="font-bold text-slate-800 text-sm">{getWorkerPrimaryName(w)}</div><div className="text-xs text-slate-500 mt-1">{getWorkerSecondaryName(w)}</div></td>
+                             <td className="px-6 py-4"><div><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${typeTone}`}>{getPersonTypeLabel(w.personType, t)}</span></div><div className="text-sm font-medium text-slate-800 mt-2">{isRoleBasedType ? getConstructionRoleLabel(w.role, language) : (w.subcontractWorkType || w.productCategory || '-')}</div><div className="text-xs text-slate-500 mt-1">{isRoleBasedType ? `${formatConvertedNumberByLanguage(w.wage, language)}${WAGE_SUFFIX[language] || WAGE_SUFFIX.EN}` : '-'}</div></td>
+                             <td className="px-6 py-4"><div className="text-sm font-medium flex items-center"><Building className="h-4 w-4 mr-2 text-slate-400" />{assignedProject ? assignedProject.name : <span className="text-red-500 text-xs">{t('unassigned_site')}</span>}</div><div className="mt-2"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${w.status === 'inactive' ? 'bg-slate-200 text-slate-600' : 'bg-emerald-100 text-emerald-700'}`}>{t(w.status === 'inactive' ? 'entity_status_inactive' : 'entity_status_active')}</span></div></td>
+                             <td className="px-6 py-4"><div className="text-sm text-slate-700">{w.contactPerson || w.email || w.phone || '-'}</div><div className="text-xs text-slate-500 mt-1">{isRoleBasedType ? `${w.attendanceRate}% ${t('attendance_from_app')}` : (w.otherContact || w.phone || '-')}</div></td>
+                             <td className="px-6 py-4 text-right whitespace-nowrap"><button onClick={() => openEditWorkerModal(w)} className="text-blue-600 hover:text-blue-900 text-sm font-medium mr-4">{t('dashboard_edit')}</button></td>
+                           </tr>
+                         );
+                       })}
+                    </tbody>
+                 </table>
+               </div>
+            </div>
+          )}
+
+          {/* ----- TAB: DOCS ----- */}
+          {activeTab === 'docs' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                 <div>
+                   <h3 className="text-lg font-bold text-slate-800">{t('finance_summary_title')}</h3>
+                   <p className="mt-1 text-sm text-slate-500">{t('finance_summary_description')}</p>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                     <div className="text-sm text-emerald-700">{t('finance_total_revenue')}</div>
+                     <div className="mt-2 text-3xl font-bold text-emerald-900">{formatMoneyByLanguage(totalRevenue, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                     <div className="text-sm text-rose-700">{t('finance_total_expense')}</div>
+                     <div className="mt-2 text-3xl font-bold text-rose-900">{formatMoneyByLanguage(totalExpense, language)}</div>
+                   </div>
+                   <div className={`rounded-2xl border p-5 ${netBalance >= 0 ? 'border-blue-200 bg-blue-50' : 'border-amber-200 bg-amber-50'}`}>
+                     <div className={`text-sm ${netBalance >= 0 ? 'text-blue-700' : 'text-amber-700'}`}>{t('finance_net_balance')}</div>
+                     <div className={`mt-2 text-3xl font-bold ${netBalance >= 0 ? 'text-blue-900' : 'text-amber-900'}`}>{formatMoneyByLanguage(netBalance, language)}</div>
+                   </div>
+                 </div>
+
+                 {(recentFinanceRecords.length > 0 || financeSummaryByCategory.length > 0) ? (
+                   <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                       <h4 className="font-semibold text-slate-800">{t('finance_recent_records')}</h4>
+                       <div className="mt-4 space-y-3">
+                         {recentFinanceRecords.length > 0 ? recentFinanceRecords.map((record) => (
+                           <div key={record.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                             <div className="flex items-start justify-between gap-4">
+                               <div>
+                                 <div className="font-medium text-slate-800">{record.title}</div>
+                                 <div className="mt-1 text-sm text-slate-500">{record.note || '-'}</div>
+                               </div>
+                               <div className="text-right">
+                                 <div className={`text-sm font-semibold ${record.type === 'revenue' ? 'text-emerald-700' : 'text-rose-700'}`}>{formatMoneyByLanguage(record.amount, language)}</div>
+                                 <div className="mt-1 text-xs text-slate-500">{record.date}</div>
+                               </div>
+                             </div>
+                           </div>
+                         )) : (
+                           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">{t('finance_empty')}</div>
+                         )}
+                       </div>
+                     </div>
+
+                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                       <h4 className="font-semibold text-slate-800">{t('finance_summary_by_category')}</h4>
+                       <div className="mt-4 space-y-3">
+                         {financeSummaryByCategory.map((entry) => (
+                           <div key={entry.key} className="rounded-xl border border-slate-200 bg-white p-4">
+                             <div className="flex items-center justify-between gap-4">
+                               <div className="font-medium text-slate-800">{entry.label}</div>
+                               <div className={`text-sm font-semibold ${entry.key === 'revenue' ? 'text-emerald-700' : 'text-rose-700'}`}>{formatMoneyByLanguage(entry.amount, language)}</div>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   </div>
+                 ) : (
+                   <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                     {t('finance_empty')}
+                   </div>
+                 )}
+               </div>
+
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                     <div className="text-sm text-slate-500">{t('docs_billing_total_records')}</div>
+                     <div className="mt-2 text-3xl font-bold text-slate-900">{formatNumberByLanguage(docsBillingRecords.length, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                     <div className="text-sm text-emerald-700">{t('docs_billing_total_value')}</div>
+                     <div className="mt-2 text-3xl font-bold text-emerald-900">{formatMoneyByLanguage(docsBillingTotalValue, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                     <div className="text-sm text-amber-700">{t('docs_billing_pending')}</div>
+                     <div className="mt-2 text-3xl font-bold text-amber-900">{formatNumberByLanguage(docsBillingPendingCount, language)}</div>
+                   </div>
+                 </div>
+               </div>
+
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                   <div>
+                     <h3 className="text-lg font-bold text-slate-800">{t('docs_billing_summary')}</h3>
+                     <p className="text-sm text-slate-500 mt-1">{t('section_placeholder_desc')}</p>
+                   </div>
+                   <div className="grid w-full gap-3 md:grid-cols-3 lg:max-w-4xl">
+                     <div className="relative">
+                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                       <input type="text" placeholder={t('docs_billing_search_placeholder')} value={docsSearchQuery} onChange={(e) => setDocsSearchQuery(e.target.value)} className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700" />
+                     </div>
+                     <select value={docsFilter} onChange={(e) => setDocsFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                       <option value="all">{t('docs_billing_filter_all_types')}</option>
+                       <option value="quotation">{t('doc_type_quotation')}</option>
+                       <option value="agreement">{t('doc_type_agreement')}</option>
+                       <option value="billing">{t('doc_type_invoice')}</option>
+                       <option value="report">{t('doc_type_report')}</option>
+                     </select>
+                     <select value={docsStatusFilter} onChange={(e) => setDocsStatusFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                       <option value="all">{t('docs_billing_filter_all_statuses')}</option>
+                       <option value="draft">{t('docs_billing_status_draft')}</option>
+                       <option value="pending">{t('doc_status_pending')}</option>
+                       <option value="approved">{t('doc_status_approved')}</option>
+                       <option value="rejected">{t('doc_status_rejected')}</option>
+                     </select>
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                   <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                     <div className="max-h-[34rem] overflow-y-auto divide-y divide-slate-100">
+                       {filteredDocsBillingRecords.length > 0 ? filteredDocsBillingRecords.map((record) => {
+                         const isSelected = selectedDocsBillingRecord?.id === record.id;
+                         const statusClass = record.status === 'approved'
+                           ? 'bg-green-100 text-green-700'
+                           : record.status === 'rejected'
+                             ? 'bg-red-100 text-red-700'
+                             : record.status === 'pending'
+                               ? 'bg-yellow-100 text-yellow-700'
+                               : 'bg-slate-100 text-slate-700';
+                         const statusLabel = record.status === 'draft'
+                           ? t('docs_billing_status_draft')
+                           : record.status === 'pending'
+                             ? t('doc_status_pending')
+                             : record.status === 'approved'
+                               ? t('doc_status_approved')
+                               : t('doc_status_rejected');
+                         const typeLabel = record.recordType === 'quotation'
+                           ? t('doc_type_quotation')
+                           : record.recordType === 'agreement'
+                             ? t('doc_type_agreement')
+                             : record.recordType === 'billing'
+                               ? t('doc_type_invoice')
+                               : t('doc_type_report');
+                         return (
+                           <button
+                             key={record.id}
+                             type="button"
+                             onClick={() => setSelectedDocsBillingId(record.id)}
+                             className={`w-full px-5 py-4 text-left transition ${isSelected ? 'bg-indigo-50' : 'bg-white hover:bg-slate-50'}`}
+                           >
+                             <div className="flex items-start justify-between gap-4">
+                               <div>
+                                 <div className="font-semibold text-slate-800">{record.number}</div>
+                                 <div className="mt-1 text-sm text-slate-500">{record.customerName || '-'}</div>
+                               </div>
+                               <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusClass}`}>{statusLabel}</div>
+                             </div>
+                             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
+                               <span>{typeLabel}</span>
+                               <span>{record.issueDate}</span>
+                               <span>{record.amount > 0 ? formatMoneyByLanguage(record.amount, language) : '-'}</span>
+                               <span className="text-indigo-600">{t('docs_billing_open_details')}</span>
+                             </div>
+                           </button>
+                         );
+                       }) : (
+                         <div className="px-5 py-10 text-sm text-slate-500">{t('docs_billing_empty')}</div>
+                       )}
+                     </div>
+                   </div>
+
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                     <h4 className="font-semibold text-slate-800">{t('docs_billing_details')}</h4>
+                     {selectedDocsBillingRecord ? (
+                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-5">
+                         <div>
+                           <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('docs_billing_record_number')}</div>
+                           <div className="mt-1 text-lg font-bold text-slate-900">{selectedDocsBillingRecord.number}</div>
+                         </div>
+                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_doc_type')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">
+                               {selectedDocsBillingRecord.recordType === 'quotation'
+                                 ? t('doc_type_quotation')
+                                 : selectedDocsBillingRecord.recordType === 'agreement'
+                                   ? t('doc_type_agreement')
+                                   : selectedDocsBillingRecord.recordType === 'billing'
+                                     ? t('doc_type_invoice')
+                                     : t('doc_type_report')}
+                             </div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_date')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{selectedDocsBillingRecord.issueDate}</div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('docs_billing_customer')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{selectedDocsBillingRecord.customerName || '-'}</div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_amount')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{selectedDocsBillingRecord.amount > 0 ? formatMoneyByLanguage(selectedDocsBillingRecord.amount, language) : '-'}</div>
+                           </div>
+                         </div>
+                         <div>
+                           <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_status')}</div>
+                           <div className="mt-1 text-sm font-medium text-slate-700">
+                             {selectedDocsBillingRecord.status === 'draft'
+                               ? t('docs_billing_status_draft')
+                               : selectedDocsBillingRecord.status === 'pending'
+                                 ? t('doc_status_pending')
+                                 : selectedDocsBillingRecord.status === 'approved'
+                                   ? t('doc_status_approved')
+                                   : t('doc_status_rejected')}
+                           </div>
+                         </div>
+                         <div>
+                           <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_doc_title')}</div>
+                           <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                             {selectedDocsBillingRecord.title || selectedDocsBillingRecord.note || '-'}
+                           </div>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-sm text-slate-500">
+                         {t('docs_billing_empty')}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               </div>
+            </div>
+          )}
+
+          {/* ----- TAB: COMPANY PROFILE ----- */}
+          {activeTab === 'company_profile' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="lg:w-80">
+                    <div className="border border-dashed border-slate-300 rounded-2xl p-6 bg-slate-50 flex flex-col items-center text-center">
+                      {companyProfileForm.logoUrl ? (
+                        <img src={companyProfileForm.logoUrl} alt="company logo" className="w-28 h-28 object-contain rounded-2xl bg-white border border-slate-200 p-3 shadow-sm" />
+                      ) : (
+                        <div className="w-28 h-28 rounded-2xl bg-slate-200 flex items-center justify-center text-slate-400">
+                          <ImageIcon className="w-10 h-10" />
+                        </div>
+                      )}
+                      <p className="text-sm font-medium text-slate-700 mt-4">{t('company_logo')}</p>
+                      <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">
+                        {companyProfileForm.logoUrl ? t('company_logo_change') : t('company_logo_upload')}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleCompanyLogoUpload} />
+                      </label>
+                      <p className="text-xs text-slate-500 mt-4">{t('company_profile_preview')}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_name')}</label>
+                        <input type="text" value={companyProfileForm.companyName} onChange={(e) => handleCompanyProfileChange('companyName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_tax_id')}</label>
+                        <input type="text" value={companyProfileForm.taxId} onChange={(e) => handleCompanyProfileChange('taxId', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_address')}</label>
+                      <textarea value={companyProfileForm.address} onChange={(e) => handleCompanyProfileChange('address', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_phone')}</label>
+                        <input type="text" value={companyProfileForm.phone} onChange={(e) => handleCompanyProfileChange('phone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_email')}</label>
+                        <input type="email" value={companyProfileForm.email} onChange={(e) => handleCompanyProfileChange('email', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_signer_name')}</label>
+                        <input type="text" value={companyProfileForm.signerName} onChange={(e) => handleCompanyProfileChange('signerName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_signer_title')}</label>
+                        <input type="text" value={companyProfileForm.signerTitle} onChange={(e) => handleCompanyProfileChange('signerTitle', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">{t('company_signature_image')}</label>
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                        {companyProfileForm.signatureImageUrl ? (
+                          <div className="space-y-3">
+                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                              <img src={companyProfileForm.signatureImageUrl} alt="signature preview" className="h-24 w-full object-contain" />
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <label className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">
+                                {t('company_signature_change')}
+                                <input type="file" accept="image/*" className="hidden" onChange={handleCompanySignatureUpload} />
+                              </label>
+                              <button type="button" onClick={handleRemoveCompanySignature} className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 transition">
+                                {t('company_signature_remove')}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start gap-3">
+                            <div className="rounded-xl border border-slate-200 bg-white p-4 w-full">
+                              <div className="h-24 w-full flex items-center justify-center text-slate-400">
+                                <ImageIcon className="h-8 w-8" />
+                              </div>
+                            </div>
+                            <label className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition">
+                              {t('company_signature_upload')}
+                              <input type="file" accept="image/*" className="hidden" onChange={handleCompanySignatureUpload} />
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_business_details')}</label>
+                      <textarea value={companyProfileForm.businessDetails} onChange={(e) => handleCompanyProfileChange('businessDetails', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28" />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                      <div className="text-sm text-green-600 font-medium min-h-6">
+                        {companyProfileSaved ? t('company_profile_saved') : ''}
+                      </div>
+                      <button onClick={handleSaveCompanyProfile} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
+                        {t('company_profile_save')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ----- TAB: QUOTATIONS ----- */}
+          {activeTab === 'quotations' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="lg:w-80">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                      <div className="flex items-center gap-3">
+                        {companyProfile.logoUrl ? (
+                          <img src={companyProfile.logoUrl} alt="company logo" className="w-14 h-14 object-contain rounded-xl bg-white border border-slate-200 p-2" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400">
+                            <Building className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-bold text-slate-800">{companyProfile.companyName || t('company_profile_title')}</h3>
+                          <p className="text-xs text-slate-500">{companyProfile.signerName || '-'}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-2 text-sm text-slate-600">
+                        <p className="font-semibold text-slate-800">{resolvedQuotationHeading}</p>
+                        <p>{companyProfile.address || '-'}</p>
+                        <p>{companyProfile.phone || '-'}</p>
+                        <p>{companyProfile.email || '-'}</p>
+                        <p>{companyProfile.taxId || '-'}</p>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-4">{t('company_profile_preview')}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_number')}</label>
+                        <input type="text" value={quotationForm.quotationNumber} onChange={(e) => handleQuotationChange('quotationNumber', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_issue_date')}</label>
+                        <input type="date" value={quotationForm.issueDate} onChange={(e) => handleQuotationChange('issueDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_expiry_date')}</label>
+                        <input type="date" value={quotationForm.expiryDate} onChange={(e) => handleQuotationChange('expiryDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_customer_name')}</label>
+                        <input type="text" value={quotationForm.customerName} onChange={(e) => handleQuotationChange('customerName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_customer_phone')}</label>
+                        <input type="text" value={quotationForm.customerPhone} onChange={(e) => handleQuotationChange('customerPhone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_customer_email')}</label>
+                        <input type="email" value={quotationForm.customerEmail} onChange={(e) => handleQuotationChange('customerEmail', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_customer_address')}</label>
+                      <textarea value={quotationForm.customerAddress} onChange={(e) => handleQuotationChange('customerAddress', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_recipient')}</label>
+                        <input type="email" value={quotationForm.emailRecipient} onChange={(e) => handleQuotationChange('emailRecipient', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_cc')}</label>
+                        <input type="email" value={quotationForm.emailCc} onChange={(e) => handleQuotationChange('emailCc', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_subject')}</label>
+                        <input type="text" value={quotationForm.emailSubject} onChange={(e) => handleQuotationChange('emailSubject', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_body')}</label>
+                        <textarea value={quotationForm.emailBody} onChange={(e) => handleQuotationChange('emailBody', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={() => setShowQuotationPreview((prev) => !prev)} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <Eye className="mr-2 h-4 w-4" /> {t('preview_document')}
+                  </button>
+                  <button onClick={() => handleExportDocument('quotation')} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <Download className="mr-2 h-4 w-4" /> {t('export_document')}
+                  </button>
+                  <button onClick={() => handlePrintDocument('quotation')} className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                    <Printer className="mr-2 h-4 w-4" /> {t('print_document')}
+                  </button>
+                  <button onClick={() => openEmailDraft('quotation')} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <Send className="mr-2 h-4 w-4" /> {t('send_email')}
+                  </button>
+                </div>
+                {emailStatus.quotation === 'ready' && <p className="text-sm text-green-600">{t('email_draft_ready')} {t('email_backend_pending')}</p>}
+
+                <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                  <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800">{t('quotation_item_rows')}</h3>
+                    <button onClick={handleAddQuotationItem} className="text-sm font-medium text-blue-600 hover:text-blue-700">{t('quotation_add_item')}</button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-white">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">{t('quotation_item_name')}</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">{t('quotation_quantity')}</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">{t('quotation_unit_price')}</th>
+                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">{t('quotation_line_total')}</th>
+                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase">{t('table_actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {quotationForm.items.map((item) => {
+                          const lineTotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                          return (
+                            <tr key={item.id}>
+                              <td className="px-4 py-3">
+                                <input type="text" value={item.description} onChange={(e) => handleQuotationItemChange(item.id, 'description', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input type="number" min="0" value={item.quantity} onChange={(e) => handleQuotationItemChange(item.id, 'quantity', Number(e.target.value))} className="w-28 px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                              </td>
+                              <td className="px-4 py-3">
+                                <input type="number" min="0" value={item.unitPrice} onChange={(e) => handleQuotationItemChange(item.id, 'unitPrice', Number(e.target.value))} className="w-36 px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-slate-700">{formatMoneyByLanguage(lineTotal, language)}</td>
+                              <td className="px-4 py-3 text-right">
+                                <button onClick={() => handleRemoveQuotationItem(item.id)} disabled={quotationForm.items.length === 1} className={`text-sm font-medium ${quotationForm.items.length === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`}>{t('quotation_remove_item')}</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_notes')}</label>
+                      <textarea value={quotationForm.notes} onChange={(e) => handleQuotationChange('notes', e.target.value)} placeholder={currentLanguageTemplate.quotationNotes} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_payment_terms')}</label>
+                      <textarea value={quotationForm.paymentTerms} onChange={(e) => handleQuotationChange('paymentTerms', e.target.value)} placeholder={currentLanguageTemplate.paymentTerms} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                    </div>
+                    <p className="text-xs text-slate-500">{t('template_used_as_default')}</p>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_discount')}</label>
+                        <input type="number" min="0" value={quotationForm.discount} onChange={(e) => handleQuotationChange('discount', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('quotation_tax')}</label>
+                        <input type="number" min="0" value={quotationForm.tax} onChange={(e) => handleQuotationChange('tax', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between text-slate-600"><span>{t('quotation_subtotal')}</span><span>{formatMoneyByLanguage(quotationSubtotal, language)}</span></div>
+                      <div className="flex justify-between text-slate-600"><span>{t('quotation_discount')}</span><span>{formatMoneyByLanguage(quotationDiscount, language)}</span></div>
+                      <div className="flex justify-between text-slate-600"><span>{t('quotation_tax')}</span><span>{formatMoneyByLanguage(quotationTax, language)}</span></div>
+                      <div className="flex justify-between text-lg font-bold text-slate-800 pt-3 border-t border-slate-200"><span>{t('quotation_total')}</span><span>{formatMoneyByLanguage(quotationTotal, language)}</span></div>
+                    </div>
+                    <div className="rounded-xl bg-white border border-slate-200 p-3 text-sm text-slate-600">
+                      <div className="font-medium text-slate-800 mb-1">{resolvedQuotationHeading}</div>
+                      <div>{resolvedQuotationNotes}</div>
+                      <div className="mt-2">{resolvedQuotationPaymentTerms}</div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                      <div className="text-sm text-green-600 font-medium min-h-6">
+                        {quotationSaved ? t('quotation_saved') : ''}
+                      </div>
+                      <button onClick={handleSaveQuotation} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
+                        {t('quotation_save')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {(showQuotationPreview || printTarget === 'quotation') && (
+                  <div className={`document-preview-shell rounded-2xl border border-slate-200 bg-white p-6 ${printTarget === 'quotation' ? 'print-target' : ''}`}>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">{t('preview_title')}</h3>
+                      <p className="text-xs text-slate-500">{t('pdf_export_ready')}</p>
+                      <p className="mt-1 text-xs text-blue-700">{t('export_file_ready')}</p>
+                    </div>
+                  </div>
+                    <div ref={quotationPreviewRef} className="print-document" data-export-type="quotation">
+                      <div className="document-header flex items-start justify-between gap-6 border-b border-slate-200 pb-6">
+                        <div className="flex items-start gap-4">
+                          {companyProfile.logoUrl ? (
+                            <img src={companyProfile.logoUrl} alt="company logo" className="h-20 w-20 rounded-xl border border-slate-200 bg-white object-contain p-2" />
+                          ) : (
+                            <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
+                              <Building className="h-8 w-8" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-2xl font-bold text-slate-900">{resolvedQuotationHeading}</div>
+                            <div className="mt-2 space-y-1 text-sm text-slate-600">
+                              <div className="font-semibold text-slate-800">{companyProfile.companyName || '-'}</div>
+                              <div>{companyProfile.address || '-'}</div>
+                              <div>{companyProfile.phone || '-'}</div>
+                              <div>{companyProfile.email || '-'}</div>
+                              <div>{companyProfile.taxId || '-'}</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="min-w-[220px] space-y-2 text-sm text-slate-600">
+                          <div><span className="font-semibold text-slate-800">{t('quotation_number')}:</span> {quotationForm.quotationNumber || '-'}</div>
+                          <div><span className="font-semibold text-slate-800">{t('quotation_issue_date')}:</span> {quotationForm.issueDate || '-'}</div>
+                          <div><span className="font-semibold text-slate-800">{t('quotation_expiry_date')}:</span> {quotationForm.expiryDate || '-'}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 py-6 md:grid-cols-2">
+                        <div>
+                          <div className="mb-2 text-sm font-semibold text-slate-800">{t('quotation_customer_name')}</div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                            <div className="font-medium">{quotationForm.customerName || '-'}</div>
+                            <div className="mt-2 whitespace-pre-wrap">{quotationForm.customerAddress || '-'}</div>
+                            <div className="mt-2">{quotationForm.customerPhone || '-'}</div>
+                            <div className="mt-1">{quotationForm.customerEmail || '-'}</div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="mb-2 text-sm font-semibold text-slate-800">{t('quotation_payment_terms')}</div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-wrap">
+                            {resolvedQuotationPaymentTerms || '-'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-2xl border border-slate-200">
+                        <table className="min-w-full divide-y divide-slate-200">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('quotation_item_name')}</th>
+                              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('quotation_quantity')}</th>
+                              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('quotation_unit_price')}</th>
+                              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('quotation_line_total')}</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 bg-white">
+                            {quotationForm.items.map((item) => {
+                              const lineTotal = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+                              return (
+                                <tr key={`preview-${item.id}`}>
+                                  <td className="px-4 py-3 text-sm text-slate-700">{item.description || '-'}</td>
+                                  <td className="px-4 py-3 text-sm text-slate-700">{formatNumberByLanguage(item.quantity, language)}</td>
+                                  <td className="px-4 py-3 text-sm text-slate-700">{formatMoneyByLanguage(item.unitPrice, language)}</td>
+                                  <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatMoneyByLanguage(lineTotal, language)}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div className="space-y-3 text-sm text-slate-700">
+                          <div>
+                            <div className="mb-1 font-semibold text-slate-800">{t('quotation_notes')}</div>
+                            <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4">{resolvedQuotationNotes || '-'}</div>
+                          </div>
+                          <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
+                            {currentLanguageTemplate.defaultDocumentWording}
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="space-y-3 text-sm">
+                            <div className="flex justify-between"><span>{t('quotation_subtotal')}</span><span>{formatMoneyByLanguage(quotationSubtotal, language)}</span></div>
+                            <div className="flex justify-between"><span>{t('quotation_discount')}</span><span>{formatMoneyByLanguage(quotationDiscount, language)}</span></div>
+                            <div className="flex justify-between"><span>{t('quotation_tax')}</span><span>{formatMoneyByLanguage(quotationTax, language)}</span></div>
+                            <div className="flex justify-between border-t border-slate-200 pt-3 text-lg font-bold text-slate-900"><span>{t('quotation_total')}</span><span>{formatMoneyByLanguage(quotationTotal, language)}</span></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div></div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          {companyProfile.signatureImageUrl && (
+                            <div className="mb-3">
+                              <img src={companyProfile.signatureImageUrl} alt="signer signature" className="h-20 w-full object-contain object-left" />
+                            </div>
+                          )}
+                          <div className="border-t border-slate-400 pt-2 text-sm text-slate-700">
+                            {companyProfile.signerName || '-'} {companyProfile.signerTitle ? `| ${companyProfile.signerTitle}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ----- TAB: CONTRACTOR AGREEMENTS ----- */}
+          {activeTab === 'contractor_agreements' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => handleAgreementChange('mode', 'standard')} className={`px-4 py-2 rounded-lg text-sm font-medium border ${agreementForm.mode !== 'ai' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+                    {t('agreement_mode_standard')}
+                  </button>
+                  <button onClick={() => handleAgreementChange('mode', 'ai')} className={`px-4 py-2 rounded-lg text-sm font-medium border ${agreementForm.mode === 'ai' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}>
+                    {t('agreement_mode_ai')}
+                  </button>
+                </div>
+
+                {agreementForm.mode === 'ai' && (
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-bold text-slate-800">{t('agreement_ai_panel_title')}</h3>
+                        <p className="text-xs text-slate-500">{t('template_used_as_default')}</p>
+                      </div>
+                      <button onClick={handleGenerateAgreementDraft} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        {t('agreement_ai_generate')}
+                      </button>
+                    </div>
+                    {agreementDraftGenerated && (
+                      <p className="text-sm text-blue-700">{t('agreement_ai_generated')}</p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_client_name')}</label>
+                        <input type="text" value={agreementForm.clientName} onChange={(e) => handleAgreementChange('clientName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_project_title')}</label>
+                        <input type="text" value={agreementForm.projectTitle} onChange={(e) => handleAgreementChange('projectTitle', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_project_location')}</label>
+                        <input type="text" value={agreementForm.projectLocation} onChange={(e) => handleAgreementChange('projectLocation', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_payment_terms')}</label>
+                        <textarea value={agreementForm.paymentTerms} onChange={(e) => handleAgreementChange('paymentTerms', e.target.value)} placeholder={currentLanguageTemplate.paymentTerms} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white min-h-24" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_client_requirements')}</label>
+                      <textarea value={agreementForm.clientRequirements} onChange={(e) => handleAgreementChange('clientRequirements', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white min-h-24" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_scope_of_work')}</label>
+                        <textarea value={agreementForm.scopeOfWork} onChange={(e) => handleAgreementChange('scopeOfWork', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white min-h-24" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_timeline')}</label>
+                        <textarea value={agreementForm.timeline} onChange={(e) => handleAgreementChange('timeline', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white min-h-24" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_warranty_terms')}</label>
+                        <textarea value={agreementForm.warrantyTerms} onChange={(e) => handleAgreementChange('warrantyTerms', e.target.value)} placeholder={currentLanguageTemplate.agreementStandardClauses} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white min-h-24" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_special_conditions')}</label>
+                        <textarea value={agreementForm.specialConditions} onChange={(e) => handleAgreementChange('specialConditions', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white min-h-24" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-1">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                      <h3 className="font-bold text-slate-800 mb-3">{t('agreement_contractor_info')}</h3>
+                      <div className="space-y-2 text-sm text-slate-600">
+                        <p className="font-semibold text-slate-800">{companyProfile.companyName || '-'}</p>
+                        <p>{companyProfile.address || '-'}</p>
+                        <p>{companyProfile.phone || '-'}</p>
+                        <p>{companyProfile.email || '-'}</p>
+                        <p>{companyProfile.taxId || '-'}</p>
+                        <p>{companyProfile.signerName || '-'} {companyProfile.signerTitle ? `| ${companyProfile.signerTitle}` : ''}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_contract_number')}</label>
+                        <input type="text" value={agreementForm.contractNumber} onChange={(e) => handleAgreementChange('contractNumber', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_contract_date')}</label>
+                        <input type="date" value={agreementForm.contractDate} onChange={(e) => handleAgreementChange('contractDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_employer_name')}</label>
+                        <input type="text" value={agreementForm.employerName} onChange={(e) => handleAgreementChange('employerName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_employer_phone')}</label>
+                        <input type="text" value={agreementForm.employerPhone} onChange={(e) => handleAgreementChange('employerPhone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_employer_email')}</label>
+                        <input type="email" value={agreementForm.employerEmail} onChange={(e) => handleAgreementChange('employerEmail', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_project_title')}</label>
+                        <input type="text" value={agreementForm.projectTitle} onChange={(e) => handleAgreementChange('projectTitle', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_employer_address')}</label>
+                      <textarea value={agreementForm.employerAddress} onChange={(e) => handleAgreementChange('employerAddress', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_employer_info')}</label>
+                      <textarea value={agreementForm.employerInfo} onChange={(e) => handleAgreementChange('employerInfo', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_recipient')}</label>
+                        <input type="email" value={agreementForm.emailRecipient} onChange={(e) => handleAgreementChange('emailRecipient', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_cc')}</label>
+                        <input type="email" value={agreementForm.emailCc} onChange={(e) => handleAgreementChange('emailCc', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_subject')}</label>
+                        <input type="text" value={agreementForm.emailSubject} onChange={(e) => handleAgreementChange('emailSubject', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_body')}</label>
+                        <textarea value={agreementForm.emailBody} onChange={(e) => handleAgreementChange('emailBody', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={() => setShowAgreementPreview((prev) => !prev)} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <Eye className="mr-2 h-4 w-4" /> {t('preview_document')}
+                  </button>
+                  <button onClick={() => handleExportDocument('agreement')} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <Download className="mr-2 h-4 w-4" /> {t('export_document')}
+                  </button>
+                  <button onClick={() => handlePrintDocument('agreement')} className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                    <Printer className="mr-2 h-4 w-4" /> {t('print_document')}
+                  </button>
+                  <button onClick={() => openEmailDraft('agreement')} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <Send className="mr-2 h-4 w-4" /> {t('send_email')}
+                  </button>
+                </div>
+                {emailStatus.agreement === 'ready' && <p className="text-sm text-green-600">{t('email_draft_ready')} {t('email_backend_pending')}</p>}
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_scope_of_work')}</label>
+                    <textarea value={agreementForm.scopeOfWork} onChange={(e) => handleAgreementChange('scopeOfWork', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_timeline')}</label>
+                    <textarea value={agreementForm.timeline} onChange={(e) => handleAgreementChange('timeline', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_payment_terms')}</label>
+                    <textarea value={agreementForm.paymentTerms} onChange={(e) => handleAgreementChange('paymentTerms', e.target.value)} placeholder={currentLanguageTemplate.paymentTerms} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_warranty_terms')}</label>
+                    <textarea value={agreementForm.warrantyTerms} onChange={(e) => handleAgreementChange('warrantyTerms', e.target.value)} placeholder={currentLanguageTemplate.agreementStandardClauses} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_change_order_terms')}</label>
+                    <textarea value={agreementForm.changeOrderTerms} onChange={(e) => handleAgreementChange('changeOrderTerms', e.target.value)} placeholder={currentLanguageTemplate.agreementStandardClauses} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_termination_terms')}</label>
+                    <textarea value={agreementForm.terminationTerms} onChange={(e) => handleAgreementChange('terminationTerms', e.target.value)} placeholder={currentLanguageTemplate.agreementStandardClauses} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('agreement_special_conditions')}</label>
+                    <textarea value={agreementForm.specialConditions} onChange={(e) => handleAgreementChange('specialConditions', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="font-bold text-slate-800 mb-4">{t('agreement_signature_section')}</h3>
+                  <p className="text-xs text-slate-500 mb-4">{currentLanguageTemplate.defaultDocumentWording}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{resolvedClientSignatureLabel}</label>
+                      <input type="text" value={agreementForm.clientSigner} onChange={(e) => handleAgreementChange('clientSigner', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{resolvedContractorSignatureLabel}</label>
+                      <input type="text" value={agreementForm.contractorSigner} onChange={(e) => handleAgreementChange('contractorSigner', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white border border-slate-200 p-3 text-sm text-slate-600 mt-4 space-y-2">
+                    <div>{resolvedAgreementPaymentTerms}</div>
+                    <div>{resolvedAgreementWarrantyTerms}</div>
+                    <div>{resolvedAgreementChangeOrderTerms}</div>
+                    <div>{resolvedAgreementTerminationTerms}</div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4">
+                    <div className="text-sm text-green-600 font-medium min-h-6">
+                      {agreementSaved ? t('agreement_saved') : ''}
+                    </div>
+                    <button onClick={handleSaveAgreement} className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
+                      {t('agreement_save')}
+                    </button>
+                  </div>
+                </div>
+
+                {(showAgreementPreview || printTarget === 'agreement') && (
+                  <div className={`document-preview-shell rounded-2xl border border-slate-200 bg-white p-6 ${printTarget === 'agreement' ? 'print-target' : ''}`}>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">{t('preview_title')}</h3>
+                      <p className="text-xs text-slate-500">{t('pdf_export_ready')}</p>
+                      <p className="mt-1 text-xs text-blue-700">{t('export_file_ready')}</p>
+                    </div>
+                  </div>
+                    <div ref={agreementPreviewRef} className="print-document" data-export-type="agreement">
+                      <div className="document-header border-b border-slate-200 pb-6">
+                        <div className="flex items-start justify-between gap-6">
+                          <div className="flex items-start gap-4">
+                            {companyProfile.logoUrl ? (
+                              <img src={companyProfile.logoUrl} alt="company logo" className="h-20 w-20 rounded-xl border border-slate-200 bg-white object-contain p-2" />
+                            ) : (
+                              <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
+                                <Building className="h-8 w-8" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="text-2xl font-bold text-slate-900">{t('contractor_agreements_title')}</div>
+                              <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                <div className="font-semibold text-slate-800">{companyProfile.companyName || '-'}</div>
+                                <div>{companyProfile.address || '-'}</div>
+                                <div>{companyProfile.phone || '-'}</div>
+                                <div>{companyProfile.email || '-'}</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="min-w-[220px] space-y-2 text-sm text-slate-600">
+                            <div><span className="font-semibold text-slate-800">{t('agreement_contract_number')}:</span> {agreementForm.contractNumber || '-'}</div>
+                            <div><span className="font-semibold text-slate-800">{t('agreement_contract_date')}:</span> {agreementForm.contractDate || '-'}</div>
+                            <div><span className="font-semibold text-slate-800">{t('agreement_project_title')}:</span> {agreementForm.projectTitle || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 py-6 md:grid-cols-2">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="mb-2 text-sm font-semibold text-slate-800">{t('agreement_employer_info')}</div>
+                          <div className="space-y-1 text-sm text-slate-700">
+                            <div className="font-medium">{agreementForm.employerName || agreementForm.clientName || '-'}</div>
+                            <div className="whitespace-pre-wrap">{agreementForm.employerAddress || '-'}</div>
+                            <div>{agreementForm.employerPhone || '-'}</div>
+                            <div>{agreementForm.employerEmail || '-'}</div>
+                            <div className="whitespace-pre-wrap pt-2">{agreementForm.employerInfo || '-'}</div>
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="mb-2 text-sm font-semibold text-slate-800">{t('agreement_contractor_info')}</div>
+                          <div className="space-y-1 text-sm text-slate-700">
+                            <div>{companyProfile.companyName || '-'}</div>
+                            <div>{companyProfile.address || '-'}</div>
+                            <div>{companyProfile.phone || '-'}</div>
+                            <div>{companyProfile.email || '-'}</div>
+                            <div>{companyProfile.taxId || '-'}</div>
+                            <div>{companyProfile.signerName || '-'}{companyProfile.signerTitle ? ` | ${companyProfile.signerTitle}` : ''}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 text-sm text-slate-700">
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_scope_of_work')}</div>
+                          <div className="whitespace-pre-wrap">{agreementForm.scopeOfWork || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_timeline')}</div>
+                          <div className="whitespace-pre-wrap">{agreementForm.timeline || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_payment_terms')}</div>
+                          <div className="whitespace-pre-wrap">{resolvedAgreementPaymentTerms || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_warranty_terms')}</div>
+                          <div className="whitespace-pre-wrap">{resolvedAgreementWarrantyTerms || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_change_order_terms')}</div>
+                          <div className="whitespace-pre-wrap">{resolvedAgreementChangeOrderTerms || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_termination_terms')}</div>
+                          <div className="whitespace-pre-wrap">{resolvedAgreementTerminationTerms || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="mb-2 font-semibold text-slate-800">{t('agreement_special_conditions')}</div>
+                          <div className="whitespace-pre-wrap">{agreementForm.specialConditions || '-'}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="mb-3 text-sm font-semibold text-slate-800">{t('agreement_signature_section')}</div>
+                        <div className="mb-4 text-xs text-slate-500">{currentLanguageTemplate.defaultDocumentWording}</div>
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                          <div className="pt-12">
+                            <div className="border-t border-slate-400 pt-2 text-sm text-slate-700">{resolvedClientSignatureLabel}: {agreementForm.clientSigner || '-'}</div>
+                          </div>
+                          <div>
+                            {companyProfile.signatureImageUrl && (
+                              <div className="mb-3">
+                                <img src={companyProfile.signatureImageUrl} alt="contractor signature" className="h-20 w-full object-contain object-left" />
+                              </div>
+                            )}
+                            <div className="border-t border-slate-400 pt-2 text-sm text-slate-700">{resolvedContractorSignatureLabel}: {agreementForm.contractorSigner || companyProfile.signerName || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ----- TAB: DOCUMENT SETTINGS ----- */}
+          {activeTab === 'document_settings' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-slate-100 text-slate-700 p-3 rounded-xl"><Database className="h-6 w-6" /></div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('document_settings_title')}</h3>
+                    <p className="text-sm text-slate-600 mt-2">{t('template_used_as_default')}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {['TH', 'LA', 'EN'].map((langCode) => (
+                    <button
+                      key={langCode}
+                      onClick={() => setTemplateLanguage(langCode)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium border ${templateLanguage === langCode ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {langCode}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_quotation_heading')}</label>
+                    <input type="text" value={activeTemplateSettings.quotationHeading} onChange={(e) => handleTemplateSettingChange('quotationHeading', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_quotation_notes')}</label>
+                    <textarea value={activeTemplateSettings.quotationNotes} onChange={(e) => handleTemplateSettingChange('quotationNotes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_payment_terms')}</label>
+                    <textarea value={activeTemplateSettings.paymentTerms} onChange={(e) => handleTemplateSettingChange('paymentTerms', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_agreement_clauses')}</label>
+                    <textarea value={activeTemplateSettings.agreementStandardClauses} onChange={(e) => handleTemplateSettingChange('agreementStandardClauses', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 p-4 bg-slate-50">
+                    <h4 className="font-medium text-slate-800 mb-3">{t('template_signature_labels')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_signer_client_label')}</label>
+                        <input type="text" value={activeTemplateSettings.signatureClientLabel} onChange={(e) => handleTemplateSettingChange('signatureClientLabel', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_signer_contractor_label')}</label>
+                        <input type="text" value={activeTemplateSettings.signatureContractorLabel} onChange={(e) => handleTemplateSettingChange('signatureContractorLabel', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('template_default_wording')}</label>
+                    <textarea value={activeTemplateSettings.defaultDocumentWording} onChange={(e) => handleTemplateSettingChange('defaultDocumentWording', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                  <div className="text-sm text-green-600 font-medium min-h-6">
+                    {templateSaved ? t('template_saved') : ''}
+                  </div>
+                  <button
+                    onClick={handleSaveTemplateSettings}
+                    className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition"
+                  >
+                    {t('template_save')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'email_signature' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-slate-100 text-slate-700 p-3 rounded-xl"><Send className="h-6 w-6" /></div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('email_signature_title')}</h3>
+                    <p className="text-sm text-slate-600 mt-2">{t('email_signature_description')}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  <div className="xl:col-span-2 space-y-6">
+                    <div className="rounded-2xl border border-slate-200 p-5 bg-slate-50 space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="font-semibold text-slate-800">{t('email_for_quotation')}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => prepareEmailDraft('quotation')} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            <Eye className="mr-2 h-4 w-4" /> {t('prepare_email_draft')}
+                          </button>
+                          <button onClick={() => openEmailDraft('quotation')} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            <Send className="mr-2 h-4 w-4" /> {t('send_email')}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_recipient')}</label>
+                          <input type="email" value={quotationForm.emailRecipient} onChange={(e) => handleQuotationChange('emailRecipient', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_cc')}</label>
+                          <input type="email" value={quotationForm.emailCc} onChange={(e) => handleQuotationChange('emailCc', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_subject')}</label>
+                        <input type="text" value={quotationForm.emailSubject} onChange={(e) => handleQuotationChange('emailSubject', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_body')}</label>
+                        <textarea value={quotationForm.emailBody} onChange={(e) => handleQuotationChange('emailBody', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28 bg-white" />
+                      </div>
+                      {emailStatus.quotation && (
+                        <p className="text-sm text-green-600">
+                          {emailStatus.quotation === 'prepared' ? t('email_draft_prepared') : t('email_draft_ready')} {t('email_backend_pending')}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 p-5 bg-slate-50 space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="font-semibold text-slate-800">{t('email_for_agreement')}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => prepareEmailDraft('agreement')} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            <Eye className="mr-2 h-4 w-4" /> {t('prepare_email_draft')}
+                          </button>
+                          <button onClick={() => openEmailDraft('agreement')} className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            <Send className="mr-2 h-4 w-4" /> {t('send_email')}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_recipient')}</label>
+                          <input type="email" value={agreementForm.emailRecipient} onChange={(e) => handleAgreementChange('emailRecipient', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_cc')}</label>
+                          <input type="email" value={agreementForm.emailCc} onChange={(e) => handleAgreementChange('emailCc', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_subject')}</label>
+                        <input type="text" value={agreementForm.emailSubject} onChange={(e) => handleAgreementChange('emailSubject', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('email_body')}</label>
+                        <textarea value={agreementForm.emailBody} onChange={(e) => handleAgreementChange('emailBody', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28 bg-white" />
+                      </div>
+                      {emailStatus.agreement && (
+                        <p className="text-sm text-green-600">
+                          {emailStatus.agreement === 'prepared' ? t('email_draft_prepared') : t('email_draft_ready')} {t('email_backend_pending')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                      <h4 className="font-semibold text-slate-800 mb-4">{t('signature_preview_title')}</h4>
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 space-y-3">
+                        <div className="text-sm font-semibold text-slate-800">{companyProfile.signerName || '-'}</div>
+                        <div className="text-sm text-slate-600">{companyProfile.signerTitle || '-'}</div>
+                        <div className="text-sm text-slate-600">{companyProfile.companyName || '-'}</div>
+                        {companyProfile.signatureImageUrl ? (
+                          <div className="rounded-xl border border-slate-200 bg-white p-3">
+                            <img src={companyProfile.signatureImageUrl} alt="signature preview" className="h-24 w-full object-contain object-left" />
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                            {t('signature_image_missing')}
+                          </div>
+                        )}
+                        <div className="border-t border-slate-300 pt-3 text-sm text-slate-700">
+                          {companyProfile.signerName || '-'}{companyProfile.signerTitle ? ` | ${companyProfile.signerTitle}` : ''}
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-4">{t('signature_reused_hint')}</p>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                      <h4 className="font-semibold text-slate-800 mb-3">{t('company_profile_title')}</h4>
+                      <div className="space-y-2 text-sm text-slate-600">
+                        <div>{companyProfile.companyName || '-'}</div>
+                        <div>{companyProfile.address || '-'}</div>
+                        <div>{companyProfile.phone || '-'}</div>
+                        <div>{companyProfile.email || '-'}</div>
+                        <div>{companyProfile.taxId || '-'}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!knownSectionTabs.has(activeTab) && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-slate-100 text-slate-700 p-3 rounded-xl"><FileText className="h-6 w-6" /></div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{sectionTitleMap[activeTab] || activeTab}</h3>
+                    <p className="text-sm text-slate-600 mt-2">{t('section_placeholder_desc')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ----- TAB: INVENTORY ----- */}
+          {activeTab === 'inventory' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+               <div className="bg-gradient-to-r from-purple-800 via-indigo-900 to-slate-900 rounded-2xl p-6 shadow-lg text-white">
+                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                   <div className="flex items-start gap-4">
+                     <div className="bg-white/20 p-4 rounded-2xl"><DollarSign className="h-8 w-8 text-purple-100" /></div>
+                     <div>
+                       <div className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-200/80">{t('stock_overview_title')}</div>
+                       <p className="mt-2 text-purple-100 font-medium">{t('inv_summary_total')}</p>
+                       <h2 className="mt-2 text-3xl font-bold">{formatConvertedNumberByLanguage(totalBudget, language)} <span className="text-xl font-medium opacity-80">{CURRENCY_TEXT[language] || CURRENCY_TEXT.EN}</span></h2>
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                     <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3">
+                       <div className="text-xs uppercase tracking-wide text-purple-100/80">{t('stock_total_items')}</div>
+                       <div className="mt-2 text-xl font-bold">{formatNumberByLanguage(totalInventoryItems, language)}</div>
+                     </div>
+                     <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3">
+                       <div className="text-xs uppercase tracking-wide text-purple-100/80">{t('stock_low_items')}</div>
+                       <div className="mt-2 text-xl font-bold">{formatNumberByLanguage(lowStockItems.length, language)}</div>
+                     </div>
+                     <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 col-span-2 sm:col-span-1">
+                       <div className="text-xs uppercase tracking-wide text-purple-100/80">{t('stock_out_items')}</div>
+                       <div className="mt-2 text-xl font-bold">{formatNumberByLanguage(outOfStockItems.length, language)}</div>
+                     </div>
+                   </div>
+                 </div>
+                 <div className="mt-5 flex flex-wrap items-center gap-3">
+                   <div className="rounded-full border border-purple-300/30 bg-white/10 px-4 py-2 text-sm font-medium">
+                     {invProjectFilter === 'all' ? t('inventory_all_projects') : projectsList.find(p=>String(p.id) === String(invProjectFilter))?.name}
+                   </div>
+                   <div className="rounded-full border border-purple-300/30 bg-white/10 px-4 py-2 text-sm font-medium">
+                     {inventoryViewMode === 'all' ? t('inventory_view_all') : inventoryViewMode === 'by_project' ? t('inventory_view_project') : inventoryViewMode === 'by_warehouse' ? t('inventory_view_warehouse') : t('inventory_view_movements')}
+                   </div>
+                 </div>
+               </div>
+
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                 <div className="flex items-start justify-between gap-4">
+                   <div>
+                     <h3 className="text-lg font-bold text-slate-800">{t('stock_overview_title')}</h3>
+                     <p className="text-sm text-slate-500 mt-1">{t('section_placeholder_desc')}</p>
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                     <div className="text-sm text-slate-500">{t('stock_total_items')}</div>
+                     <div className="mt-2 text-3xl font-bold text-slate-900">{formatNumberByLanguage(totalInventoryItems, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                     <div className="text-sm text-amber-700">{t('stock_low_items')}</div>
+                     <div className="mt-2 text-3xl font-bold text-amber-900">{formatNumberByLanguage(lowStockItems.length, language)}</div>
+                   </div>
+                   <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                     <div className="text-sm text-red-700">{t('stock_out_items')}</div>
+                     <div className="mt-2 text-3xl font-bold text-red-900">{formatNumberByLanguage(outOfStockItems.length, language)}</div>
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                   <div className="rounded-2xl border border-slate-200">
+                     <div className="border-b border-slate-200 px-5 py-4">
+                       <h4 className="font-semibold text-slate-800">{t('stock_recent_movements')}</h4>
+                     </div>
+                     <div className="divide-y divide-slate-100">
+                       {recentStockMovements.length > 0 ? recentStockMovements.map((item) => {
+                         const quantity = Number(item.quantity || 0);
+                         const statusKey = quantity <= 0 ? 'stock_status_out' : quantity <= 5 ? 'stock_status_low' : 'stock_status_ok';
+                         return (
+                           <div key={item.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                             <div>
+                               <div className="font-medium text-slate-800">{item.name}</div>
+                               <div className="mt-1 text-xs text-slate-500">{t('stock_movement_updated')} • {item.category}</div>
+                             </div>
+                             <div className="text-right">
+                               <div className="text-sm font-semibold text-slate-800">{formatNumberByLanguage(quantity, language)} {item.unit}</div>
+                               <div className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${quantity <= 0 ? 'bg-red-100 text-red-700' : quantity <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                 {t(statusKey)}
+                               </div>
+                             </div>
+                           </div>
+                         );
+                       }) : (
+                         <div className="px-5 py-8 text-sm text-slate-500">{t('stock_recent_placeholder')}</div>
+                       )}
+                     </div>
+                   </div>
+
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                     <h4 className="font-semibold text-slate-800">{t('stock_low_items')}</h4>
+                     <div className="mt-4 space-y-3">
+                       {lowStockItems.length > 0 ? lowStockItems.slice(0, 5).map((item) => (
+                         <div key={item.id} className="rounded-xl border border-amber-200 bg-white p-4">
+                           <div className="font-medium text-slate-800">{item.name}</div>
+                           <div className="mt-1 text-sm text-slate-500">{item.category}</div>
+                           <div className="mt-2 text-sm font-semibold text-amber-700">{formatNumberByLanguage(item.quantity, language)} {item.unit}</div>
+                         </div>
+                       )) : (
+                         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                           {t('stock_recent_placeholder')}
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 space-y-5">
+                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                   <div>
+                     <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_main_workspace')}</div>
+                     <h3 className="mt-2 text-xl font-bold text-slate-900">{inventoryViewMode === 'all' ? t('inventory_view_all') : inventoryViewMode === 'by_project' ? t('inventory_view_project') : inventoryViewMode === 'by_warehouse' ? t('inventory_view_warehouse') : t('inventory_view_movements')}</h3>
+                     <div className="mt-2 flex flex-wrap gap-2">
+                     {[
+                       { key: 'all', label: t('inventory_view_all') },
+                       { key: 'by_project', label: t('inventory_view_project') },
+                       { key: 'by_warehouse', label: t('inventory_view_warehouse') },
+                       { key: 'recent_movements', label: t('inventory_view_movements') },
+                     ].map((mode) => (
+                       <button
+                         key={mode.key}
+                         onClick={() => setInventoryViewMode(mode.key)}
+                         className={`rounded-full px-4 py-2 text-sm font-medium transition ${inventoryViewMode === mode.key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                       >
+                         {mode.label}
+                       </button>
+                     ))}
+                     </div>
+                   </div>
+                   <div>
+                     <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_quick_actions')}</div>
+                     <div className="mt-2 flex flex-wrap gap-2">
+                     <button onClick={() => setIsImportModalOpen(true)} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><UploadCloud className="mr-2 h-4 w-4" />{t('btn_import_boq')}</button>
+                     <button onClick={() => setIsScanModalOpen(true)} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><ScanLine className="mr-2 h-4 w-4 text-blue-500" />{t('btn_scan_bill')}</button>
+                     <button onClick={openAddInvModal} className="inline-flex items-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"><Plus className="mr-2 h-4 w-4" />{t('btn_add_inv')}</button>
+                     </div>
+                   </div>
+                 </div>
+
+                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                   <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('search_inv_placeholder')}</div>
+                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                   <div className="relative md:col-span-2">
+                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                     <input type="text" placeholder={t('search_inv_placeholder')} value={invSearchQuery} onChange={(e) => setInvSearchQuery(e.target.value)} className="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-700" />
+                   </div>
+                   <select value={invCategoryFilter} onChange={(e) => setInvCategoryFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700">
+                     <option value="all">{t('inventory_filter_category')}</option>
+                     {materialCategories.map((category) => (<option key={category} value={category}>{category}</option>))}
+                   </select>
+                   <select value={invProjectFilter} onChange={(e) => setInvProjectFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700">
+                     <option value="all">{t('inventory_filter_all_projects')}</option>
+                     {projectsList.map((project) => (<option key={project.id} value={project.id}>{project.name}</option>))}
+                   </select>
+                   <select value={invWarehouseFilter} onChange={(e) => setInvWarehouseFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700">
+                     {inventoryWarehouseOptions.map((option) => (<option key={option.key} value={option.key}>{option.label}</option>))}
+                   </select>
+                 </div>
+
+                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                   <select value={invStatusFilter} onChange={(e) => setInvStatusFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700">
+                     <option value="all">{t('inventory_filter_status')}</option>
+                     <option value="ok">{t('stock_status_ok')}</option>
+                     <option value="low">{t('stock_status_low')}</option>
+                     <option value="out">{t('stock_status_out')}</option>
+                   </select>
+                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                     <span className="font-medium text-slate-800">{t('inventory_results_count')}:</span> {formatNumberByLanguage(filteredInventory.length, language)}
+                   </div>
+                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 md:col-span-2">
+                     <span className="font-medium text-slate-800">{t('filter_project')}:</span> {invProjectFilter === 'all' ? t('inventory_all_projects') : projectsList.find((p) => String(p.id) === String(invProjectFilter))?.name}
+                   </div>
+                 </div>
+                 </div>
+               </div>
+
+               {inventoryViewMode === 'by_project' && (
+                 <div className="space-y-6">
+                   <div className="rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+                     <div className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-500">{t('inventory_view_project')}</div>
+                     <p className="mt-2 text-sm text-blue-900">{t('inventory_by_project_desc')}</p>
+                   </div>
+                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                     {inventoryByProjectGroups.length > 0 ? inventoryByProjectGroups.map((group) => (
+                       <div key={group.key} className="rounded-2xl border border-blue-200 bg-white shadow-sm overflow-hidden">
+                         <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+                           <div>
+                             <h3 className="text-lg font-bold text-slate-800">{group.label}</h3>
+                             <p className="mt-1 text-sm text-slate-500">{t('inventory_by_project_desc')}</p>
+                           </div>
+                           <div className="grid grid-cols-2 gap-3 sm:min-w-[15rem]">
+                             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_group_items')}</div>
+                               <div className="mt-1 text-base font-semibold text-slate-800">{formatNumberByLanguage(group.items.length, language)}</div>
+                             </div>
+                             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_group_value')}</div>
+                               <div className="mt-1 text-base font-semibold text-slate-800">{formatMoneyByLanguage(group.value, language)}</div>
+                             </div>
+                           </div>
+                         </div>
+                         <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+                           {group.items.map((item) => {
+                             const statusKey = getMaterialStockStatusKey(item);
+                             const total = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+                             return (
+                               <button
+                                 key={item.id}
+                                 type="button"
+                                 onClick={() => {
+                                   setSelectedMaterialId(item.id);
+                                   setInventoryViewMode('all');
+                                 }}
+                                 className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-slate-300 hover:bg-white"
+                               >
+                                 <div className="flex items-start justify-between gap-3">
+                                   <div>
+                                     <div className="font-semibold text-slate-800">{item.name}</div>
+                                     <div className="mt-1 text-xs text-slate-500">{item.category || '-'} · {t('inventory_code')}: {item.id}</div>
+                                   </div>
+                                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : statusKey === 'stock_status_low' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                     {t(statusKey)}
+                                   </span>
+                                 </div>
+                                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                   <div>
+                                     <div className="text-xs text-slate-400">{t('label_qty')}</div>
+                                     <div className="font-medium text-slate-700">{formatNumberByLanguage(item.quantity || 0, language)} {item.unit || '-'}</div>
+                                   </div>
+                                   <div>
+                                     <div className="text-xs text-slate-400">{t('label_total_price')}</div>
+                                     <div className="font-medium text-slate-700">{formatMoneyByLanguage(total, language)}</div>
+                                   </div>
+                                 </div>
+                               </button>
+                             );
+                           })}
+                         </div>
+                       </div>
+                     )) : (
+                       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-sm text-slate-500 xl:col-span-2">
+                         {t('inventory_empty_filtered')}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
+
+               {inventoryViewMode === 'by_warehouse' && (
+                 <div className="space-y-6">
+                   <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+                     <div className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600">{t('inventory_view_warehouse')}</div>
+                     <p className="mt-2 text-sm text-emerald-900">{t('inventory_by_warehouse_desc')}</p>
+                   </div>
+                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                     {inventoryByWarehouseGroups.length > 0 ? inventoryByWarehouseGroups.map((group) => (
+                       <div key={group.key} className="rounded-2xl border border-emerald-200 bg-white shadow-sm overflow-hidden">
+                         <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+                           <div>
+                             <h3 className="text-lg font-bold text-slate-800">{group.label}</h3>
+                             <p className="mt-1 text-sm text-slate-500">{t('inventory_by_warehouse_desc')}</p>
+                           </div>
+                           <div className="grid grid-cols-2 gap-3 sm:min-w-[15rem]">
+                             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_group_items')}</div>
+                               <div className="mt-1 text-base font-semibold text-slate-800">{formatNumberByLanguage(group.items.length, language)}</div>
+                             </div>
+                             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_group_value')}</div>
+                               <div className="mt-1 text-base font-semibold text-slate-800">{formatMoneyByLanguage(group.value, language)}</div>
+                             </div>
+                           </div>
+                         </div>
+                         <div className="space-y-3 p-4">
+                           {group.items.map((item) => {
+                             const statusKey = getMaterialStockStatusKey(item);
+                             return (
+                               <button
+                                 key={item.id}
+                                 type="button"
+                                 onClick={() => {
+                                   setSelectedMaterialId(item.id);
+                                   setInventoryViewMode('all');
+                                 }}
+                                 className="flex w-full flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-slate-300 hover:bg-white sm:flex-row sm:items-start sm:justify-between"
+                               >
+                                 <div>
+                                   <div className="font-semibold text-slate-800">{item.name}</div>
+                                   <div className="mt-1 text-xs text-slate-500">{item.category || '-'} · {projectsList.find((p) => String(p.id) === String(item.projectId))?.name || t('inventory_central_stock')}</div>
+                                 </div>
+                                 <div className="flex flex-wrap items-center gap-3 text-sm">
+                                   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : statusKey === 'stock_status_low' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                     {t(statusKey)}
+                                   </span>
+                                   <span className="font-medium text-slate-700">{formatNumberByLanguage(item.quantity || 0, language)} {item.unit || '-'}</span>
+                                   <span className="font-medium text-slate-700">{formatMoneyByLanguage(Number(item.quantity || 0) * Number(item.unitPrice || 0), language)}</span>
+                                 </div>
+                               </button>
+                             );
+                           })}
+                         </div>
+                       </div>
+                     )) : (
+                       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-sm text-slate-500 xl:col-span-2">
+                         {t('inventory_empty_filtered')}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               )}
+
+               {inventoryViewMode === 'all' && (
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                   <div>
+                     <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_view_all')}</div>
+                     <h3 className="text-lg font-bold text-slate-800">{t('material_catalog_title')}</h3>
+                     <p className="text-sm text-slate-500 mt-1">{t('material_catalog_description')}</p>
+                   </div>
+                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                     <span className="font-medium text-slate-800">{t('inventory_results_count')}:</span> {formatNumberByLanguage(filteredMaterialCatalog.length, language)}
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                   <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                     <div className="max-h-[28rem] overflow-y-auto divide-y divide-slate-100">
+                       {filteredMaterialCatalog.length > 0 ? filteredMaterialCatalog.map((item) => {
+                         const statusKey = getMaterialStockStatusKey(item);
+                         const isSelected = selectedMaterial?.id === item.id;
+                         return (
+                           <button
+                             key={item.id}
+                             type="button"
+                             onClick={() => setSelectedMaterialId(item.id)}
+                             className={`w-full px-5 py-4 text-left transition ${isSelected ? 'bg-orange-50' : 'bg-white hover:bg-slate-50'}`}
+                           >
+                             <div className="flex items-start justify-between gap-4">
+                               <div>
+                                 <div className="font-semibold text-slate-800">{item.name}</div>
+                                 <div className="mt-1 text-sm text-slate-500">{item.category || '-'}</div>
+                               </div>
+                               <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : statusKey === 'stock_status_low' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                 {t(statusKey)}
+                               </div>
+                             </div>
+                             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
+                               <span>{formatNumberByLanguage(item.quantity || 0, language)} {item.unit || '-'}</span>
+                               <span>{formatMoneyByLanguage(item.unitPrice || 0, language)}</span>
+                               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{projectsList.find((p) => String(p.id) === String(item.projectId))?.name || t('inventory_link_unassigned')}</span>
+                               <span className="text-orange-600">{t('material_catalog_open_details')}</span>
+                             </div>
+                           </button>
+                         );
+                       }) : (
+                         <div className="px-5 py-10 text-sm text-slate-500">{t('material_catalog_empty')}</div>
+                       )}
+                     </div>
+                   </div>
+
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                     <h4 className="font-semibold text-slate-800">{t('material_catalog_details')}</h4>
+                     {selectedMaterial ? (
+                       <div className="mt-4 space-y-4">
+                         {(() => {
+                           const usage = getNormalizedMaterialUsage(selectedMaterial);
+                           return (
+                         <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
+                           <div className="flex items-start justify-between gap-4">
+                             <div>
+                               <div className="text-xl font-bold text-slate-900">{selectedMaterial.name}</div>
+                               <div className="mt-1 text-sm text-slate-500">{selectedMaterial.category || '-'}</div>
+                             </div>
+                             <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getMaterialStockStatusKey(selectedMaterial) === 'stock_status_out' ? 'bg-red-100 text-red-700' : getMaterialStockStatusKey(selectedMaterial) === 'stock_status_low' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                               {t(getMaterialStockStatusKey(selectedMaterial))}
+                             </div>
+                           </div>
+                           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_unit')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">{selectedMaterial.unit || '-'}</div>
+                             </div>
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_qty')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(selectedMaterial.quantity || 0, language)}</div>
+                             </div>
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_unit_price')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">{formatMoneyByLanguage(selectedMaterial.unitPrice || 0, language)}</div>
+                             </div>
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('project_material_assigned')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(usage.assignedQuantity, language)} {selectedMaterial.unit || '-'}</div>
+                             </div>
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('project_material_used')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(usage.usedQuantity, language)} {selectedMaterial.unit || '-'}</div>
+                             </div>
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('project_material_remaining')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(usage.remainingQuantity, language)} {selectedMaterial.unit || '-'}</div>
+                             </div>
+                             <div>
+                               <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_related_project')}</div>
+                               <div className="mt-1 text-sm font-medium text-slate-700">
+                                 {projectsList.find((p) => String(p.id) === String(selectedMaterial.projectId))?.name || t('inventory_central_stock')}
+                               </div>
+                             </div>
+                           </div>
+                           <div className="mt-5">
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('material_catalog_notes')}</div>
+                             <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                               {selectedMaterial.notes || '-'}
+                             </div>
+                           </div>
+                           <div className="mt-5 flex flex-wrap gap-3">
+                             <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">
+                               {t('inventory_linked_project_label')}: {projectsList.find((p) => String(p.id) === String(selectedMaterial.projectId))?.name || t('inventory_link_unassigned')}
+                             </div>
+                             {selectedMaterial.projectId && (
+                               <button
+                                 type="button"
+                                 onClick={() => {
+                                   setSelectedProjectId(selectedMaterial.projectId);
+                                   setActiveTab('projects');
+                                 }}
+                                 className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                               >
+                                 {t('inventory_open_linked_project')}
+                               </button>
+                             )}
+                           </div>
+                           <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                             <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_manage_linking')}</div>
+                             <div className="mt-3 flex flex-col gap-3">
+                               <select
+                                 value={materialLinkDraftProjectId}
+                                 onChange={(e) => setMaterialLinkDraftProjectId(e.target.value)}
+                                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700"
+                               >
+                                 <option value="">{t('inventory_central_stock')}</option>
+                                 {projectsList.map((project) => (
+                                   <option key={project.id} value={project.id}>{project.name}</option>
+                                 ))}
+                               </select>
+                               <div className="flex flex-col gap-2 sm:flex-row">
+                                 <button
+                                   type="button"
+                                   onClick={() => handleUpdateMaterialProjectLink(selectedMaterial, materialLinkDraftProjectId, true)}
+                                   className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                                 >
+                                   {t('inventory_apply_link')}
+                                 </button>
+                                 <button
+                                   type="button"
+                                   onClick={() => handleUpdateMaterialProjectLink(selectedMaterial, '', true)}
+                                   className="inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+                                 >
+                                   {t('inventory_unlink_material')}
+                                 </button>
+                               </div>
+                             </div>
+                           </div>
+                           {selectedMaterial.projectId && (
+                             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_project_usage_title')}</div>
+                               <p className="mt-2 text-sm text-slate-500">{t('inventory_project_usage_context')}</p>
+                               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                 <div className="rounded-xl border border-slate-200 bg-white p-3">
+                                   <div className="text-xs text-slate-400">{t('project_material_assigned')}</div>
+                                   <div className="mt-1 text-lg font-bold text-slate-900">{formatNumberByLanguage(usage.assignedQuantity, language)}</div>
+                                 </div>
+                                 <div className="rounded-xl border border-slate-200 bg-white p-3">
+                                   <div className="text-xs text-slate-400">{t('project_material_used')}</div>
+                                   <div className="mt-1 text-lg font-bold text-slate-900">{formatNumberByLanguage(usage.usedQuantity, language)}</div>
+                                 </div>
+                                 <div className="rounded-xl border border-slate-200 bg-white p-3">
+                                   <div className="text-xs text-slate-400">{t('project_material_remaining')}</div>
+                                   <div className="mt-1 text-lg font-bold text-slate-900">{formatNumberByLanguage(usage.remainingQuantity, language)}</div>
+                                 </div>
+                               </div>
+                               <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                                 <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                                   <label className="block text-xs font-medium text-emerald-700">{t('project_material_issue_qty')}</label>
+                                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                     <input
+                                       type="number"
+                                       min="0"
+                                       step="0.01"
+                                       value={materialIssueQuantity}
+                                       onChange={(e) => setMaterialIssueQuantity(e.target.value)}
+                                       className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                     />
+                                     <button
+                                       type="button"
+                                       onClick={() => handleIssueMaterialToProject(selectedMaterial, materialIssueQuantity)}
+                                       className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                                     >
+                                       {t('project_material_issue')}
+                                     </button>
+                                   </div>
+                                 </div>
+                                 <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                                   <label className="block text-xs font-medium text-amber-700">{t('project_material_return_qty')}</label>
+                                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                     <input
+                                       type="number"
+                                       min="0"
+                                       step="0.01"
+                                       value={materialReturnQuantity}
+                                       onChange={(e) => setMaterialReturnQuantity(e.target.value)}
+                                       className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                     />
+                                     <button
+                                       type="button"
+                                       onClick={() => handleReturnMaterialFromProject(selectedMaterial, materialReturnQuantity)}
+                                       className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+                                     >
+                                       {t('project_material_return')}
+                                     </button>
+                                   </div>
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+                         </div>
+                           );
+                         })()}
+                       </div>
+                     ) : (
+                       <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-sm text-slate-500">
+                         {t('material_catalog_empty')}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               </div>
+               )}
+
+               {inventoryViewMode === 'recent_movements' && (
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                   <div>
+                     <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_view_movements')}</div>
+                     <h3 className="text-lg font-bold text-slate-800">{t('inventory_movements_title')}</h3>
+                     <p className="text-sm text-slate-500 mt-1">{t('inventory_movements_description')}</p>
+                   </div>
+                   <div className="grid w-full gap-3 md:grid-cols-2 xl:grid-cols-4 lg:max-w-5xl">
+                     <div className="relative">
+                       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                       <input
+                         type="text"
+                         value={movementSearchQuery}
+                         onChange={(e) => setMovementSearchQuery(e.target.value)}
+                         placeholder={t('inventory_movements_search_placeholder')}
+                         className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700"
+                       />
+                     </div>
+                     <select
+                       value={movementTypeFilter}
+                       onChange={(e) => setMovementTypeFilter(e.target.value)}
+                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                     >
+                       <option value="all">{t('inventory_movements_all_types')}</option>
+                       <option value="inbound">{t('inventory_movement_inbound')}</option>
+                       <option value="outbound">{t('inventory_movement_outbound')}</option>
+                     </select>
+                     <select
+                       value={movementMaterialFilter}
+                       onChange={(e) => setMovementMaterialFilter(e.target.value)}
+                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                     >
+                       <option value="all">{t('inventory_movements_all_materials')}</option>
+                       {inventoryList.map((item) => (
+                         <option key={item.id} value={item.id}>{item.name}</option>
+                       ))}
+                     </select>
+                     <input
+                       type="date"
+                       value={movementDateFilter}
+                       onChange={(e) => setMovementDateFilter(e.target.value)}
+                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                     />
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                   <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                     <div className="max-h-[30rem] overflow-y-auto divide-y divide-slate-100">
+                       {filteredInventoryMovements.length > 0 ? filteredInventoryMovements.map((movement) => {
+                         const isSelected = selectedMovement?.id === movement.id;
+                         const isInbound = movement.movementType === 'inbound';
+                         return (
+                           <button
+                             key={movement.id}
+                             type="button"
+                             onClick={() => setSelectedMovementId(movement.id)}
+                             className={`w-full px-5 py-4 text-left transition ${isSelected ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}
+                           >
+                             <div className="flex items-start justify-between gap-4">
+                               <div>
+                                 <div className="font-semibold text-slate-800">{movement.materialName}</div>
+                                 <div className="mt-1 text-sm text-slate-500">{movement.note}</div>
+                               </div>
+                               <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${isInbound ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                                 {t(isInbound ? 'inventory_movement_inbound' : 'inventory_movement_outbound')}
+                               </div>
+                             </div>
+                             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
+                               <span>{formatNumberByLanguage(movement.quantity, language)} {movement.unit}</span>
+                               <span>{movement.date}</span>
+                               <span>{t('inventory_movement_balance')}: {formatNumberByLanguage(movement.balance, language)} {movement.unit}</span>
+                             </div>
+                           </button>
+                         );
+                       }) : (
+                         <div className="px-5 py-10 text-sm text-slate-500">{t('inventory_movement_empty')}</div>
+                       )}
+                     </div>
+                   </div>
+
+                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                     <h4 className="font-semibold text-slate-800">{t('inventory_movement_details')}</h4>
+                     {selectedMovement ? (
+                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                         <div className="flex items-start justify-between gap-4">
+                           <div>
+                             <div className="text-xl font-bold text-slate-900">{selectedMovement.materialName}</div>
+                             <div className="mt-1 text-sm text-slate-500">{selectedMovement.category || '-'}</div>
+                           </div>
+                           <div className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${selectedMovement.movementType === 'inbound' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                             {t(selectedMovement.movementType === 'inbound' ? 'inventory_movement_inbound' : 'inventory_movement_outbound')}
+                           </div>
+                         </div>
+                         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_movement_type')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{t(selectedMovement.movementType === 'inbound' ? 'inventory_movement_inbound' : 'inventory_movement_outbound')}</div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_movement_date')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{selectedMovement.date}</div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_qty')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(selectedMovement.quantity, language)} {selectedMovement.unit}</div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_movement_balance')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(selectedMovement.balance, language)} {selectedMovement.unit}</div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_related_project')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">
+                               {projectsList.find((p) => String(p.id) === String(selectedMovement.projectId))?.name || t('inventory_central_stock')}
+                             </div>
+                           </div>
+                           <div>
+                             <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('label_unit_price')}</div>
+                             <div className="mt-1 text-sm font-medium text-slate-700">
+                               {formatMoneyByLanguage(inventoryList.find((item) => item.id === selectedMovement.materialId)?.unitPrice || 0, language)}
+                             </div>
+                           </div>
+                         </div>
+                         <div className="mt-5">
+                           <div className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('inventory_movement_reference')}</div>
+                           <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                             {selectedMovement.note || '-'}
+                           </div>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-sm text-slate-500">
+                         {t('inventory_movement_empty')}
+                       </div>
+                     )}
+                   </div>
+                 </div>
+               </div>
+               )}
+
+               {inventoryViewMode !== 'recent_movements' && (
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                 <div>
+                   <h3 className="text-lg font-bold text-slate-800">{t('warehouse_value_title')}</h3>
+                   <p className="mt-1 text-sm text-slate-500">{t('warehouse_value_description')}</p>
+                 </div>
+
+                 {inventoryList.length > 0 ? (
+                   <>
+                     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                         <div className="text-sm text-emerald-700">{t('warehouse_value_total')}</div>
+                         <div className="mt-2 text-2xl font-bold text-emerald-900">{formatMoneyByLanguage(totalBudget, language)}</div>
+                       </div>
+                       <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
+                         <div className="text-sm text-orange-700">{t('warehouse_value_low_high')}</div>
+                         <div className="mt-2 text-2xl font-bold text-orange-900">{formatNumberByLanguage(lowStockHighValueMaterials.length, language)}</div>
+                       </div>
+                       <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                         <div className="text-sm text-red-700">{t('warehouse_value_out_impact')}</div>
+                         <div className="mt-2 text-2xl font-bold text-red-900">{formatMoneyByLanguage(outOfStockValueImpact, language)}</div>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                         <h4 className="font-semibold text-slate-800">{t('warehouse_value_by_category')}</h4>
+                         <div className="mt-4 space-y-3">
+                           {inventoryValueByCategory.map((entry) => (
+                             <div key={entry.category} className="rounded-xl border border-slate-200 bg-white p-4">
+                               <div className="flex items-center justify-between gap-4">
+                                 <div>
+                                   <div className="font-medium text-slate-800">{entry.category}</div>
+                                   <div className="mt-1 text-sm text-slate-500">{formatNumberByLanguage(entry.itemCount, language)} {t('warehouse_value_items')}</div>
+                                 </div>
+                                 <div className="text-sm font-semibold text-slate-800">{formatMoneyByLanguage(entry.value, language)}</div>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+
+                       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                         <h4 className="font-semibold text-slate-800">{t('warehouse_value_top_materials')}</h4>
+                         <div className="mt-4 space-y-3">
+                           {highestValueMaterials.map((item) => (
+                             <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                               <div className="flex items-start justify-between gap-4">
+                                 <div>
+                                   <div className="font-medium text-slate-800">{item.name}</div>
+                                   <div className="mt-1 text-sm text-slate-500">{item.category || '-'}</div>
+                                 </div>
+                                 <div className="text-right">
+                                   <div className="text-sm font-semibold text-slate-800">{formatMoneyByLanguage(item.stockValue, language)}</div>
+                                   <div className="mt-1 text-xs text-slate-500">{formatNumberByLanguage(item.quantity || 0, language)} {item.unit || '-'}</div>
+                                 </div>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                       <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
+                         <h4 className="font-semibold text-orange-900">{t('warehouse_value_low_high')}</h4>
+                         <div className="mt-4 space-y-3">
+                           {lowStockHighValueMaterials.length > 0 ? lowStockHighValueMaterials.map((item) => (
+                             <div key={item.id} className="rounded-xl border border-orange-200 bg-white p-4">
+                               <div className="flex items-start justify-between gap-4">
+                                 <div>
+                                   <div className="font-medium text-slate-800">{item.name}</div>
+                                   <div className="mt-1 text-sm text-slate-500">{formatNumberByLanguage(item.quantity || 0, language)} {item.unit || '-'}</div>
+                                 </div>
+                                 <div className="text-sm font-semibold text-orange-800">{formatMoneyByLanguage(item.stockValue, language)}</div>
+                               </div>
+                             </div>
+                           )) : (
+                             <div className="rounded-xl border border-dashed border-orange-300 bg-white p-4 text-sm text-orange-700">{t('warehouse_value_empty')}</div>
+                           )}
+                         </div>
+                       </div>
+
+                       <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+                         <h4 className="font-semibold text-red-900">{t('warehouse_value_out_impact')}</h4>
+                         <div className="mt-4 space-y-3">
+                           {outOfStockItems.length > 0 ? outOfStockItems.map((item) => (
+                             <div key={item.id} className="rounded-xl border border-red-200 bg-white p-4">
+                               <div className="flex items-start justify-between gap-4">
+                                 <div>
+                                   <div className="font-medium text-slate-800">{item.name}</div>
+                                   <div className="mt-1 text-sm text-slate-500">{item.category || '-'}</div>
+                                 </div>
+                                 <div className="text-right">
+                                   <div className="text-sm font-semibold text-red-800">{formatMoneyByLanguage(item.unitPrice || 0, language)}</div>
+                                   <div className="mt-1 text-xs text-slate-500">{t('warehouse_value_estimated_loss')}</div>
+                                 </div>
+                               </div>
+                             </div>
+                           )) : (
+                             <div className="rounded-xl border border-dashed border-red-300 bg-white p-4 text-sm text-red-700">{t('warehouse_value_empty')}</div>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   </>
+                 ) : (
+                   <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-500">
+                     {t('warehouse_value_empty')}
+                   </div>
+                 )}
+               </div>
+               )}
+
+               {inventoryViewMode === 'all' && (
+               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                 <div className="border-b border-slate-200 px-5 py-4">
+                   <h3 className="font-semibold text-slate-800">{t('inventory_view_all')}</h3>
+                 </div>
+                 <div className="grid grid-cols-1 gap-4 p-4 xl:hidden">
+                   {filteredInventory.length > 0 ? filteredInventory.map((item) => {
+                     const total = Number(item.quantity) * Number(item.unitPrice);
+                     const project = projectsList.find((p) => String(p.id) === String(item.projectId));
+                     return (
+                       <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                         <div className="flex items-start justify-between gap-3">
+                           <div>
+                             <div className="font-semibold text-slate-800">{item.name}</div>
+                             <div className="mt-1 text-xs text-slate-500">{item.category}</div>
+                           </div>
+                           <button onClick={() => openEditInvModal(item)} className="text-sm font-medium text-purple-600">{t('dashboard_edit')}</button>
+                         </div>
+                         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                           <div><div className="text-xs text-slate-400">{t('table_project')}</div><div className="font-medium text-slate-700">{project ? project.name : t('inventory_central_stock')}</div></div>
+                           <div><div className="text-xs text-slate-400">{t('label_qty')}</div><div className="font-medium text-slate-700">{formatNumberByLanguage(item.quantity, language)} {item.unit}</div></div>
+                           <div><div className="text-xs text-slate-400">{t('label_unit_price')}</div><div className="font-medium text-slate-700">{formatMoneyByLanguage(item.unitPrice, language)}</div></div>
+                           <div><div className="text-xs text-slate-400">{t('label_total_price')}</div><div className="font-medium text-purple-700">{formatMoneyByLanguage(total, language)}</div></div>
+                         </div>
+                       </div>
+                     );
+                   }) : (
+                     <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-sm text-slate-500">{t('inventory_empty_filtered')}</div>
+                   )}
+                 </div>
+                 <div className="hidden overflow-x-auto xl:block">
+                 <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                       <tr><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('label_item_name')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('table_project')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('label_qty')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('label_unit_price')}</th><th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase">{t('label_total_price')}</th><th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase">{t('table_actions')}</th></tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                       {filteredInventory.map(item => {
+                         const project = projectsList.find(p => String(p.id) === String(item.projectId));
+                         const total = Number(item.quantity) * Number(item.unitPrice);
+                         return (
+                           <tr key={item.id} className="hover:bg-slate-50 transition">
+                             <td className="px-6 py-4"><div className="font-bold text-slate-800 text-sm">{item.name}</div><div className="text-xs text-slate-500 mt-1 flex items-center"><Package className="h-3 w-3 mr-1"/> {item.category}</div></td>
+                             <td className="px-6 py-4"><div className="text-sm font-medium text-slate-700">{project ? project.name : <span className="text-slate-400 italic">{t('inventory_central_stock')}</span>}</div></td>
+                             <td className="px-6 py-4"><div className="text-sm font-bold text-slate-800">{item.quantity} <span className="text-slate-500 font-normal">{item.unit}</span></div></td>
+                             <td className="px-6 py-4"><div className="text-sm text-slate-600">{formatMoneyByLanguage(item.unitPrice, language)}</div></td>
+                             <td className="px-6 py-4"><div className="text-sm font-bold text-purple-700">{formatMoneyByLanguage(total, language)}</div></td>
+                             <td className="px-6 py-4 text-right whitespace-nowrap"><button onClick={() => openEditInvModal(item)} className="text-purple-600 hover:text-purple-900 text-sm font-medium px-2">{t('dashboard_edit')}</button></td>
+                           </tr>
+                         );
+                       })}
+                    </tbody>
+                 </table>
+                 </div>
+               </div>
+               )}
+            </div>
+          )}
+
+          {/* ----- TAB: REQUESTS ----- */}
+          {isPlatformAdmin && activeTab === 'requests' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+               <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                 <p className="text-sm text-slate-600">{t('requests_intro')}</p>
+                 <button onClick={() => onNavigate('worker')} className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-orange-200 transition"><Smartphone className="w-4 h-4 mr-2"/> {t('requests_open_worker')}</button>
+               </div>
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 {globalRequests.map(req => {
+                   const project = projectsList.find(p => String(p.id) === String(req.projectId));
+                   return (
+                     <div key={req.id} className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col md:flex-row transition ${req.status === 'pending' ? 'border-orange-300 shadow-orange-100/50' : 'border-slate-200'}`}>
+                       <div className="w-full md:w-48 h-48 md:h-auto bg-slate-100 relative group"><img src={req.photoUrl} alt="site" className="w-full h-full object-cover" /></div>
+                       <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                             <div className="flex justify-between items-start mb-2"><h3 className="font-bold text-slate-800 text-lg leading-tight pr-2">{req.title}</h3><div>{req.status === 'pending' && <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold whitespace-nowrap">{t('req_status_pending')}</span>}{req.status === 'approved' && <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold whitespace-nowrap">{t('req_status_approved')}</span>}{req.status === 'rejected' && <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold whitespace-nowrap">{t('req_status_rejected')}</span>}</div></div>
+                             <div className="text-xs text-slate-500 mb-3 space-y-1"><p className="flex items-center"><Users className="w-3 h-3 mr-1"/> {req.requestedBy}</p><p className="flex items-center"><Building className="w-3 h-3 mr-1"/> {t('requests_project')}: {project ? project.name : t('requests_unspecified')}</p></div>
+                             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 h-24 overflow-y-auto"><h4 className="text-xs font-bold text-slate-700 mb-1">{t('requests_items_title')}</h4><p className="text-sm text-slate-700 whitespace-pre-wrap font-medium">{req.itemsListText}</p></div>
+                          </div>
+                          {req.status === 'pending' && (<div className="mt-4 flex space-x-3"><button onClick={() => handleUpdateReqStatus(req.id, 'approved')} className="flex-1 py-2.5 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition text-sm flex items-center justify-center shadow-sm"><CheckCircle className="w-5 h-5 mr-1.5"/> {t('btn_approve')}</button><button onClick={() => handleUpdateReqStatus(req.id, 'rejected')} className="flex-1 py-2.5 bg-slate-100 text-slate-600 border border-slate-300 rounded-xl font-bold hover:bg-red-50 hover:text-red-600 transition text-sm flex items-center justify-center"><X className="w-5 h-5 mr-1.5"/> {t('btn_reject')}</button></div>)}
+                       </div>
+                     </div>
+                   );
+                 })}
+                 {globalRequests.length === 0 && (<div className="col-span-full py-12 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200"><Inbox className="w-16 h-16 text-slate-300 mb-4" /><h3 className="text-lg font-bold text-slate-700">{t('requests_empty')}</h3></div>)}
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'supplier_directory' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('supplier_directory_title')}</h3>
+                    <p className="text-sm text-slate-600 mt-2">{t('section_placeholder_desc')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={supplierSearchQuery}
+                        onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                        placeholder={t('supplier_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 sm:w-72"
+                      />
+                    </div>
+                    <button onClick={openAddSupplierModal} className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600">
+                      <Plus className="mr-2 h-4 w-4" /> {t('add_supplier')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {filteredSuppliers.length > 0 ? (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {filteredSuppliers.map((supplier) => (
+                    <div key={supplier.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                      {(() => {
+                        const publicProfile = supplier.publicProfile || {};
+                        return (
+                          <>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h4 className="text-lg font-bold text-slate-800">{publicProfile.supplierName || '-'}</h4>
+                          <p className="text-sm text-slate-500 mt-1">{publicProfile.productCategory || '-'}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${publicProfile.status === 'inactive' ? 'bg-slate-200 text-slate-600' : 'bg-green-100 text-green-700'}`}>
+                          {publicProfile.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-600">
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_contact_person')}</div>
+                          <div className="mt-1 text-slate-700">{publicProfile.contactPerson || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_phone')}</div>
+                          <div className="mt-1 text-slate-700">{publicProfile.phone || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_email')}</div>
+                          <div className="mt-1 text-slate-700 break-all">{publicProfile.email || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_other_contact')}</div>
+                          <div className="mt-1 text-slate-700">{publicProfile.otherContact || '-'}</div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_address')}</div>
+                          <div className="mt-1 text-slate-700 whitespace-pre-wrap">{publicProfile.address || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_notes')}</div>
+                          <div className="mt-1 text-slate-700 whitespace-pre-wrap">{publicProfile.notes || '-'}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2">
+                        <button onClick={() => openEditSupplierModal(supplier)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                          {t('dashboard_edit')}
+                        </button>
+                      </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-200 py-12 flex flex-col items-center justify-center">
+                  <Building className="w-16 h-16 text-slate-300 mb-4" />
+                  <h3 className="text-lg font-bold text-slate-700">{t('supplier_empty')}</h3>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'admin_supplier_management' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_supplier_total')} value={supplierDirectory.length} icon={<Building />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_supplier_active')} value={adminActiveSuppliersCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('admin_supplier_inactive')} value={adminInactiveSuppliersCount} icon={<AlertCircle />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_supplier_categories')} value={adminSupplierCategoryCount} icon={<Inbox />} color="text-blue-600" bg="bg-blue-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_supplier_management_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_supplier_management_desc')}</p>
+                    <p className="mt-2 text-xs font-medium text-indigo-600">{t('admin_supplier_internal_notice')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={supplierSearchQuery}
+                        onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                        placeholder={t('supplier_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 sm:w-80"
+                      />
+                    </div>
+                    <select
+                      value={adminSupplierStatusFilter}
+                      onChange={(e) => setAdminSupplierStatusFilter(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    >
+                      <option value="all">{t('admin_supplier_filter_all_statuses')}</option>
+                      <option value="active">{t('supplier_status_active')}</option>
+                      <option value="inactive">{t('supplier_status_inactive')}</option>
+                    </select>
+                    <button onClick={openAddSupplierModal} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      <Plus className="mr-2 h-4 w-4" /> {t('add_supplier')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {filteredAdminSuppliers.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {filteredAdminSuppliers.map((supplier) => {
+                    const publicProfile = supplier.publicProfile || {};
+                    const internalMeta = supplier.internalMeta || {};
+                    const isInactive = publicProfile.status === 'inactive';
+                    const assignmentSummaries = getSupplierAssignmentSummariesForRender(supplier);
+
+                    return (
+                      <div key={supplier.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="text-lg font-bold text-slate-900">{publicProfile.supplierName || '-'}</h4>
+                              <span className={`rounded-full px-3 py-1 text-xs font-bold ${isInactive ? 'bg-slate-200 text-slate-600' : 'bg-green-100 text-green-700'}`}>
+                                {isInactive ? t('supplier_status_inactive') : t('supplier_status_active')}
+                              </span>
+                              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                                {publicProfile.productCategory || t('requests_unspecified')}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-600">{publicProfile.contactPerson || '-'}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button onClick={() => openEditSupplierModal(supplier)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                              {t('dashboard_edit')}
+                            </button>
+                            <button
+                              onClick={() => handleToggleSupplierStatus(supplier.id, isInactive ? 'active' : 'inactive')}
+                              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${isInactive ? 'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100' : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
+                            >
+                              {isInactive ? t('admin_supplier_activate') : t('admin_supplier_deactivate')}
+                            </button>
+                            <button onClick={() => handleDeleteSupplier(supplier.id)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
+                              {t('admin_supplier_remove')}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="mb-3 flex items-center justify-between">
+                              <h5 className="text-sm font-semibold text-slate-800">{t('admin_supplier_public_section')}</h5>
+                              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500">{t('admin_supplier_visible_to_user')}</span>
+                            </div>
+                            <div className="space-y-3 text-sm text-slate-600">
+                              <div><span className="font-semibold text-slate-800">{t('supplier_phone')}:</span> {publicProfile.phone || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_email')}:</span> <span className="break-all">{publicProfile.email || '-'}</span></div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_other_contact')}:</span> {publicProfile.otherContact || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_address')}:</span> {publicProfile.address || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_notes')}:</span> {publicProfile.notes || '-'}</div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                            <div className="mb-3 flex items-center justify-between">
+                              <h5 className="text-sm font-semibold text-slate-800">{t('admin_supplier_internal_section')}</h5>
+                              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-indigo-600">{t('admin_supplier_internal_only')}</span>
+                            </div>
+                            <div className="space-y-3 text-sm text-slate-600">
+                              <div><span className="font-semibold text-slate-800">{t('supplier_commission_rate')}:</span> {formatConvertedNumberByLanguage(internalMeta.commissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_settlement_terms')}:</span> {internalMeta.settlementTerms || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_platform_notes')}:</span> {internalMeta.platformNotes || '-'}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <h5 className="text-sm font-semibold text-slate-800">{t('admin_supplier_supported_categories')}</h5>
+                            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-violet-700">{formatNumberByLanguage(assignmentSummaries.length, language)}</span>
+                          </div>
+                          {assignmentSummaries.length > 0 ? (
+                            <div className="space-y-3">
+                              {assignmentSummaries.map((assignment) => (
+                                <div key={`${supplier.id}-${assignment.categoryId || assignment.categorySlug}`} className="rounded-xl border border-violet-200 bg-white p-4">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                      <div className="font-semibold text-slate-900">{assignment.categoryName}</div>
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assignment.useDefaultCommission !== false ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                                          {assignment.useDefaultCommission !== false ? t('admin_supplier_commission_default') : t('admin_supplier_commission_override')}
+                                        </span>
+                                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                                          {t('supplier_commission_rate')}: {formatConvertedNumberByLanguage(assignment.effectiveCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {assignment.useDefaultCommission === false && (
+                                      <div className="text-sm text-slate-500">
+                                        {t('admin_supplier_default_reference')}: {formatConvertedNumberByLanguage(assignment.defaultCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-slate-600">{t('admin_supplier_no_category_assignments')}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center shadow-sm">
+                  <Building className="mx-auto mb-4 h-16 w-16 text-slate-300" />
+                  <h3 className="text-lg font-bold text-slate-700">{t('supplier_empty')}</h3>
+                  <p className="mt-2 text-sm text-slate-500">{t('admin_empty_hint')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'admin_category_management' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_category_total')} value={supplierCategories.length} icon={<Inbox />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_category_active')} value={activeSupplierCategoriesCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('admin_category_inactive')} value={inactiveSupplierCategoriesCount} icon={<AlertCircle />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_category_custom')} value={customSupplierCategoriesCount} icon={<Plus />} color="text-blue-600" bg="bg-blue-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_category_management_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_category_management_desc')}</p>
+                    <p className="mt-2 text-xs font-medium text-indigo-600">{t('admin_category_internal_notice')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={categorySearchQuery}
+                        onChange={(e) => setCategorySearchQuery(e.target.value)}
+                        placeholder={t('admin_category_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 sm:w-80"
+                      />
+                    </div>
+                    <select
+                      value={categoryStatusFilter}
+                      onChange={(e) => setCategoryStatusFilter(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    >
+                      <option value="all">{t('admin_category_filter_all_statuses')}</option>
+                      <option value="active">{t('supplier_status_active')}</option>
+                      <option value="inactive">{t('supplier_status_inactive')}</option>
+                    </select>
+                    <button onClick={openAddCategoryModal} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      <Plus className="mr-2 h-4 w-4" /> {t('admin_category_add')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {filteredSupplierCategories.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {filteredSupplierCategories.map((category) => {
+                    const isInactive = category.status === 'inactive';
+                    return (
+                      <div key={category.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="text-lg font-bold text-slate-900">{getSupplierCategoryDisplayName(category, t)}</h4>
+                              <span className={`rounded-full px-3 py-1 text-xs font-bold ${isInactive ? 'bg-slate-200 text-slate-600' : 'bg-green-100 text-green-700'}`}>
+                                {isInactive ? t('supplier_status_inactive') : t('supplier_status_active')}
+                              </span>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${category.isSystem ? 'bg-blue-50 text-blue-700' : 'bg-violet-50 text-violet-700'}`}>
+                                {category.isSystem ? t('admin_category_standard') : t('admin_category_custom_badge')}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-500">{t('admin_category_slug')}: {category.slug || '-'}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button onClick={() => openEditCategoryModal(category)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                              {t('dashboard_edit')}
+                            </button>
+                            <button
+                              onClick={() => handleToggleCategoryStatus(category.id, isInactive ? 'active' : 'inactive')}
+                              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${isInactive ? 'border border-green-200 bg-green-50 text-green-700 hover:bg-green-100' : 'border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
+                            >
+                              {isInactive ? t('admin_category_activate') : t('admin_category_deactivate')}
+                            </button>
+                            {!category.isSystem && (
+                              <button onClick={() => handleDeleteCategory(category.id)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100">
+                                {t('admin_category_remove')}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_commission_rate')}</div>
+                            <div className="mt-1 text-base font-semibold text-slate-800">
+                              {formatConvertedNumberByLanguage(category.defaultCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_category_internal_notes')}</div>
+                            <div className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">{category.internalNotes || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-white py-12 text-center shadow-sm">
+                  <Inbox className="mx-auto mb-4 h-16 w-16 text-slate-300" />
+                  <h3 className="text-lg font-bold text-slate-700">{t('admin_category_empty')}</h3>
+                  <p className="mt-2 text-sm text-slate-500">{t('admin_empty_hint')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'admin_platform_revenue' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_platform_revenue_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_platform_revenue_desc')}</p>
+                  </div>
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    {t('admin_platform_revenue_internal_notice')}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_platform_total_revenue')} value={formatMoneyByLanguage(totalPlatformRevenue, language)} icon={<DollarSign />} color="text-emerald-700" bg="bg-emerald-100" />
+                <StatCard title={t('admin_platform_estimated_commission')} value={formatMoneyByLanguage(estimatedTotalCommission, language)} icon={<Receipt />} color="text-blue-700" bg="bg-blue-100" />
+                <StatCard title={t('admin_platform_order_volume')} value={formatMoneyByLanguage(totalPlatformOrderVolume, language)} icon={<Inbox />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_platform_recent_records')} value={recentPlatformRevenueRecords.length} icon={<Clock />} color="text-amber-700" bg="bg-amber-100" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-200 px-6 py-4">
+                    <h4 className="font-bold text-slate-800">{t('admin_platform_commission_by_supplier')}</h4>
+                    <p className="mt-1 text-sm text-slate-500">{t('admin_platform_commission_by_supplier_desc')}</p>
+                  </div>
+                  {platformCommissionBySupplier.length > 0 ? (
+                    <div className="divide-y divide-slate-200">
+                      {platformCommissionBySupplier.map((entry) => (
+                        <div key={entry.supplierId} className="px-6 py-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h5 className="font-semibold text-slate-900">{entry.supplierName}</h5>
+                                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${entry.status === 'inactive' ? 'bg-slate-200 text-slate-600' : 'bg-green-100 text-green-700'}`}>
+                                  {entry.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-500">{t('supplier_commission_rate')}: {formatConvertedNumberByLanguage(entry.commissionRate, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</p>
+                            </div>
+                            <div className="text-left sm:text-right">
+                              <div className="text-sm text-slate-500">{t('admin_platform_estimated_commission')}</div>
+                              <div className="text-lg font-bold text-emerald-700">{formatMoneyByLanguage(entry.estimatedCommission, language)}</div>
+                            </div>
+                          </div>
+                          <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="rounded-xl bg-slate-50 px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_platform_order_count')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{formatNumberByLanguage(entry.orderCount, language)}</div>
+                            </div>
+                            <div className="rounded-xl bg-slate-50 px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_platform_order_volume')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{formatMoneyByLanguage(entry.orderVolume, language)}</div>
+                            </div>
+                            <div className="rounded-xl bg-slate-50 px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_platform_total_revenue')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{formatMoneyByLanguage(entry.estimatedCommission, language)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-6 py-10 text-sm text-slate-500">{t('admin_platform_revenue_empty')}</div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-200 px-6 py-4">
+                    <h4 className="font-bold text-slate-800">{t('admin_platform_revenue_by_period')}</h4>
+                    <p className="mt-1 text-sm text-slate-500">{t('admin_platform_revenue_by_period_desc')}</p>
+                  </div>
+                  {sortedPlatformRevenueByPeriod.length > 0 ? (
+                    <div className="space-y-3 p-4">
+                      {sortedPlatformRevenueByPeriod.map((entry) => {
+                        const periodDate = new Date(`${entry.periodKey}-01T00:00:00`);
+                        const periodLabel = Number.isNaN(periodDate.getTime())
+                          ? entry.periodKey
+                          : new Intl.DateTimeFormat(NUMBER_LOCALE[language] || 'en-US', { month: 'short', year: 'numeric' }).format(periodDate);
+                        return (
+                          <div key={entry.periodKey} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="font-semibold text-slate-900">{periodLabel}</div>
+                              <div className="text-sm font-semibold text-emerald-700">{formatMoneyByLanguage(entry.estimatedCommission, language)}</div>
+                            </div>
+                            <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                              <div>
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_platform_order_count')}</div>
+                                <div className="mt-1">{formatNumberByLanguage(entry.orderCount, language)}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_platform_order_volume')}</div>
+                                <div className="mt-1">{formatMoneyByLanguage(entry.orderVolume, language)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-6 py-10 text-sm text-slate-500">{t('admin_platform_revenue_empty')}</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 px-6 py-4">
+                  <h4 className="font-bold text-slate-800">{t('admin_platform_recent_revenue_records')}</h4>
+                  <p className="mt-1 text-sm text-slate-500">{t('admin_platform_recent_revenue_records_desc')}</p>
+                </div>
+                {recentPlatformRevenueRecords.length > 0 ? (
+                  <div className="divide-y divide-slate-200">
+                    {recentPlatformRevenueRecords.map((record) => (
+                      <div key={record.id} className="px-6 py-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="font-semibold text-slate-900">{record.orderNumber}</div>
+                              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{t(`order_status_${record.status}`)}</span>
+                            </div>
+                            <div className="mt-1 text-sm text-slate-600">{record.supplierName}</div>
+                            <div className="mt-1 text-xs text-slate-500">{record.date}</div>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-3">
+                            <div className="rounded-xl bg-slate-50 px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('purchase_order_total')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{formatMoneyByLanguage(record.orderTotal, language)}</div>
+                            </div>
+                            <div className="rounded-xl bg-slate-50 px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('supplier_commission_rate')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{formatConvertedNumberByLanguage(record.commissionRate, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</div>
+                            </div>
+                            <div className="rounded-xl bg-slate-50 px-4 py-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_platform_estimated_commission')}</div>
+                              <div className="mt-1 font-semibold text-emerald-700">{formatMoneyByLanguage(record.estimatedCommission, language)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-6 py-10 text-sm text-slate-500">{t('admin_platform_revenue_empty')}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_commission_billing' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_commission_billing_total')} value={totalCommissionBillingCount} icon={<Receipt />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_commission_billing_open')} value={openCommissionBillingCount} icon={<Clock />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_commission_billing_paid')} value={paidCommissionBillingCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('admin_commission_billing_order_count')} value={commissionBillingPreview.sourceOrders.length} icon={<FileText />} color="text-blue-600" bg="bg-blue-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_commission_billing_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_commission_billing_desc')}</p>
+                    <p className="mt-2 text-xs font-medium text-indigo-600">{t('admin_commission_billing_export_ready')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={commissionBillingSearchQuery}
+                        onChange={(e) => setCommissionBillingSearchQuery(e.target.value)}
+                        placeholder={t('admin_commission_billing_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 sm:w-80"
+                      />
+                    </div>
+                    <select
+                      value={commissionBillingStatusFilter}
+                      onChange={(e) => setCommissionBillingStatusFilter(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    >
+                      <option value="all">{t('admin_commission_billing_filter_all_statuses')}</option>
+                      <option value="draft">{t('admin_commission_billing_status_draft')}</option>
+                      <option value="issued">{t('admin_commission_billing_status_issued')}</option>
+                      <option value="paid">{t('admin_commission_billing_status_paid')}</option>
+                      <option value="cancelled">{t('admin_commission_billing_status_cancelled')}</option>
+                    </select>
+                    <button onClick={openAddCommissionBillingModal} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      <Plus className="mr-2 h-4 w-4" /> {t('admin_commission_billing_generate')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <div className="space-y-4 xl:col-span-1">
+                  {filteredCommissionBillingRecords.length > 0 ? filteredCommissionBillingRecords.map((record) => {
+                    const isActive = selectedCommissionBillingRecord?.id === record.id;
+                    return (
+                      <button
+                        key={record.id}
+                        onClick={() => setSelectedCommissionBillingId(record.id)}
+                        className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${isActive ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">{record.billingNumber || '-'}</div>
+                            <div className={`mt-1 truncate text-sm ${isActive ? 'text-slate-200' : 'text-slate-500'}`}>{record.supplierName || '-'}</div>
+                          </div>
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                            {t(`admin_commission_billing_status_${record.status}`)}
+                          </span>
+                        </div>
+                        <div className={`mt-3 text-xs ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {record.billingPeriodLabel || '-'}
+                        </div>
+                        <div className={`mt-3 flex flex-wrap gap-3 text-xs ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>
+                          <span>{t('admin_commission_billing_gross_sales')}: {formatMoneyByLanguage(record.grossSalesAmount || 0, language)}</span>
+                          <span>{t('admin_commission_billing_commission_amount')}: {formatMoneyByLanguage(record.commissionAmount || 0, language)}</span>
+                        </div>
+                      </button>
+                    );
+                  }) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                      {t('admin_commission_billing_empty')}
+                    </div>
+                  )}
+                </div>
+
+                <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800">{t('admin_commission_billing_detail_title')}</h3>
+                  {selectedCommissionBillingRecord ? (
+                    <div className="mt-5 space-y-6">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <div className="text-2xl font-bold text-slate-900">{selectedCommissionBillingRecord.billingNumber || '-'}</div>
+                            <div className="mt-1 text-sm text-slate-600">{selectedCommissionBillingRecord.supplierName || '-'}</div>
+                            <div className="mt-2 text-xs text-slate-500">{selectedCommissionBillingRecord.agreementReference || '-'}</div>
+                          </div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                          <button onClick={() => setShowCommissionBillingPreview((prev) => !prev)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            <Eye className="mr-2 inline h-4 w-4" /> {t('preview_document')}
+                          </button>
+                          <button onClick={() => handleExportDocument('commission_billing')} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            <Download className="mr-2 inline h-4 w-4" /> {t('export_document')}
+                          </button>
+                          <button onClick={() => handlePrintDocument('commission_billing')} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                            <Printer className="mr-2 inline h-4 w-4" /> {t('print_document')}
+                          </button>
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                            {t(`admin_commission_billing_status_${selectedCommissionBillingRecord.status}`)}
+                          </span>
+                          <select
+                            value={selectedCommissionBillingRecord.status}
+                            onChange={(e) => handleCommissionBillingStatusChange(selectedCommissionBillingRecord.id, e.target.value)}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                          >
+                            <option value="draft">{t('admin_commission_billing_status_draft')}</option>
+                            <option value="issued">{t('admin_commission_billing_status_issued')}</option>
+                            <option value="paid">{t('admin_commission_billing_status_paid')}</option>
+                            <option value="cancelled">{t('admin_commission_billing_status_cancelled')}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="rounded-xl bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_gross_sales')}</div>
+                          <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(selectedCommissionBillingRecord.grossSalesAmount || 0, language)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_commission_amount')}</div>
+                          <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(selectedCommissionBillingRecord.commissionAmount || 0, language)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_order_count')}</div>
+                          <div className="mt-1 text-base font-semibold text-slate-900">{formatNumberByLanguage(selectedCommissionBillingRecord.calculationSnapshot?.orderCount || selectedCommissionBillingRecord.orderSnapshots?.length || 0, language)}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_agreement_reference')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedCommissionBillingRecord.agreementReference || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_period')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedCommissionBillingRecord.billingPeriodLabel || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_issue_date')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedCommissionBillingRecord.issueDate || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_due_date')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedCommissionBillingRecord.dueDate || '-'}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <div className="rounded-2xl border border-slate-200 p-5">
+                          <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_billing_contact')}</h4>
+                          <div className="mt-4 space-y-3 text-sm text-slate-600">
+                            <div><span className="font-semibold text-slate-800">{t('supplier_contact_person')}:</span> {selectedCommissionBillingRecord.agreementSnapshot?.billingContact?.name || '-'}</div>
+                            <div><span className="font-semibold text-slate-800">{t('supplier_email')}:</span> {selectedCommissionBillingRecord.agreementSnapshot?.billingContact?.email || '-'}</div>
+                            <div><span className="font-semibold text-slate-800">{t('supplier_phone')}:</span> {selectedCommissionBillingRecord.agreementSnapshot?.billingContact?.phone || '-'}</div>
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+                          <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_commission_basis')}</h4>
+                          <div className="mt-4 text-sm text-slate-700 whitespace-pre-wrap">
+                            {selectedCommissionBillingRecord.agreementSnapshot?.commissionBasisNote || '-'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h4 className="font-semibold text-slate-800">{t('admin_commission_billing_source_orders')}</h4>
+                            <p className="mt-1 text-sm text-slate-500">{t('admin_commission_billing_export_ready')}</p>
+                          </div>
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                            {formatNumberByLanguage(selectedCommissionBillingRecord.orderSnapshots?.length || 0, language)}
+                          </span>
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          {(selectedCommissionBillingRecord.orderSnapshots || []).map((order) => (
+                            <div key={`${selectedCommissionBillingRecord.id}-${order.orderId}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <div className="font-semibold text-slate-900">{order.orderNumber || '-'}</div>
+                                  <div className="mt-1 text-sm text-slate-500">{order.orderDate || '-'}</div>
+                                </div>
+                                <div className="text-sm font-semibold text-slate-900">{formatMoneyByLanguage(order.totalAmount || 0, language)}</div>
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
+                                <span>{t('project_title')}: {order.projectName || '-'}</span>
+                                <span>{t('purchase_order_supplier')}: {selectedCommissionBillingRecord.supplierName || '-'}</span>
+                                <span>{t(`order_status_${order.status}`) || order.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-5">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('label_notes')}</div>
+                        <div className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{selectedCommissionBillingRecord.notes || '-'}</div>
+                      </div>
+
+                      {(showCommissionBillingPreview || printTarget === 'commission_billing') && (
+                        <div className={`document-preview-shell rounded-2xl border border-slate-200 bg-white p-6 ${printTarget === 'commission_billing' ? 'print-target' : ''}`}>
+                          <div className="mb-4 flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-bold text-slate-800">{t('preview_title')}</h3>
+                              <p className="text-xs text-slate-500">{t('pdf_export_ready')}</p>
+                              <p className="mt-1 text-xs text-blue-700">{t('export_file_ready')}</p>
+                            </div>
+                          </div>
+                          <div ref={commissionBillingPreviewRef} className="print-document" data-export-type="commission_billing">
+                            <div className="document-header border-b border-slate-200 pb-6">
+                              <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                  <div className="text-2xl font-bold text-slate-900">{platformIdentity.companyName}</div>
+                                  <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                    <div>{platformIdentity.billingAddress}</div>
+                                    <div>{platformIdentity.billingPhone}</div>
+                                    <div>{platformIdentity.billingEmail}</div>
+                                  </div>
+                                </div>
+                                <div className="min-w-[240px] space-y-2 text-sm text-slate-600">
+                                  <div className="text-xl font-bold text-slate-900">{t('admin_commission_billing_title')}</div>
+                                  <div><span className="font-semibold text-slate-800">{t('admin_commission_billing_agreement_reference')}:</span> {selectedCommissionBillingRecord.agreementReference || '-'}</div>
+                                  <div><span className="font-semibold text-slate-800">{t('purchase_order_supplier')}:</span> {selectedCommissionBillingRecord.supplierName || '-'}</div>
+                                  <div><span className="font-semibold text-slate-800">{t('admin_commission_billing_issue_date')}:</span> {selectedCommissionBillingRecord.issueDate || '-'}</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 py-6 md:grid-cols-2">
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                                <div className="mb-2 font-semibold text-slate-800">{t('purchase_order_supplier')}</div>
+                                <div className="font-medium">{selectedCommissionBillingRecord.supplierName || '-'}</div>
+                                <div className="mt-2">{selectedCommissionBillingRecord.agreementSnapshot?.billingContact?.name || '-'}</div>
+                                <div className="mt-1">{selectedCommissionBillingRecord.agreementSnapshot?.billingContact?.email || '-'}</div>
+                                <div className="mt-1">{selectedCommissionBillingRecord.agreementSnapshot?.billingContact?.phone || '-'}</div>
+                              </div>
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                                <div className="mb-2 font-semibold text-slate-800">{t('admin_commission_billing_detail_title')}</div>
+                                <div><span className="font-semibold text-slate-800">{t('admin_commission_billing_period')}:</span> {selectedCommissionBillingRecord.billingPeriodLabel || '-'}</div>
+                                <div className="mt-1"><span className="font-semibold text-slate-800">{t('admin_commission_billing_due_date')}:</span> {selectedCommissionBillingRecord.dueDate || '-'}</div>
+                                <div className="mt-1"><span className="font-semibold text-slate-800">{t('label_status')}:</span> {t(`admin_commission_billing_status_${selectedCommissionBillingRecord.status}`)}</div>
+                              </div>
+                            </div>
+
+                            <div className="overflow-hidden rounded-2xl border border-slate-200">
+                              <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                  <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_number')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_date')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('project_title')}</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_total')}</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 bg-white">
+                                  {commissionBillingPrintSourceOrders.map((order) => (
+                                    <tr key={`print-billing-${order.orderId}`}>
+                                      <td className="px-4 py-3 text-sm text-slate-700">{order.orderNumber || '-'}</td>
+                                      <td className="px-4 py-3 text-sm text-slate-700">{order.orderDate || '-'}</td>
+                                      <td className="px-4 py-3 text-sm text-slate-700">{order.projectName || '-'}</td>
+                                      <td className="px-4 py-3 text-sm font-medium text-slate-800">{formatMoneyByLanguage(order.totalAmount || 0, language)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                              <div className="space-y-3 text-sm text-slate-700">
+                                <div>
+                                  <div className="mb-1 font-semibold text-slate-800">{t('admin_supplier_agreement_commission_basis')}</div>
+                                  <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4">{selectedCommissionBillingRecord.agreementSnapshot?.commissionBasisNote || '-'}</div>
+                                </div>
+                                <div>
+                                  <div className="mb-1 font-semibold text-slate-800">{t('label_notes')}</div>
+                                  <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4">{selectedCommissionBillingRecord.notes || '-'}</div>
+                                </div>
+                              </div>
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="space-y-3 text-sm">
+                                  <div className="flex justify-between"><span>{t('admin_commission_billing_gross_sales')}</span><span>{formatMoneyByLanguage(selectedCommissionBillingRecord.grossSalesAmount || 0, language)}</span></div>
+                                  <div className="flex justify-between"><span>{t('supplier_commission_rate')}</span><span>{formatConvertedNumberByLanguage(selectedCommissionBillingRecord.calculationSnapshot?.commissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span></div>
+                                  <div className="flex justify-between border-t border-slate-200 pt-3 text-lg font-bold text-slate-900"><span>{t('admin_commission_billing_commission_amount')}</span><span>{formatMoneyByLanguage(selectedCommissionBillingRecord.commissionAmount || 0, language)}</span></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+                      {t('admin_commission_billing_empty')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_supplier_agreements' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_supplier_agreements_total')} value={supplierAgreements.length} icon={<FileText />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_supplier_agreements_active')} value={activeSupplierAgreementsCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('admin_supplier_agreements_expiring')} value={expiringSupplierAgreementsCount} icon={<Clock />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_supplier_recent_records')} value={filteredSupplierAgreements.length} icon={<Receipt />} color="text-blue-600" bg="bg-blue-100" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <div className="xl:col-span-1 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">{t('admin_supplier_agreements_title')}</h3>
+                      <p className="mt-1 text-sm text-slate-500">{t('admin_supplier_agreements_desc')}</p>
+                    </div>
+                    <button onClick={openAddAgreementModal} className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      <Plus className="mr-2 h-4 w-4" /> {t('admin_supplier_agreement_add')}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={agreementSearchQuery}
+                        onChange={(e) => setAgreementSearchQuery(e.target.value)}
+                        placeholder={t('admin_supplier_agreements_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700"
+                      />
+                    </div>
+                    <select value={agreementStatusFilter} onChange={(e) => setAgreementStatusFilter(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('admin_supplier_agreement_filter_all_statuses')}</option>
+                      <option value="draft">{t('admin_supplier_agreement_status_draft')}</option>
+                      <option value="active">{t('admin_supplier_agreement_status_active')}</option>
+                      <option value="inactive">{t('admin_supplier_agreement_status_inactive')}</option>
+                      <option value="expired">{t('admin_supplier_agreement_status_expired')}</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    {filteredSupplierAgreements.length > 0 ? filteredSupplierAgreements.map((agreement) => {
+                      const supplier = supplierDirectory.find((entry) => entry.id === agreement.supplierId);
+                      const isSelected = selectedSupplierAgreement?.id === agreement.id;
+                      return (
+                        <button
+                          key={agreement.id}
+                          onClick={() => setSelectedAgreementId(agreement.id)}
+                          className={`w-full rounded-xl border p-4 text-left transition ${isSelected ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-slate-800">{agreement.title || '-'}</div>
+                              <div className="mt-1 text-sm text-slate-500">{supplier?.publicProfile?.supplierName || '-'}</div>
+                            </div>
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{t(`admin_supplier_agreement_status_${agreement.status}`)}</span>
+                          </div>
+                          <div className="mt-3 text-xs text-slate-500">{agreement.agreementNumber || '-'} | {agreement.startDate || '-'} {agreement.endDate ? `- ${agreement.endDate}` : ''}</div>
+                        </button>
+                      );
+                    }) : (
+                      <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                        {t('admin_supplier_agreements_empty')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800">{t('admin_supplier_agreement_detail_title')}</h3>
+                  {selectedSupplierAgreement ? (() => {
+                    const supplier = supplierDirectory.find((entry) => entry.id === selectedSupplierAgreement.supplierId);
+                    const snapshotAssignments = Array.isArray(selectedSupplierAgreement.supplierSnapshot?.supportedCategories)
+                      ? selectedSupplierAgreement.supplierSnapshot.supportedCategories
+                      : [];
+                    const assignments = snapshotAssignments.length > 0
+                      ? snapshotAssignments
+                      : (supplier ? getSupplierAssignmentSummariesForRender(supplier) : []);
+                    const snapshotBillingContact = selectedSupplierAgreement.supplierSnapshot?.billingContact || {};
+                    return (
+                      <div className="mt-5 space-y-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <div className="text-2xl font-bold text-slate-900">{selectedSupplierAgreement.title || '-'}</div>
+                            <div className="mt-1 text-sm text-slate-600">{selectedSupplierAgreement.supplierSnapshot?.supplierName || supplier?.publicProfile?.supplierName || '-'}</div>
+                            <div className="mt-2 text-xs text-slate-500">{selectedSupplierAgreement.agreementNumber || '-'}</div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{t(`admin_supplier_agreement_status_${selectedSupplierAgreement.status}`)}</span>
+                            <button onClick={() => openEditAgreementModal(selectedSupplierAgreement)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{t('dashboard_edit')}</button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                          <div className="rounded-xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_supplier_agreement_period')}</div><div className="mt-1 text-sm font-medium text-slate-800">{selectedSupplierAgreement.startDate || '-'} {selectedSupplierAgreement.endDate ? `- ${selectedSupplierAgreement.endDate}` : ''}</div></div>
+                          <div className="rounded-xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_supplier_agreement_billing_cycle')}</div><div className="mt-1 text-sm font-medium text-slate-800">{t(`admin_supplier_agreement_billing_cycle_${selectedSupplierAgreement.billingCycle}`)}</div></div>
+                          <div className="rounded-xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_supplier_agreement_payment_due_days')}</div><div className="mt-1 text-sm font-medium text-slate-800">{formatNumberByLanguage(selectedSupplierAgreement.paymentDueDays || 0, language)}</div></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                          <div className="rounded-2xl border border-slate-200 p-5">
+                            <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_billing_contact')}</h4>
+                            <div className="mt-4 space-y-3 text-sm text-slate-600">
+                              <div><span className="font-semibold text-slate-800">{t('supplier_contact_person')}:</span> {selectedSupplierAgreement.billingContactName || snapshotBillingContact.name || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_email')}:</span> {selectedSupplierAgreement.billingContactEmail || snapshotBillingContact.email || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_phone')}:</span> {selectedSupplierAgreement.billingContactPhone || snapshotBillingContact.phone || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('admin_supplier_agreement_payment_method_note')}:</span> {selectedSupplierAgreement.paymentMethodNote || '-'}</div>
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+                            <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_commission_basis')}</h4>
+                            <div className="mt-4 text-sm text-slate-700 whitespace-pre-wrap">{selectedSupplierAgreement.commissionBasisNote || selectedSupplierAgreement.supplierSnapshot?.commissionSummary || '-'}</div>
+                            {assignments.length > 0 && (
+                              <div className="mt-4 space-y-2">
+                                {assignments.map((assignment) => (
+                                  <div key={`${selectedSupplierAgreement.id}-${assignment.categoryId || assignment.categorySlug}`} className="rounded-xl bg-white px-4 py-3 text-sm text-slate-700">
+                                    <div className="font-medium text-slate-900">{assignment.categoryName}</div>
+                                    <div className="mt-1">{assignment.useDefaultCommission !== false ? t('admin_supplier_commission_default') : t('admin_supplier_commission_override')} | {formatConvertedNumberByLanguage(assignment.effectiveCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                          <div>
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_supplier_agreement_special_terms')}</div>
+                            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 whitespace-pre-wrap">{selectedSupplierAgreement.specialTerms || '-'}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_supplier_agreement_internal_notes')}</div>
+                            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 whitespace-pre-wrap">{selectedSupplierAgreement.internalNotes || '-'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-sm text-slate-500">
+                      {t('admin_supplier_agreements_empty')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'purchase_orders' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-1 bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">{t('purchase_orders_title')}</h3>
+                      <p className="text-sm text-slate-600 mt-1">{t('section_placeholder_desc')}</p>
+                    </div>
+                    <button onClick={handleCreatePurchaseOrder} className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600">
+                      <Plus className="mr-2 h-4 w-4" /> {t('purchase_order_create')}
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {purchaseOrders.length > 0 ? purchaseOrders.map((order) => {
+                      const supplier = supplierDirectory.find((item) => item.id === order.supplierId);
+                      const publicProfile = supplier?.publicProfile || {};
+                      const total = order.items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+                      const isSelected = selectedPurchaseOrderId === order.id;
+                      return (
+                        <button
+                          key={order.id}
+                          onClick={() => setSelectedPurchaseOrderId(order.id)}
+                          className={`w-full rounded-xl border p-4 text-left transition ${isSelected ? 'border-orange-400 bg-orange-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="font-semibold text-slate-800">{order.poNumber}</div>
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{t(`order_status_${order.status}`)}</span>
+                          </div>
+                          <div className="mt-2 text-sm text-slate-600">{publicProfile.supplierName || '-'}</div>
+                          <div className="mt-1 text-xs text-slate-500">{order.orderDate || '-'}</div>
+                          <div className="mt-3 text-sm font-semibold text-slate-800">{formatMoneyByLanguage(total, language)}</div>
+                        </button>
+                      );
+                    }) : (
+                      <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                        {t('purchase_order_empty')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_number')}</label>
+                      <input type="text" value={purchaseOrderForm.poNumber} onChange={(e) => handlePurchaseOrderChange('poNumber', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_date')}</label>
+                      <input type="date" value={purchaseOrderForm.orderDate} onChange={(e) => handlePurchaseOrderChange('orderDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_status')}</label>
+                      <select value={purchaseOrderForm.status} onChange={(e) => handlePurchaseOrderChange('status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                        <option value="draft">{t('order_status_draft')}</option>
+                        <option value="submitted">{t('order_status_submitted')}</option>
+                        <option value="confirmed">{t('order_status_confirmed')}</option>
+                        <option value="processing">{t('order_status_processing')}</option>
+                        <option value="shipped">{t('order_status_shipped')}</option>
+                        <option value="delivered">{t('order_status_delivered')}</option>
+                        <option value="cancelled">{t('order_status_cancelled')}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_supplier')}</label>
+                    <select value={purchaseOrderForm.supplierId} onChange={(e) => handlePurchaseOrderChange('supplierId', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+                      <option value="">{t('purchase_order_select_supplier')}</option>
+                      {supplierDirectory
+                        .filter((supplier) => supplier.publicProfile?.status !== 'inactive')
+                        .map((supplier) => (
+                          <option key={supplier.id} value={supplier.id}>{supplier.publicProfile?.supplierName}</option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="font-semibold text-slate-800">{t('purchase_order_items')}</h4>
+                      <button onClick={handleAddPurchaseOrderItem} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        <Plus className="mr-2 h-4 w-4" /> {t('purchase_order_add_item')}
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {purchaseOrderForm.items.map((item) => {
+                        const lineTotal = Number(item.quantity) * Number(item.unitPrice);
+                        return (
+                          <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 rounded-xl border border-slate-200 p-4">
+                            <div className="md:col-span-5">
+                              <label className="block text-xs font-medium text-slate-500 mb-1">{t('purchase_order_item_name')}</label>
+                              <input type="text" value={item.description} onChange={(e) => handlePurchaseOrderItemChange(item.id, 'description', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-slate-500 mb-1">{t('purchase_order_quantity')}</label>
+                              <input type="number" min="0" value={item.quantity} onChange={(e) => handlePurchaseOrderItemChange(item.id, 'quantity', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-slate-500 mb-1">{t('purchase_order_unit_price')}</label>
+                              <input type="number" min="0" value={item.unitPrice} onChange={(e) => handlePurchaseOrderItemChange(item.id, 'unitPrice', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                            </div>
+                            <div className="md:col-span-2">
+                              <label className="block text-xs font-medium text-slate-500 mb-1">{t('purchase_order_line_total')}</label>
+                              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">{formatMoneyByLanguage(lineTotal, language)}</div>
+                            </div>
+                            <div className="md:col-span-1 flex items-end">
+                              <button onClick={() => handleRemovePurchaseOrderItem(item.id)} className="w-full rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+                                {t('purchase_order_remove_item')}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_notes')}</label>
+                    <textarea value={purchaseOrderForm.notes} onChange={(e) => handlePurchaseOrderChange('notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+
+                  <div className="flex flex-col gap-4 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-sm text-slate-500">{t('purchase_order_total')}</div>
+                      <div className="text-2xl font-bold text-slate-900">{formatMoneyByLanguage(purchaseOrderTotal, language)}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {selectedPurchaseOrderId && (
+                        <button onClick={() => handleDeletePurchaseOrder(selectedPurchaseOrderId)} className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+                          {t('btn_delete')}
+                        </button>
+                      )}
+                      <button onClick={handleSavePurchaseOrder} className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-orange-600">
+                        {t('purchase_order_save')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'order_status' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-200 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('order_status_title')}</h3>
+                  </div>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div className="relative flex-1 max-w-md">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={orderStatusSearchQuery}
+                        onChange={(e) => setOrderStatusSearchQuery(e.target.value)}
+                        placeholder={t('order_status_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm"
+                      />
+                    </div>
+                    <select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                      <option value="all">{t('order_status_filter_all')}</option>
+                      <option value="draft">{t('order_status_draft')}</option>
+                      <option value="submitted">{t('order_status_submitted')}</option>
+                      <option value="confirmed">{t('order_status_confirmed')}</option>
+                      <option value="processing">{t('order_status_processing')}</option>
+                      <option value="shipped">{t('order_status_shipped')}</option>
+                      <option value="delivered">{t('order_status_delivered')}</option>
+                      <option value="cancelled">{t('order_status_cancelled')}</option>
+                    </select>
+                  </div>
+                </div>
+                {filteredOrderStatuses.length > 0 ? (
+                  <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr]">
+                  <div className="overflow-x-auto border-r border-slate-200">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_number')}</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_supplier')}</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_date')}</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold uppercase text-slate-500">{t('purchase_order_total')}</th>
+                          <th className="px-6 py-4 text-left text-xs font-bold uppercase text-slate-500">{t('supplier_status')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {filteredOrderStatuses.map((order) => {
+                          const supplier = supplierDirectory.find((item) => item.id === order.supplierId);
+                          const total = order.items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+                          return (
+                            <tr key={order.id} className={`hover:bg-slate-50 ${selectedPurchaseOrderId === order.id ? 'bg-orange-50/60' : ''}`}>
+                              <td className="px-6 py-4 text-sm font-semibold text-slate-800">{order.poNumber}</td>
+                              <td className="px-6 py-4 text-sm text-slate-700">{supplier?.publicProfile?.supplierName || '-'}</td>
+                              <td className="px-6 py-4 text-sm text-slate-700">{order.orderDate || '-'}</td>
+                              <td className="px-6 py-4 text-sm font-semibold text-slate-800">{formatMoneyByLanguage(total, language)}</td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                <select value={order.status} onChange={(e) => handlePurchaseOrderStatusChange(order.id, e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white">
+                                  <option value="draft">{t('order_status_draft')}</option>
+                                  <option value="submitted">{t('order_status_submitted')}</option>
+                                  <option value="confirmed">{t('order_status_confirmed')}</option>
+                                  <option value="processing">{t('order_status_processing')}</option>
+                                  <option value="shipped">{t('order_status_shipped')}</option>
+                                  <option value="delivered">{t('order_status_delivered')}</option>
+                                  <option value="cancelled">{t('order_status_cancelled')}</option>
+                                </select>
+                                <button onClick={() => setSelectedPurchaseOrderId(order.id)} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                                  {t('order_status_open_details')}
+                                </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="bg-slate-50/70 p-6">
+                    {selectedPurchaseOrderId && purchaseOrders.find((order) => order.id === selectedPurchaseOrderId) ? (
+                      (() => {
+                        const order = purchaseOrders.find((item) => item.id === selectedPurchaseOrderId);
+                        const supplier = supplierDirectory.find((item) => item.id === order.supplierId);
+                        const total = order.items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.unitPrice)), 0);
+                        return (
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-lg font-bold text-slate-800">{t('order_status_details')}</h4>
+                              <p className="text-sm text-slate-500 mt-1">{order.poNumber}</p>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 space-y-2">
+                              <div><span className="font-semibold text-slate-800">{t('purchase_order_supplier')}:</span> {supplier?.publicProfile?.supplierName || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('purchase_order_date')}:</span> {order.orderDate || '-'}</div>
+                              <div><span className="font-semibold text-slate-800">{t('supplier_status')}:</span> {t(`order_status_${order.status}`)}</div>
+                              <div><span className="font-semibold text-slate-800">{t('purchase_order_total')}:</span> {formatMoneyByLanguage(total, language)}</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                              <div className="mb-3 text-sm font-semibold text-slate-800">{t('purchase_order_items')}</div>
+                              <div className="space-y-3">
+                                {order.items.map((item) => (
+                                  <div key={item.id} className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
+                                    <div>
+                                      <div className="font-medium text-slate-800">{item.description || '-'}</div>
+                                      <div className="mt-1 text-xs text-slate-500">{formatNumberByLanguage(item.quantity, language)} x {formatMoneyByLanguage(item.unitPrice, language)}</div>
+                                    </div>
+                                    <div className="text-sm font-semibold text-slate-800">{formatMoneyByLanguage(Number(item.quantity) * Number(item.unitPrice), language)}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 whitespace-pre-wrap">
+                              <div className="mb-2 font-semibold text-slate-800">{t('purchase_order_notes')}</div>
+                              {order.notes || '-'}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                        {t('order_status_open_details')}
+                      </div>
+                    )}
+                  </div>
+                  </div>
+                ) : (
+                  <div className="p-10 text-center text-sm text-slate-500">{purchaseOrders.length > 0 ? t('order_status_no_results') : t('purchase_order_empty')}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_settlements' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_settlement_total')} value={totalSettlementCount} icon={<Receipt />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_settlement_unpaid')} value={unpaidSettlementCount} icon={<Clock />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_settlement_overdue')} value={overdueSettlementCount} icon={<AlertCircle />} color="text-red-600" bg="bg-red-100" />
+                <StatCard title={t('admin_settlement_paid')} value={paidSettlementCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_settlements_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_settlements_desc')}</p>
+                    <p className="mt-2 text-xs font-medium text-indigo-600">{t('admin_settlement_export_ready')}</p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={settlementSearchQuery}
+                        onChange={(e) => setSettlementSearchQuery(e.target.value)}
+                        placeholder={t('admin_settlement_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700 sm:w-80"
+                      />
+                    </div>
+                    <select
+                      value={settlementStatusFilter}
+                      onChange={(e) => setSettlementStatusFilter(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                    >
+                      <option value="all">{t('admin_settlement_filter_all_statuses')}</option>
+                      <option value="unpaid">{t('admin_settlement_status_unpaid')}</option>
+                      <option value="partial">{t('admin_settlement_status_partial')}</option>
+                      <option value="overdue">{t('admin_settlement_status_overdue')}</option>
+                      <option value="paid">{t('admin_settlement_status_paid')}</option>
+                      <option value="cancelled">{t('admin_settlement_status_cancelled')}</option>
+                    </select>
+                    <button onClick={openAddSettlementModal} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      <Plus className="mr-2 h-4 w-4" /> {t('admin_settlement_add')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                <div className="space-y-4 xl:col-span-1">
+                  {filteredSettlementRecords.length > 0 ? filteredSettlementRecords.map((record) => {
+                    const isActive = selectedSettlementRecord?.id === record.id;
+                    return (
+                      <button
+                        key={record.id}
+                        onClick={() => setSelectedSettlementId(record.id)}
+                        className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${isActive ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">{record.settlementNumber || '-'}</div>
+                            <div className={`mt-1 truncate text-sm ${isActive ? 'text-slate-200' : 'text-slate-500'}`}>{record.supplierName || '-'}</div>
+                          </div>
+                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                            {t(`admin_settlement_status_${record.effectiveStatus}`)}
+                          </span>
+                        </div>
+                        <div className={`mt-3 text-xs ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>{record.billingNumber || '-'}</div>
+                        <div className={`mt-3 flex flex-wrap gap-3 text-xs ${isActive ? 'text-slate-200' : 'text-slate-600'}`}>
+                          <span>{t('admin_settlement_amount_due')}: {formatMoneyByLanguage(record.amountDue || 0, language)}</span>
+                          <span>{t('admin_settlement_balance_remaining')}: {formatMoneyByLanguage(record.balanceRemaining || 0, language)}</span>
+                        </div>
+                      </button>
+                    );
+                  }) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                      {t('admin_settlement_empty')}
+                    </div>
+                  )}
+                </div>
+
+                <div className="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h3 className="text-lg font-bold text-slate-800">{t('admin_settlement_detail_title')}</h3>
+                  {selectedSettlementRecord ? (
+                    <div className="mt-5 space-y-6">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <div className="text-2xl font-bold text-slate-900">{selectedSettlementRecord.settlementNumber || '-'}</div>
+                            <div className="mt-1 text-sm text-slate-600">{selectedSettlementRecord.supplierName || '-'}</div>
+                            <div className="mt-2 text-xs text-slate-500">{selectedSettlementRecord.billingNumber || '-'}</div>
+                          </div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                          <button onClick={() => setShowSettlementPreview((prev) => !prev)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            <Eye className="mr-2 inline h-4 w-4" /> {t('preview_document')}
+                          </button>
+                          <button onClick={() => handleExportDocument('settlement')} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            <Download className="mr-2 inline h-4 w-4" /> {t('export_document')}
+                          </button>
+                          <button onClick={() => handlePrintDocument('settlement')} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                            <Printer className="mr-2 inline h-4 w-4" /> {t('print_document')}
+                          </button>
+                          <button onClick={() => openRecordPaymentModal(selectedSettlementRecord)} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
+                            {t('admin_settlement_record_payment')}
+                          </button>
+                          <select
+                            value={selectedSettlementRecord.effectiveStatus}
+                            onChange={(e) => handleSettlementStatusChange(selectedSettlementRecord.id, e.target.value)}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                          >
+                            <option value="unpaid">{t('admin_settlement_status_unpaid')}</option>
+                            <option value="partial">{t('admin_settlement_status_partial')}</option>
+                            <option value="overdue">{t('admin_settlement_status_overdue')}</option>
+                            <option value="paid">{t('admin_settlement_status_paid')}</option>
+                            <option value="cancelled">{t('admin_settlement_status_cancelled')}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="rounded-xl bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_amount_due')}</div>
+                          <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(selectedSettlementRecord.amountDue || 0, language)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_amount_paid')}</div>
+                          <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(selectedSettlementRecord.amountPaid || 0, language)}</div>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_balance_remaining')}</div>
+                          <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(selectedSettlementRecord.balanceRemaining || 0, language)}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_related_billing')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedSettlementRecord.billingNumber || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_due_date')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedSettlementRecord.dueDate || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_payment_date')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedSettlementRecord.paymentDate || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_payment_method')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{selectedSettlementRecord.paymentMethod || '-'}</div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                        <div className="rounded-2xl border border-slate-200 p-5">
+                          <h4 className="font-semibold text-slate-800">{t('admin_settlement_payment_reference')}</h4>
+                          <div className="mt-4 text-sm text-slate-700 whitespace-pre-wrap">{selectedSettlementRecord.paymentReference || '-'}</div>
+                          <div className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">
+                            <div><span className="font-semibold text-slate-800">{t('admin_commission_billing_agreement_reference')}:</span> {selectedSettlementRecord.billingSnapshot?.agreementReference || '-'}</div>
+                            <div className="mt-2"><span className="font-semibold text-slate-800">{t('admin_commission_billing_period')}:</span> {selectedSettlementRecord.billingSnapshot?.billingPeriodLabel || '-'}</div>
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+                          <h4 className="font-semibold text-slate-800">{t('admin_settlement_payment_history')}</h4>
+                          <div className="mt-4 space-y-3">
+                            {selectedSettlementRecord.paymentHistory?.length > 0 ? selectedSettlementRecord.paymentHistory.map((payment) => (
+                              <div key={payment.id} className="rounded-xl bg-white px-4 py-3 text-sm text-slate-700">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <div>{payment.paymentDate || '-'}</div>
+                                  <div className="font-semibold text-slate-900">{formatMoneyByLanguage(payment.amount || 0, language)}</div>
+                                </div>
+                                <div className="mt-2 text-xs text-slate-500">{payment.paymentMethod || '-'} | {payment.paymentReference || '-'}</div>
+                              </div>
+                            )) : (
+                              <div className="rounded-xl border border-dashed border-violet-200 px-4 py-5 text-sm text-slate-500">
+                                {t('admin_settlement_no_payments')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-5">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('label_notes')}</div>
+                        <div className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{selectedSettlementRecord.notes || '-'}</div>
+                      </div>
+
+                      {(showSettlementPreview || printTarget === 'settlement') && (
+                        <div className={`document-preview-shell rounded-2xl border border-slate-200 bg-white p-6 ${printTarget === 'settlement' ? 'print-target' : ''}`}>
+                          <div className="mb-4 flex items-center justify-between">
+                            <div>
+                              <h3 className="text-lg font-bold text-slate-800">{t('preview_title')}</h3>
+                              <p className="text-xs text-slate-500">{t('pdf_export_ready')}</p>
+                              <p className="mt-1 text-xs text-blue-700">{t('export_file_ready')}</p>
+                            </div>
+                          </div>
+                          <div ref={settlementPreviewRef} className="print-document" data-export-type="settlement">
+                            <div className="document-header border-b border-slate-200 pb-6">
+                              <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                  <div className="text-2xl font-bold text-slate-900">{platformIdentity.companyName}</div>
+                                  <div className="mt-2 space-y-1 text-sm text-slate-600">
+                                    <div>{platformIdentity.billingAddress}</div>
+                                    <div>{platformIdentity.billingPhone}</div>
+                                    <div>{platformIdentity.billingEmail}</div>
+                                  </div>
+                                </div>
+                                <div className="min-w-[240px] space-y-2 text-sm text-slate-600">
+                                  <div className="text-xl font-bold text-slate-900">{t('admin_settlements_title')}</div>
+                                  <div><span className="font-semibold text-slate-800">{t('admin_settlement_related_billing')}:</span> {selectedSettlementRecord.billingNumber || '-'}</div>
+                                  <div><span className="font-semibold text-slate-800">{t('purchase_order_supplier')}:</span> {selectedSettlementRecord.supplierName || '-'}</div>
+                                  <div><span className="font-semibold text-slate-800">{t('admin_settlement_payment_date')}:</span> {selectedSettlementRecord.paymentDate || '-'}</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 py-6 md:grid-cols-2">
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                                <div className="mb-2 font-semibold text-slate-800">{t('purchase_order_supplier')}</div>
+                                <div className="font-medium">{selectedSettlementRecord.supplierName || '-'}</div>
+                                <div className="mt-2">{selectedSettlementRecord.billingNumber || '-'}</div>
+                                <div className="mt-1">{settlementPrintBillingSnapshot.agreementReference || '-'}</div>
+                                <div className="mt-1">{settlementPrintBillingSnapshot.billingPeriodLabel || '-'}</div>
+                              </div>
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                                <div className="mb-2 font-semibold text-slate-800">{t('admin_settlement_detail_title')}</div>
+                                <div><span className="font-semibold text-slate-800">{t('admin_settlement_due_date')}:</span> {selectedSettlementRecord.dueDate || '-'}</div>
+                                <div className="mt-1"><span className="font-semibold text-slate-800">{t('admin_settlement_payment_method')}:</span> {selectedSettlementRecord.paymentMethod || '-'}</div>
+                                <div className="mt-1"><span className="font-semibold text-slate-800">{t('admin_settlement_payment_reference')}:</span> {selectedSettlementRecord.paymentReference || '-'}</div>
+                                <div className="mt-1"><span className="font-semibold text-slate-800">{t('label_status')}:</span> {t(`admin_settlement_status_${selectedSettlementRecord.effectiveStatus}`)}</div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="space-y-3 text-sm">
+                                  <div className="flex justify-between"><span>{t('admin_settlement_amount_due')}</span><span>{formatMoneyByLanguage(selectedSettlementRecord.amountDue || 0, language)}</span></div>
+                                  <div className="flex justify-between"><span>{t('admin_settlement_amount_paid')}</span><span>{formatMoneyByLanguage(selectedSettlementRecord.amountPaid || 0, language)}</span></div>
+                                  <div className="flex justify-between border-t border-slate-200 pt-3 text-lg font-bold text-slate-900"><span>{t('admin_settlement_balance_remaining')}</span><span>{formatMoneyByLanguage(selectedSettlementRecord.balanceRemaining || 0, language)}</span></div>
+                                </div>
+                              </div>
+                              <div className="space-y-3 text-sm text-slate-700">
+                                <div>
+                                  <div className="mb-1 font-semibold text-slate-800">{t('admin_settlement_payment_history')}</div>
+                                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    {(selectedSettlementRecord.paymentHistory?.length || 0) > 0 ? selectedSettlementRecord.paymentHistory.map((payment) => (
+                                      <div key={`print-settlement-${payment.id}`} className="flex justify-between gap-3 border-b border-slate-200 py-2 last:border-b-0 last:pb-0 first:pt-0">
+                                        <span>{payment.paymentDate || '-'}</span>
+                                        <span className="font-medium">{formatMoneyByLanguage(payment.amount || 0, language)}</span>
+                                      </div>
+                                    )) : (
+                                      <div>{t('admin_settlement_no_payments')}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+                              <div>
+                                <div className="mb-1 font-semibold text-slate-800">{t('label_notes')}</div>
+                                <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{selectedSettlementRecord.notes || '-'}</div>
+                              </div>
+                              <div>
+                                <div className="mb-1 font-semibold text-slate-800">{t('admin_commission_billing_agreement_reference')}</div>
+                                <div className="whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{settlementPrintBillingSnapshot.agreementReference || '-'}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+                      {t('admin_settlement_empty')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_pricing_management' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_pricing_total_packages')} value={pricingPackages.length} icon={<Package />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_pricing_active_packages')} value={activePricingPackageCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('admin_pricing_recommended_package')} value={recommendedPricingPackage?.name || '-'} icon={<Percent />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_pricing_monthly_revenue_hint')} value={recommendedPricingPackage ? formatMoneyByLanguage(recommendedPricingPackage.price || 0, language) : '-'} icon={<DollarSign />} color="text-blue-600" bg="bg-blue-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_pricing_management_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_pricing_management_desc')}</p>
+                  </div>
+                  <button onClick={openAddPricingPackageModal} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                    {t('admin_pricing_add_package')}
+                  </button>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={pricingSearchQuery}
+                      onChange={(e) => setPricingSearchQuery(e.target.value)}
+                      placeholder={t('admin_pricing_search_placeholder')}
+                      className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm"
+                    />
+                  </div>
+                  <select value={pricingStatusFilter} onChange={(e) => setPricingStatusFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="all">{t('admin_pricing_filter_all_statuses')}</option>
+                    <option value="enabled">{t('admin_pricing_status_enabled')}</option>
+                    <option value="disabled">{t('admin_pricing_status_disabled')}</option>
+                  </select>
+                </div>
+              </div>
+
+              {filteredPricingPackages.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {filteredPricingPackages.map((entry) => (
+                    <div key={entry.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="text-lg font-semibold text-slate-900">{entry.name || entry.code}</h4>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${entry.status === 'enabled' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700'}`}>
+                              {t(entry.status === 'enabled' ? 'admin_pricing_status_enabled' : 'admin_pricing_status_disabled')}
+                            </span>
+                            {entry.isRecommended && (
+                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                                {t('admin_pricing_popular')}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{entry.code || '-'}</div>
+                          <p className="mt-3 text-sm leading-6 text-slate-600">{entry.description || '-'}</p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+                          <div className="text-lg font-bold text-slate-900">{formatMoneyByLanguage(entry.price || 0, language)}</div>
+                          <div className="mt-1 text-xs text-slate-500">{t(`admin_pricing_billing_period_${entry.billingPeriod}`)} {t('admin_pricing_price_suffix')}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_pricing_billing_period')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{t(`admin_pricing_billing_period_${entry.billingPeriod}`)}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_pricing_feature_count')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{formatNumberByLanguage(entry.features.length, language)}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('label_status')}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{t(entry.status === 'enabled' ? 'admin_pricing_status_enabled' : 'admin_pricing_status_disabled')}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-5">
+                        <div className="mb-2 text-sm font-semibold text-slate-800">{t('admin_pricing_features')}</div>
+                        {entry.features.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {entry.features.map((feature, index) => (
+                              <span key={`${entry.id}-feature-${index}`} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500">
+                            {t('admin_pricing_no_features')}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                        <button onClick={() => openEditPricingPackageModal(entry)} className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                          {t('admin_pricing_edit_package')}
+                        </button>
+                        <button onClick={() => togglePricingPackageStatus(entry.id)} className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                          {t('admin_pricing_toggle_enable')}
+                        </button>
+                        <button onClick={() => (entry.isRecommended ? clearPricingPackageRecommended(entry.id) : setPricingPackageRecommended(entry.id))} className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium ${entry.isRecommended ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                          {t(entry.isRecommended ? 'admin_pricing_unset_recommended' : 'admin_pricing_set_recommended')}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+                  <div className="text-base font-semibold text-slate-800">{t('admin_pricing_empty')}</div>
+                  <div className="mt-2 text-sm text-slate-500">{t('admin_pricing_empty_hint')}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'admin_settings' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('admin_settings_default_commission_rate')} value={`${formatConvertedNumberByLanguage(adminSettingsForm.defaultCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`} icon={<Percent />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('admin_settings_default_payment_due_days')} value={formatNumberByLanguage(adminSettingsForm.defaultPaymentDueDays || 0, language)} icon={<Clock />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_settings_billing_number_prefix')} value={adminSettingsForm.billingNumberPrefix || '-'} icon={<FileText />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('admin_settings_settlement_number_prefix')} value={adminSettingsForm.settlementNumberPrefix || '-'} icon={<Receipt />} color="text-green-600" bg="bg-green-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('admin_settings_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('admin_settings_desc')}</p>
+                    <p className="mt-2 text-xs font-medium text-indigo-600">{t('admin_settings_reuse_notice')}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {adminSettingsSaved && <span className="text-sm font-medium text-green-600">{t('admin_settings_saved')}</span>}
+                    <button onClick={handleSaveAdminSettings} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      {t('btn_save')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                  <div>
+                    <h4 className="font-semibold text-slate-800">{t('admin_settings_section_defaults')}</h4>
+                    <p className="mt-1 text-sm text-slate-500">{t('admin_settings_reuse_agreements_billing')}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_default_commission_rate')}</label>
+                      <input type="number" min="0" step="0.01" value={adminSettingsForm.defaultCommissionRate} onChange={(e) => updateAdminSettingsField('defaultCommissionRate', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_default_payment_due_days')}</label>
+                      <input type="number" min="0" value={adminSettingsForm.defaultPaymentDueDays} onChange={(e) => updateAdminSettingsField('defaultPaymentDueDays', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_default_billing_cycle')}</label>
+                      <select value={adminSettingsForm.defaultBillingCycle} onChange={(e) => updateAdminSettingsField('defaultBillingCycle', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="monthly">{t('admin_supplier_agreement_billing_cycle_monthly')}</option>
+                        <option value="biweekly">{t('admin_supplier_agreement_billing_cycle_biweekly')}</option>
+                        <option value="weekly">{t('admin_supplier_agreement_billing_cycle_weekly')}</option>
+                        <option value="custom">{t('admin_supplier_agreement_billing_cycle_custom')}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_billing_number_prefix')}</label>
+                      <input type="text" value={adminSettingsForm.billingNumberPrefix} onChange={(e) => updateAdminSettingsField('billingNumberPrefix', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_settlement_number_prefix')}</label>
+                      <input type="text" value={adminSettingsForm.settlementNumberPrefix} onChange={(e) => updateAdminSettingsField('settlementNumberPrefix', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_default_billing_note')}</label>
+                      <textarea value={adminSettingsForm.defaultBillingNote} onChange={(e) => updateAdminSettingsField('defaultBillingNote', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-24" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_default_settlement_note')}</label>
+                      <textarea value={adminSettingsForm.defaultSettlementNote} onChange={(e) => updateAdminSettingsField('defaultSettlementNote', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-24" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                    <div>
+                      <h4 className="font-semibold text-slate-800">{t('admin_settings_section_platform_identity')}</h4>
+                      <p className="mt-1 text-sm text-slate-500">{t('admin_settings_reuse_export')}</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_platform_company_name')}</label>
+                        <input type="text" value={adminSettingsForm.platformCompanyName} onChange={(e) => updateAdminSettingsField('platformCompanyName', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_platform_billing_address')}</label>
+                        <textarea value={adminSettingsForm.platformBillingAddress} onChange={(e) => updateAdminSettingsField('platformBillingAddress', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-24" />
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_platform_billing_email')}</label>
+                          <input type="email" value={adminSettingsForm.platformBillingEmail} onChange={(e) => updateAdminSettingsField('platformBillingEmail', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_platform_billing_phone')}</label>
+                          <input type="text" value={adminSettingsForm.platformBillingPhone} onChange={(e) => updateAdminSettingsField('platformBillingPhone', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h4 className="font-semibold text-slate-800">{t('admin_settings_internal_admin_notes')}</h4>
+                    <textarea value={adminSettingsForm.internalAdminNotes} onChange={(e) => updateAdminSettingsField('internalAdminNotes', e.target.value)} className="mt-4 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-32" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ----- TAB: CHAT (แชทส่วนกลางผู้จัดการ พร้อมเสียงจริง) ----- */}
+          {activeTab === 'chat' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 h-[calc(100vh-140px)] flex flex-col overflow-hidden animate-in fade-in duration-300">
+               <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                 <div><h3 className="font-bold text-slate-800">{t('chat_manager_title')}</h3><p className="text-xs text-slate-500">{t('chat_realtime')}</p></div>
+                 <div className="flex space-x-2"><button onClick={() => onNavigate('worker')} className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-200 transition">{t('chat_go_worker')}</button><button onClick={() => onNavigate('owner')} className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-200 transition">{t('chat_go_owner')}</button></div>
+               </div>
+
+               <div ref={chatContainerRef} className="flex-1 p-6 space-y-4 overflow-y-auto bg-slate-100/50">
+                 {globalChats.map(msg => {
+                   const isMe = msg.senderRole === 'manager';
+                   return (
+                     <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className={`p-3 rounded-2xl text-sm shadow-sm max-w-[90%] md:max-w-[70%] ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm'}`}>
+                          {!isMe && (<div className={`text-[10px] font-bold mb-1 ${msg.senderRole === 'owner' ? 'text-orange-500' : 'text-blue-500'}`}>{msg.sender} {msg.senderRole === 'owner' && t('chat_owner_suffix')}</div>)}
+                          {msg.audioUrl ? (
+                             <audio controls src={msg.audioUrl} className="max-w-[200px] sm:max-w-full h-10 mt-1 rounded-full outline-none bg-transparent" />
+                          ) : (msg.text)}
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 mx-1">{msg.time}</span>
+                     </div>
+                   )
+                 })}
+               </div>
+
+               <div className="p-4 bg-white border-t border-slate-200 flex items-center">
+                  <button onMouseDown={startRecording} onMouseUp={stopRecording} onMouseLeave={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording} className={`p-3 transition rounded-full ${isRecordingAudio ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:bg-slate-100'}`} title={t('chat_hold_record')}><Mic className="w-5 h-5"/></button>
+                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={handleKeyPress} className="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mx-3" placeholder={isRecordingAudio ? t('chat_recording') : t('chat_placeholder')} disabled={isRecordingAudio} />
+                  <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`p-3 rounded-full transition ${chatInput.trim() ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' : 'bg-slate-100 text-slate-400'}`}><Send className="w-5 h-5"/></button>
+               </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* ALL MODALS FOR MANAGER */}
+      {isPricingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <h3 className="font-bold text-lg text-slate-800">{editingPricingPackageId ? t('admin_pricing_modal_title_edit') : t('admin_pricing_modal_title_add')}</h3>
+              <button onClick={() => setIsPricingModalOpen(false)} className="text-slate-400">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="rounded-2xl border border-slate-200 p-5">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_code')}</label>
+                    <input type="text" value={normalizedPricingPackageForm.code} onChange={(e) => updatePricingPackageField('code', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_name')}</label>
+                    <input type="text" value={normalizedPricingPackageForm.name} onChange={(e) => updatePricingPackageField('name', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_description')}</label>
+                    <textarea value={normalizedPricingPackageForm.description} onChange={(e) => updatePricingPackageField('description', e.target.value)} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_price')}</label>
+                    <input type="number" min="0" value={normalizedPricingPackageForm.price} onChange={(e) => updatePricingPackageField('price', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_billing_period')}</label>
+                    <select value={normalizedPricingPackageForm.billingPeriod} onChange={(e) => updatePricingPackageField('billingPeriod', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                      <option value="monthly">{t('admin_pricing_billing_period_monthly')}</option>
+                      <option value="quarterly">{t('admin_pricing_billing_period_quarterly')}</option>
+                      <option value="yearly">{t('admin_pricing_billing_period_yearly')}</option>
+                      <option value="custom">{t('admin_pricing_billing_period_custom')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('label_status')}</label>
+                    <select value={normalizedPricingPackageForm.status} onChange={(e) => updatePricingPackageField('status', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                      <option value="enabled">{t('admin_pricing_status_enabled')}</option>
+                      <option value="disabled">{t('admin_pricing_status_disabled')}</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <input id="pricing-package-recommended" type="checkbox" checked={normalizedPricingPackageForm.isRecommended} onChange={(e) => updatePricingPackageField('isRecommended', e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+                    <label htmlFor="pricing-package-recommended" className="text-sm font-medium text-slate-700">{t('admin_pricing_popular')}</label>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_features')}</label>
+                    <textarea
+                      value={normalizedPricingPackageForm.features.join('\n')}
+                      onChange={(e) => updatePricingPackageField('features', e.target.value.split('\n').map((item) => item.trim()).filter(Boolean))}
+                      className="min-h-36 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    />
+                    <p className="mt-2 text-xs text-slate-500">{t('admin_pricing_features_hint')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 border-t border-slate-100 bg-white px-6 py-4 sm:flex-row sm:justify-end">
+              <button onClick={() => setIsPricingModalOpen(false)} className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                {t('btn_cancel')}
+              </button>
+              <button onClick={handleSavePricingPackage} className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                {t('admin_pricing_save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"><h3 className="font-bold text-lg text-slate-800">{editingId ? t('modal_edit_title') : t('modal_add_title')}</h3><button onClick={() => setIsModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button></div>
+            <div className="max-h-[80vh] overflow-y-auto p-6 space-y-6">
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <div>
+                  <h4 className="font-semibold text-slate-800">{t('project_section_core')}</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_name')}</label>
+                    <input type="text" value={formData.name} onChange={(e) => handleProjectFormChange('name', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_code')}</label>
+                    <input type="text" value={formData.projectCode} onChange={(e) => handleProjectFormChange('projectCode', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_type')}</label>
+                    <select value={formData.projectType} onChange={(e) => handleProjectFormChange('projectType', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="">{t('project_type')}</option>
+                      <option value="residential">{t('project_type_residential')}</option>
+                      <option value="commercial">{t('project_type_commercial')}</option>
+                      <option value="industrial">{t('project_type_industrial')}</option>
+                      <option value="renovation">{t('project_type_renovation')}</option>
+                      <option value="other">{t('project_type_other')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_client_name')}</label>
+                    <input type="text" value={formData.clientName} onChange={(e) => handleProjectFormChange('clientName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_site_address')}</label>
+                    <textarea value={formData.location} onChange={(e) => handleProjectFormChange('location', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_start_date')}</label>
+                    <input type="date" value={formData.startDate} onChange={(e) => handleProjectFormChange('startDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_end_date')}</label>
+                    <input type="date" value={formData.endDate} onChange={(e) => handleProjectFormChange('endDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_status')}</label>
+                    <select value={formData.status} onChange={(e) => handleProjectFormChange('status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="active">{t('status_active')}</option><option value="delayed">{t('status_delayed')}</option><option value="completed">{t('status_completed')}</option></select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_value')}</label>
+                    <input type="number" min="0" value={formData.projectValue} onChange={(e) => handleProjectFormChange('projectValue', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_progress')}</label>
+                    <input type="number" min="0" max="100" value={formData.progress} onChange={(e) => handleProjectFormChange('progress', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_workers')}</label>
+                    <input type="number" min="0" value={formData.workers} onChange={(e) => handleProjectFormChange('workers', Number(e.target.value))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('project_section_supervisor')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_supervisor_name')}</label>
+                    <input type="text" value={formData.supervisor.name} onChange={(e) => handleProjectSupervisorChange('name', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_supervisor_position')}</label>
+                    <input type="text" value={formData.supervisor.position} onChange={(e) => handleProjectSupervisorChange('position', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_phone')}</label>
+                    <input type="text" value={formData.supervisor.phone} onChange={(e) => handleProjectSupervisorChange('phone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_email')}</label>
+                    <input type="email" value={formData.supervisor.email} onChange={(e) => handleProjectSupervisorChange('email', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_other_contact')}</label>
+                    <input type="text" value={formData.supervisor.otherContact} onChange={(e) => handleProjectSupervisorChange('otherContact', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_supervisor_notes')}</label>
+                    <textarea value={formData.supervisor.notes} onChange={(e) => handleProjectSupervisorChange('notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="font-semibold text-slate-800">{t('project_section_subcontractor')}</h4>
+                  <button type="button" onClick={handleAddProjectSubcontractor} className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    <Plus className="mr-2 h-4 w-4" /> {t('project_add_subcontractor')}
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {formData.subcontractors.map((subcontractor, index) => (
+                    <div key={subcontractor.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="font-medium text-slate-800">{t('project_subcontractor_entry')} {index + 1}</div>
+                        <button type="button" onClick={() => handleRemoveProjectSubcontractor(subcontractor.id)} className="text-sm font-medium text-red-600 hover:text-red-700">
+                          {t('project_remove_subcontractor')}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_subcontractor_name')}</label>
+                          <input type="text" value={subcontractor.name} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'name', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_subcontractor_work_type')}</label>
+                          <input type="text" value={subcontractor.workType} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'workType', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_subcontractor_contact_person')}</label>
+                          <input type="text" value={subcontractor.contactPerson} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'contactPerson', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_phone')}</label>
+                          <input type="text" value={subcontractor.phone} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'phone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('company_email')}</label>
+                          <input type="email" value={subcontractor.email} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'email', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_other_contact')}</label>
+                          <input type="text" value={subcontractor.otherContact} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'otherContact', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_subcontractor_status')}</label>
+                          <select value={subcontractor.status} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                            <option value="active">{t('supplier_status_active')}</option>
+                            <option value="inactive">{t('supplier_status_inactive')}</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_subcontractor_notes')}</label>
+                          <textarea value={subcontractor.notes} onChange={(e) => handleProjectSubcontractorChange(subcontractor.id, 'notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-between items-center">{editingId ? <button onClick={() => handleDelete(editingId)} className="text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">{t('btn_delete')}</button> : <div></div>}<div className="flex space-x-3"><button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button><button onClick={handleSave} className="px-6 py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 rounded-lg transition">{t('btn_save')}</button></div></div>
+          </div>
+        </div>
+      )}
+
+      {isWorkerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[min(92vh,980px)] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+            <div className="px-4 py-4 sm:px-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <h3 className="font-bold text-lg text-slate-800">{editingWorkerId ? t('modal_edit_worker') : t('modal_add_worker')}</h3>
+              <button onClick={() => setIsWorkerModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+              <div className="space-y-6 pb-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_person_type')}</label>
+                <select value={normalizedWorkerForm.personType} onChange={(e) => setWorkerFormData((prev) => normalizeWorkerEntry({ ...prev, personType: e.target.value }))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                  {PERSON_TYPE_OPTIONS.map((type) => (
+                    <option key={type} value={type}>{getPersonTypeLabel(type, t)}</option>
+                  ))}
+                </select>
+              </div>
+
+              {isPersonType && (
+                <>
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_personal')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('modal_full_name')}</label>
+                        <input type="text" value={normalizedWorkerForm.name} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, name: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_role')}</label>
+                        <select value={normalizedWorkerForm.role} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, role: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                          {workerRoleOptions.map((role) => (
+                            <option key={role} value={role}>{getConstructionRoleLabel(role, language)}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_contact')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_phone')}</label>
+                        <input type="text" value={normalizedWorkerForm.phone} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, phone: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_email')}</label>
+                        <input type="email" value={normalizedWorkerForm.email} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, email: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_other_contact')}</label>
+                        <input type="text" value={normalizedWorkerForm.otherContact} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, otherContact: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_assignment')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_wage')}</label>
+                        <input type="number" value={normalizedWorkerForm.wage} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, wage: Number(e.target.value) })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_assigned_site')}</label>
+                        <select value={normalizedWorkerForm.assignedSiteId} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, assignedSiteId: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                          <option value="">{t('unassigned_site')}</option>
+                          {projectsList.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_notes')}</label>
+                        <textarea value={normalizedWorkerForm.notes} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, notes: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {isSubcontractorType && (
+                <>
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_subcontractor')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_company_team_name')}</label>
+                        <input type="text" value={normalizedWorkerForm.companyName} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, companyName: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_subcontract_work_type')}</label>
+                        <input type="text" value={normalizedWorkerForm.subcontractWorkType} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, subcontractWorkType: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_contact_person')}</label>
+                        <input type="text" value={normalizedWorkerForm.contactPerson} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, contactPerson: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_assigned_site')}</label>
+                        <select value={normalizedWorkerForm.assignedSiteId} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, assignedSiteId: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                          <option value="">{t('unassigned_site')}</option>
+                          {projectsList.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_contact')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_phone')}</label><input type="text" value={normalizedWorkerForm.phone} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, phone: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_email')}</label><input type="email" value={normalizedWorkerForm.email} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, email: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_other_contact')}</label><input type="text" value={normalizedWorkerForm.otherContact} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, otherContact: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_status')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_status')}</label><select value={normalizedWorkerForm.status} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, status: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="active">{t('entity_status_active')}</option><option value="inactive">{t('entity_status_inactive')}</option></select></div>
+                      <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_notes')}</label><textarea value={normalizedWorkerForm.notes} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, notes: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" /></div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {isSupplierType && (
+                <>
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_supplier')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_company_store_name')}</label><input type="text" value={normalizedWorkerForm.companyName} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, companyName: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_product_category')}</label><input type="text" value={normalizedWorkerForm.productCategory} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, productCategory: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_contact_person')}</label><input type="text" value={normalizedWorkerForm.contactPerson} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, contactPerson: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_assigned_site')}</label><select value={normalizedWorkerForm.assignedSiteId} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, assignedSiteId: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="">{t('unassigned_site')}</option>{projectsList.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}</select></div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_contact')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_phone')}</label><input type="text" value={normalizedWorkerForm.phone} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, phone: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_email')}</label><input type="email" value={normalizedWorkerForm.email} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, email: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_other_contact')}</label><input type="text" value={normalizedWorkerForm.otherContact} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, otherContact: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                      <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_address')}</label><textarea value={normalizedWorkerForm.address} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, address: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" /></div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 p-4 space-y-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('worker_section_status')}</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_status')}</label><select value={normalizedWorkerForm.status} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, status: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="active">{t('entity_status_active')}</option><option value="inactive">{t('entity_status_inactive')}</option></select></div>
+                      <div className="md:col-span-2"><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_notes')}</label><textarea value={normalizedWorkerForm.notes} onChange={(e) => setWorkerFormData({ ...normalizedWorkerForm, notes: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" /></div>
+                    </div>
+                  </div>
+                </>
+              )}
+              </div>
+            </div>
+            <div className="px-4 py-4 sm:px-6 border-t bg-slate-50 shrink-0 sticky bottom-0">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                {editingWorkerId ? <button onClick={() => handleDeleteWorker(editingWorkerId)} className="order-3 sm:order-1 text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition text-left">{t('btn_delete')}</button> : <div className="hidden sm:block" />}
+                <div className="order-1 sm:order-2 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                  <button onClick={() => setIsWorkerModalOpen(false)} className="w-full sm:w-auto px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+                  <button onClick={handleSaveWorker} className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white font-medium hover:bg-green-700 rounded-lg transition">{t('btn_save')}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDocModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b flex justify-between items-center bg-slate-50"><h3 className="font-bold text-lg text-slate-800">{editingDocId ? t('modal_edit_doc') : t('modal_add_doc')}</h3><button onClick={() => setIsDocModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button></div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-medium mb-1">{t('label_doc_type')}</label><select value={docFormData.type} onChange={(e) => setDocFormData({...docFormData, type: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="invoice">{t('doc_type_invoice')}</option><option value="report">{t('doc_type_report')}</option></select></div><div><label className="block text-sm font-medium mb-1">{t('label_date')}</label><input type="date" value={docFormData.date} onChange={(e) => setDocFormData({...docFormData, date: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div></div>
+              <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_doc_title')} *</label><input type="text" value={docFormData.title} onChange={(e) => setDocFormData({...docFormData, title: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+              <div className="grid grid-cols-2 gap-4"><div className="col-span-2 sm:col-span-1"><label className="block text-sm font-medium mb-1">{t('label_related_project')}</label><select value={docFormData.projectId} onChange={(e) => setDocFormData({...docFormData, projectId: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="">{t('unassigned_site')}</option>{projectsList.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}</select></div><div className="col-span-2 sm:col-span-1"><label className="block text-sm font-medium mb-1">{t('label_amount')}</label><input type="number" min="0" value={docFormData.amount} onChange={(e) => setDocFormData({...docFormData, amount: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div></div>
+              <div><label className="block text-sm font-medium mb-1">{t('label_status')}</label><select value={docFormData.status} onChange={(e) => setDocFormData({...docFormData, status: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="pending">{t('doc_status_pending')}</option><option value="approved">{t('doc_status_approved')}</option><option value="rejected">{t('doc_status_rejected')}</option></select></div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-between items-center">{editingDocId ? <button onClick={() => handleDeleteDoc(editingDocId)} className="text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">{t('btn_delete')}</button> : <div></div>}<div className="flex space-x-3"><button onClick={() => setIsDocModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button><button onClick={handleSaveDoc} className="px-6 py-2 bg-orange-500 text-white font-medium hover:bg-orange-600 rounded-lg transition">{t('btn_save')}</button></div></div>
+          </div>
+        </div>
+      )}
+
+      {isInvModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"><h3 className="font-bold text-lg text-slate-800">{editingInvId ? t('modal_edit_inv') : t('modal_add_inv')}</h3><button onClick={() => setIsInvModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button></div>
+            <div className="p-6 space-y-4">
+              <div><label className="block text-sm font-medium text-slate-700 mb-1">{t('label_item_name')} *</label><input type="text" value={invFormData.name} onChange={(e) => setInvFormData({...invFormData, name: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-purple-500 text-sm" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><label className="block text-sm font-medium mb-1">{t('label_category')}</label><select value={invFormData.category} onChange={(e) => setInvFormData({...invFormData, category: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="วัสดุก่อสร้าง">{t('category_construction')}</option><option value="ตกแต่ง">{t('category_decor')}</option><option value="ประปา">{t('category_plumbing')}</option><option value="ไฟฟ้า">{t('category_electrical')}</option><option value="อื่นๆ">{t('category_other')}</option></select></div>
+                <div><label className="block text-sm font-medium mb-1">{t('label_linked_project')}</label><select value={invFormData.projectId} onChange={(e) => setInvFormData({...invFormData, projectId: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"><option value="">{t('inventory_central_stock')}</option>{projectsList.map(p => (<option key={p.id} value={p.id}>{p.name}</option>))}</select></div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-1"><label className="block text-sm font-medium mb-1">{t('label_qty')}</label><input type="number" min="0" value={invFormData.quantity} onChange={(e) => setInvFormData({...invFormData, quantity: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                <div className="col-span-1"><label className="block text-sm font-medium mb-1">{t('label_unit')}</label><input type="text" value={invFormData.unit} onChange={(e) => setInvFormData({...invFormData, unit: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+                <div className="col-span-1"><label className="block text-sm font-medium mb-1">{t('label_unit_price')}</label><input type="number" min="0" value={invFormData.unitPrice} onChange={(e) => setInvFormData({...invFormData, unitPrice: e.target.value})} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" /></div>
+              </div>
+              {invFormData.projectId && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">{t('inventory_project_usage_title')}</div>
+                  <p className="mt-2 text-sm text-slate-500">{t('project_material_quantity_hint')}</p>
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">{t('project_material_assigned')}</label>
+                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+                        {formatNumberByLanguage(invFormData.quantity || 0, language)} {invFormData.unit || '-'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">{t('project_material_used')}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={Math.max(Number(invFormData.quantity || 0), 0)}
+                        value={invFormData.projectUsage?.usedQuantity ?? 0}
+                        onChange={(e) => setInvFormData({
+                          ...invFormData,
+                          projectUsage: {
+                            ...(invFormData.projectUsage || {}),
+                            usedQuantity: e.target.value,
+                          },
+                        })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">{t('project_material_remaining')}</label>
+                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700">
+                        {formatNumberByLanguage(Math.max(Number(invFormData.quantity || 0) - Math.min(Math.max(Number(invFormData.projectUsage?.usedQuantity || 0), 0), Math.max(Number(invFormData.quantity || 0), 0)), 0), language)} {invFormData.unit || '-'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-between items-center">{editingInvId ? <button onClick={() => handleDeleteInv(editingInvId)} className="text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">{t('btn_delete')}</button> : <div></div>}<div className="flex space-x-3"><button onClick={() => setIsInvModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button><button onClick={handleSaveInv} className="px-6 py-2 bg-purple-600 text-white font-medium hover:bg-purple-700 rounded-lg transition">{t('btn_save')}</button></div></div>
+          </div>
+        </div>
+      )}
+
+      {isSupplierModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className={`bg-white rounded-2xl shadow-xl w-full overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col ${isAdminSupplierSection ? 'max-w-4xl' : 'max-w-2xl'}`}>
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">
+                {isAdminSupplierSection
+                  ? (editingSupplierId ? t('admin_supplier_edit_title') : t('admin_supplier_add_title'))
+                  : (editingSupplierId ? t('supplier_directory_title') : t('add_supplier'))}
+              </h3>
+              <button onClick={() => setIsSupplierModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {isAdminSupplierSection ? (
+                <>
+                  <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="font-semibold text-slate-800">{t('admin_supplier_public_section')}</h4>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">{t('admin_supplier_visible_to_user')}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_name')} *</label>
+                        <input type="text" value={supplierFormData.publicProfile.supplierName} onChange={(e) => updateSupplierPublicField('supplierName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_contact_person')}</label>
+                        <input type="text" value={supplierFormData.publicProfile.contactPerson} onChange={(e) => updateSupplierPublicField('contactPerson', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_phone')}</label>
+                        <input type="text" value={supplierFormData.publicProfile.phone} onChange={(e) => updateSupplierPublicField('phone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_email')}</label>
+                        <input type="email" value={supplierFormData.publicProfile.email} onChange={(e) => updateSupplierPublicField('email', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_other_contact')}</label>
+                        <input type="text" value={supplierFormData.publicProfile.otherContact} onChange={(e) => updateSupplierPublicField('otherContact', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_address')}</label>
+                        <textarea value={supplierFormData.publicProfile.address} onChange={(e) => updateSupplierPublicField('address', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_category')}</label>
+                        <input type="text" value={supplierFormData.publicProfile.productCategory} onChange={(e) => updateSupplierPublicField('productCategory', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_status')}</label>
+                        <select value={supplierFormData.publicProfile.status} onChange={(e) => updateSupplierPublicField('status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                          <option value="active">{t('supplier_status_active')}</option>
+                          <option value="inactive">{t('supplier_status_inactive')}</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_notes')}</label>
+                        <textarea value={supplierFormData.publicProfile.notes} onChange={(e) => updateSupplierPublicField('notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="font-semibold text-slate-800">{t('admin_supplier_internal_section')}</h4>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-indigo-600">{t('admin_supplier_internal_only')}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_commission_rate')}</label>
+                        <input type="number" min="0" step="0.01" value={supplierFormData.internalMeta.commissionRate} onChange={(e) => updateSupplierInternalField('commissionRate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_settlement_terms')}</label>
+                        <input type="text" value={supplierFormData.internalMeta.settlementTerms} onChange={(e) => updateSupplierInternalField('settlementTerms', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_platform_notes')}</label>
+                        <textarea value={supplierFormData.internalMeta.platformNotes} onChange={(e) => updateSupplierInternalField('platformNotes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28 bg-white" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h5 className="font-semibold text-slate-800">{t('admin_supplier_category_commission_section')}</h5>
+                        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
+                          {formatNumberByLanguage((supplierFormData.internalMeta?.categoryAssignments || []).length, language)}
+                        </span>
+                      </div>
+                      {availableActiveSupplierCategories.length > 0 ? (
+                        <div className="space-y-3">
+                          {availableActiveSupplierCategories.map((category) => {
+                            const assignment = (supplierFormData.internalMeta?.categoryAssignments || []).find((item) => item.categoryId === category.id);
+                            const isAssigned = Boolean(assignment);
+                            const usesDefault = assignment?.useDefaultCommission !== false;
+                            return (
+                              <div key={category.id} className="rounded-xl border border-slate-200 p-4">
+                                <div className="flex items-start gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isAssigned}
+                                    onChange={(e) => handleToggleSupplierCategoryAssignment(category, e.target.checked)}
+                                    className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                  />
+                                  <div className="flex-1 space-y-3">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                      <div>
+                                        <div className="font-semibold text-slate-900">{getSupplierCategoryDisplayName(category, t)}</div>
+                                        <div className="mt-1 text-xs text-slate-500">{t('supplier_commission_rate')}: {formatConvertedNumberByLanguage(category.defaultCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</div>
+                                      </div>
+                                      {isAssigned && (
+                                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${usesDefault ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
+                                          {usesDefault ? t('admin_supplier_commission_default') : t('admin_supplier_commission_override')}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {isAssigned && (
+                                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <label className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={usesDefault}
+                                              onChange={(e) => updateSupplierCategoryAssignment(category.id, 'useDefaultCommission', e.target.checked)}
+                                              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                                            />
+                                            <span>{t('admin_supplier_use_category_default')}</span>
+                                          </div>
+                                        </label>
+                                        <div>
+                                          <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_override_commission')}</label>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={assignment?.overrideCommissionRate ?? category.defaultCommissionRate ?? 0}
+                                            onChange={(e) => updateSupplierCategoryAssignment(category.id, 'overrideCommissionRate', e.target.value)}
+                                            disabled={usesDefault}
+                                            className={`w-full px-3 py-2 border border-slate-300 rounded-lg text-sm ${usesDefault ? 'bg-slate-100 text-slate-400' : 'bg-white'}`}
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-slate-600">{t('admin_supplier_no_active_categories')}</div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_name')} *</label>
+                    <input type="text" value={supplierFormData.publicProfile.supplierName} onChange={(e) => updateSupplierPublicField('supplierName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_contact_person')}</label>
+                    <input type="text" value={supplierFormData.publicProfile.contactPerson} onChange={(e) => updateSupplierPublicField('contactPerson', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_phone')}</label>
+                    <input type="text" value={supplierFormData.publicProfile.phone} onChange={(e) => updateSupplierPublicField('phone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_email')}</label>
+                    <input type="email" value={supplierFormData.publicProfile.email} onChange={(e) => updateSupplierPublicField('email', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_other_contact')}</label>
+                    <input type="text" value={supplierFormData.publicProfile.otherContact} onChange={(e) => updateSupplierPublicField('otherContact', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_address')}</label>
+                    <textarea value={supplierFormData.publicProfile.address} onChange={(e) => updateSupplierPublicField('address', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_category')}</label>
+                    <input type="text" value={supplierFormData.publicProfile.productCategory} onChange={(e) => updateSupplierPublicField('productCategory', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_status')}</label>
+                    <select value={supplierFormData.publicProfile.status} onChange={(e) => updateSupplierPublicField('status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="active">{t('supplier_status_active')}</option>
+                      <option value="inactive">{t('supplier_status_inactive')}</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_notes')}</label>
+                    <textarea value={supplierFormData.publicProfile.notes} onChange={(e) => updateSupplierPublicField('notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-between items-center">
+              {editingSupplierId ? <button onClick={() => handleDeleteSupplier(editingSupplierId)} className="text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">{t('btn_delete')}</button> : <div></div>}
+              <div className="flex space-x-3">
+                <button onClick={() => setIsSupplierModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+                <button onClick={handleSaveSupplier} className="px-6 py-2 bg-orange-500 text-white font-medium hover:bg-orange-600 rounded-lg transition">{t('supplier_save')}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAgreementModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">{editingAgreementId ? t('admin_supplier_agreement_edit_title') : t('admin_supplier_agreement_add_title')}</h3>
+              <button onClick={() => setIsAgreementModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_form_section')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_supplier')} *</label>
+                    <select value={agreementFormData.supplierId} onChange={(e) => updateAgreementField('supplierId', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="">{t('purchase_order_select_supplier')}</option>
+                      {supplierDirectory.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>{supplier.publicProfile?.supplierName || '-'}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_agreement_title')}</label>
+                    <input type="text" value={agreementFormData.title} onChange={(e) => updateAgreementField('title', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_agreement_number')}</label>
+                    <input type="text" value={agreementFormData.agreementNumber} onChange={(e) => updateAgreementField('agreementNumber', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_start_date')}</label>
+                    <input type="date" value={agreementFormData.startDate} onChange={(e) => updateAgreementField('startDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('project_end_date')}</label>
+                    <input type="date" value={agreementFormData.endDate} onChange={(e) => updateAgreementField('endDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_status')}</label>
+                    <select value={agreementFormData.status} onChange={(e) => updateAgreementField('status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="draft">{t('admin_supplier_agreement_status_draft')}</option>
+                      <option value="active">{t('admin_supplier_agreement_status_active')}</option>
+                      <option value="inactive">{t('admin_supplier_agreement_status_inactive')}</option>
+                      <option value="expired">{t('admin_supplier_agreement_status_expired')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_agreement_billing_cycle')}</label>
+                    <select value={agreementFormData.billingCycle} onChange={(e) => updateAgreementField('billingCycle', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="monthly">{t('admin_supplier_agreement_billing_cycle_monthly')}</option>
+                      <option value="biweekly">{t('admin_supplier_agreement_billing_cycle_biweekly')}</option>
+                      <option value="weekly">{t('admin_supplier_agreement_billing_cycle_weekly')}</option>
+                      <option value="custom">{t('admin_supplier_agreement_billing_cycle_custom')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_agreement_billing_cutoff')}</label>
+                    <input type="text" value={agreementFormData.billingCutoff} onChange={(e) => updateAgreementField('billingCutoff', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_agreement_payment_due_days')}</label>
+                    <input type="number" min="0" value={agreementFormData.paymentDueDays} onChange={(e) => updateAgreementField('paymentDueDays', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_commission_basis')}</h4>
+                <textarea value={agreementFormData.commissionBasisNote} onChange={(e) => updateAgreementField('commissionBasisNote', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28 bg-white" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_billing_contact')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_contact_person')}</label>
+                    <input type="text" value={agreementFormData.billingContactName} onChange={(e) => updateAgreementField('billingContactName', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_email')}</label>
+                    <input type="email" value={agreementFormData.billingContactEmail} onChange={(e) => updateAgreementField('billingContactEmail', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_phone')}</label>
+                    <input type="text" value={agreementFormData.billingContactPhone} onChange={(e) => updateAgreementField('billingContactPhone', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_supplier_agreement_payment_method_note')}</label>
+                    <textarea value={agreementFormData.paymentMethodNote} onChange={(e) => updateAgreementField('paymentMethodNote', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 p-5">
+                  <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_special_terms')}</h4>
+                  <textarea value={agreementFormData.specialTerms} onChange={(e) => updateAgreementField('specialTerms', e.target.value)} className="mt-4 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-32" />
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-5">
+                  <h4 className="font-semibold text-slate-800">{t('admin_supplier_agreement_internal_notes')}</h4>
+                  <textarea value={agreementFormData.internalNotes} onChange={(e) => updateAgreementField('internalNotes', e.target.value)} className="mt-4 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-32" />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-between items-center">
+              {editingAgreementId ? <button onClick={() => handleDeleteSupplierAgreement(editingAgreementId)} className="text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">{t('btn_delete')}</button> : <div></div>}
+              <div className="flex space-x-3">
+                <button onClick={() => setIsAgreementModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+                <button onClick={handleSaveSupplierAgreement} className="px-6 py-2 bg-slate-900 text-white font-medium hover:bg-slate-800 rounded-lg transition">{t('btn_save')}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCommissionBillingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">{t('admin_commission_billing_form_title')}</h3>
+              <button onClick={() => setIsCommissionBillingModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_commission_billing_generate_section')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_supplier')} *</label>
+                    <select value={commissionBillingFormData.supplierId} onChange={(e) => updateCommissionBillingField('supplierId', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="">{t('purchase_order_select_supplier')}</option>
+                      {supplierDirectory.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>{supplier.publicProfile?.supplierName || '-'}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_commission_billing_agreement_reference')} *</label>
+                    <select value={commissionBillingFormData.agreementId} onChange={(e) => updateCommissionBillingField('agreementId', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="">{t('admin_commission_billing_select_agreement')}</option>
+                      {getSupplierAgreementsForBilling(commissionBillingFormData.supplierId).map((agreement) => (
+                        <option key={agreement.id} value={agreement.id}>{[agreement.agreementNumber, agreement.title].filter(Boolean).join(' | ') || agreement.id}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_commission_billing_issue_date')}</label>
+                    <input type="date" value={commissionBillingFormData.issueDate} onChange={(e) => updateCommissionBillingField('issueDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_commission_billing_period_start')}</label>
+                    <input type="date" value={commissionBillingFormData.billingPeriodStart} onChange={(e) => updateCommissionBillingField('billingPeriodStart', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_commission_billing_period_end')}</label>
+                    <input type="date" value={commissionBillingFormData.billingPeriodEnd} onChange={(e) => updateCommissionBillingField('billingPeriodEnd', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_commission_billing_due_date')}</label>
+                    <input type="date" value={commissionBillingFormData.dueDate} onChange={(e) => updateCommissionBillingField('dueDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_notes')}</label>
+                  <textarea value={commissionBillingFormData.notes} onChange={(e) => updateCommissionBillingField('notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28" />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 space-y-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h4 className="font-semibold text-slate-800">{t('admin_commission_billing_preview')}</h4>
+                    <p className="mt-1 text-sm text-slate-600">{commissionBillingPreview.agreementReference || '-'}</p>
+                  </div>
+                  <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-700">
+                    {t('supplier_commission_rate')}: {formatConvertedNumberByLanguage(commissionBillingPreview.supplierCommissionRate || 0, language, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_order_count')}</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900">{formatNumberByLanguage(commissionBillingPreview.sourceOrders.length, language)}</div>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_gross_sales')}</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(commissionBillingPreview.grossSalesAmount || 0, language)}</div>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_commission_amount')}</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(commissionBillingPreview.commissionAmount || 0, language)}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_period')}</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">{commissionBillingPreview.billingPeriodLabel || '-'}</div>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_due_date')}</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">{commissionBillingPreview.dueDate || '-'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="font-semibold text-slate-800">{t('admin_commission_billing_source_orders')}</h4>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {formatNumberByLanguage(commissionBillingPreview.sourceOrders.length, language)}
+                  </span>
+                </div>
+                {commissionBillingPreview.sourceOrders.length > 0 ? (
+                  <div className="space-y-3">
+                    {commissionBillingPreview.sourceOrders.map((order) => (
+                      <div key={order.orderId} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <div className="font-semibold text-slate-900">{order.orderNumber || '-'}</div>
+                            <div className="mt-1 text-sm text-slate-500">{order.orderDate || '-'}</div>
+                          </div>
+                          <div className="text-sm font-semibold text-slate-900">{formatMoneyByLanguage(order.totalAmount || 0, language)}</div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-600">
+                          <span>{t('project_title')}: {order.projectName || '-'}</span>
+                          <span>{t('owner_label_client')}: {order.customerName || order.contractorName || '-'}</span>
+                          <span>{t(`order_status_${order.status}`) || order.status}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                    {t('admin_commission_billing_empty_orders')}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-slate-500">{t('admin_commission_billing_export_ready')}</div>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button onClick={() => setIsCommissionBillingModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+                <button onClick={handleSaveCommissionBilling} className="px-6 py-2 bg-slate-900 text-white font-medium hover:bg-slate-800 rounded-lg transition disabled:opacity-50" disabled={!commissionBillingFormData.supplierId || !commissionBillingFormData.agreementId || commissionBillingPreview.sourceOrders.length === 0}>
+                  {t('btn_save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSettlementModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">{t('admin_settlement_form_title')}</h3>
+              <button onClick={() => setIsSettlementModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_settlement_form_section')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_related_billing')} *</label>
+                    <select value={settlementFormData.billingRecordId} onChange={(e) => updateSettlementField('billingRecordId', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="">{t('admin_settlement_select_billing')}</option>
+                      {commissionBillingRecords.map((record) => (
+                        <option key={record.id} value={record.id}>{[record.billingNumber, record.supplierName].filter(Boolean).join(' | ')}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('purchase_order_supplier')}</label>
+                    <input type="text" value={settlementFormData.supplierName} readOnly className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_amount_due')}</label>
+                    <input type="number" min="0" value={settlementFormData.amountDue} onChange={(e) => updateSettlementField('amountDue', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_due_date')}</label>
+                    <input type="date" value={settlementFormData.dueDate} onChange={(e) => updateSettlementField('dueDate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_notes')}</label>
+                  <textarea value={settlementFormData.notes} onChange={(e) => updateSettlementField('notes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_settlement_preview')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_amount_due')}</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(settlementFormData.amountDue || 0, language)}</div>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_amount_paid')}</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(settlementFormData.amountPaid || 0, language)}</div>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_settlement_balance_remaining')}</div>
+                    <div className="mt-1 text-base font-semibold text-slate-900">{formatMoneyByLanguage(settlementFormData.balanceRemaining || settlementFormData.amountDue || 0, language)}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_agreement_reference')}</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">{settlementFormData.billingSnapshot?.agreementReference || '-'}</div>
+                  </div>
+                  <div className="rounded-xl bg-white p-4">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_commission_billing_period')}</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">{settlementFormData.billingSnapshot?.billingPeriodLabel || '-'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-slate-500">{t('admin_settlement_export_ready')}</div>
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                <button onClick={() => setIsSettlementModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+                <button onClick={handleSaveSettlement} className="px-6 py-2 bg-slate-900 text-white font-medium hover:bg-slate-800 rounded-lg transition" disabled={!settlementFormData.billingRecordId}>
+                  {t('btn_save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isPaymentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">{t('admin_settlement_record_payment_title')}</h3>
+              <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_amount_paid')}</label>
+                <input type="number" min="0" value={paymentFormData.amount} onChange={(e) => setPaymentFormData((prev) => ({ ...prev, amount: e.target.value }))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_payment_date')}</label>
+                  <input type="date" value={paymentFormData.paymentDate} onChange={(e) => setPaymentFormData((prev) => ({ ...prev, paymentDate: e.target.value }))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_payment_method')}</label>
+                  <input type="text" value={paymentFormData.paymentMethod} onChange={(e) => setPaymentFormData((prev) => ({ ...prev, paymentMethod: e.target.value }))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settlement_payment_reference')}</label>
+                <input type="text" value={paymentFormData.paymentReference} onChange={(e) => setPaymentFormData((prev) => ({ ...prev, paymentReference: e.target.value }))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{t('label_notes')}</label>
+                <textarea value={paymentFormData.note} onChange={(e) => setPaymentFormData((prev) => ({ ...prev, note: e.target.value }))} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-24" />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <button onClick={() => setIsPaymentModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+              <button onClick={handleRecordSettlementPayment} className="px-6 py-2 bg-green-600 text-white font-medium hover:bg-green-700 rounded-lg transition">
+                {t('admin_settlement_record_payment')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-lg text-slate-800">{editingCategoryId ? t('admin_category_edit_title') : t('admin_category_add_title')}</h3>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="text-slate-400"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              <div className="rounded-2xl border border-slate-200 p-5 space-y-4">
+                <h4 className="font-semibold text-slate-800">{t('admin_category_form_section')}</h4>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_category_name')} *</label>
+                    <input type="text" value={categoryFormData.name} onChange={(e) => updateCategoryField('name', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_category_slug')}</label>
+                    <input type="text" value={categoryFormData.slug} onChange={(e) => updateCategoryField('slug', e.target.value)} placeholder={slugifyCategoryValue(categoryFormData.name)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_commission_rate')}</label>
+                    <input type="number" min="0" step="0.01" value={categoryFormData.defaultCommissionRate} onChange={(e) => updateCategoryField('defaultCommissionRate', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('supplier_status')}</label>
+                    <select value={categoryFormData.status} onChange={(e) => updateCategoryField('status', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                      <option value="active">{t('supplier_status_active')}</option>
+                      <option value="inactive">{t('supplier_status_inactive')}</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_category_internal_notes')}</label>
+                    <textarea value={categoryFormData.internalNotes} onChange={(e) => updateCategoryField('internalNotes', e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm min-h-28" />
+                  </div>
+                </div>
+                {categoryFormData.isSystem && (
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                    {t('admin_category_system_notice')}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t bg-slate-50 flex justify-between items-center">
+              {editingCategoryId && !categoryFormData.isSystem ? <button onClick={() => handleDeleteCategory(editingCategoryId)} className="text-red-600 font-medium px-4 py-2 hover:bg-red-50 rounded-lg transition">{t('btn_delete')}</button> : <div></div>}
+              <div className="flex space-x-3">
+                <button onClick={() => setIsCategoryModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition">{t('btn_cancel')}</button>
+                <button onClick={handleSaveCategory} className="px-6 py-2 bg-slate-900 text-white font-medium hover:bg-slate-800 rounded-lg transition">{t('btn_save')}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, authSession }) {
+  const [email, setEmail] = useState(DEMO_AUTH_ACCOUNTS[role]?.email || '');
+  const [password, setPassword] = useState(DEMO_AUTH_ACCOUNTS[role]?.password || '');
+
+  useEffect(() => {
+    setEmail(DEMO_AUTH_ACCOUNTS[role]?.email || '');
+    setPassword(DEMO_AUTH_ACCOUNTS[role]?.password || '');
+  }, [role]);
+
+  const roleOptions = [
+    { key: 'user', title: t('landing_role_user_title'), desc: t('landing_role_user_desc'), icon: Building },
+    { key: 'supplier', title: t('nav_supplier_portal'), desc: t('landing_role_supplier_desc'), icon: Package },
+    { key: 'admin', title: t('nav_platform_owner'), desc: t('landing_role_admin_desc'), icon: Database },
+  ];
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onLogin({ role, email, password });
+  };
+
+  const sessionMatchesRole = authSession?.role === role;
+
+  return (
+    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button onClick={() => onNavigate('landing')} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            {t('admin_back_home')}
+          </button>
+          {sessionMatchesRole && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button onClick={() => onNavigate(ROLE_HOME_VIEW[role] || 'landing')} className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+                {t('auth_continue')}
+              </button>
+              <button onClick={() => onNavigate({ view: 'logout', role })} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                {t('auth_sign_out')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-6 text-white shadow-xl sm:p-8">
+            <div className="max-w-3xl space-y-4">
+              <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+                {t('auth_login_title')}
+              </span>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('auth_login_title')}</h1>
+              <p className="text-sm text-slate-100 sm:text-base">{t('auth_login_desc')}</p>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4">
+              {roleOptions.map((option) => {
+                const Icon = option.icon;
+                const isActive = role === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    onClick={() => setRole(option.key)}
+                    className={`rounded-2xl border p-4 text-left transition ${isActive ? 'border-white/40 bg-white/15' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="rounded-2xl bg-white/10 p-3 text-white">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">{option.title}</div>
+                        <div className="mt-1 text-sm text-slate-200">{option.desc}</div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">{t('auth_role_label')}</label>
+                <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400">
+                  {roleOptions.map((option) => (
+                    <option key={option.key} value={option.key}>{option.title}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">{t('auth_email_label')}</label>
+                <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">{t('auth_password_label')}</label>
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400" />
+              </div>
+
+              {authErrorKey && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  {t(authErrorKey)}
+                </div>
+              )}
+
+              {sessionMatchesRole && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  {t('auth_logged_in_as')} {authSession.displayName || authSession.email}
+                </div>
+              )}
+
+              <button type="submit" className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+                {t('auth_sign_in')}
+              </button>
+            </form>
+
+            <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+              <div className="text-sm font-semibold text-slate-800">{t('auth_demo_title')}</div>
+              <div className="mt-2 text-xs leading-6 text-slate-600">{t('auth_demo_hint')}</div>
+              <div className="mt-3 space-y-2 text-sm text-slate-700">
+                {roleOptions.map((option) => (
+                  <div key={`demo-${option.key}`} className="rounded-xl bg-white px-4 py-3">
+                    <div className="font-medium text-slate-900">{option.title}</div>
+                    <div className="mt-1 text-xs text-slate-500">{DEMO_AUTH_ACCOUNTS[option.key].email}</div>
+                    <div className="text-xs text-slate-500">demo123</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlatformOwnerAccess({ onNavigate, t, authSession }) {
+  const accessCards = [
+    { key: 'admin_category_management_title', descKey: 'admin_category_management_desc', icon: Inbox },
+    { key: 'admin_supplier_management_title', descKey: 'admin_supplier_management_desc', icon: Building },
+    { key: 'admin_pricing_management_title', descKey: 'admin_pricing_management_desc', icon: DollarSign },
+    { key: 'admin_supplier_agreements_title', descKey: 'admin_supplier_agreements_desc', icon: FileText },
+    { key: 'admin_commission_billing_title', descKey: 'admin_commission_billing_desc', icon: Receipt },
+    { key: 'admin_platform_revenue_title', descKey: 'admin_platform_revenue_desc', icon: DollarSign },
+    { key: 'admin_settlements_title', descKey: 'admin_settlements_desc', icon: Receipt },
+    { key: 'admin_settings_title', descKey: 'admin_settings_desc', icon: Database },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button onClick={() => onNavigate('landing')} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            {t('admin_back_home')}
+          </button>
+          <button onClick={() => onNavigate(authSession?.role === 'admin' ? 'platform_owner_dashboard' : { view: 'role_login', role: 'admin' })} className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+            {authSession?.role === 'admin' ? t('auth_continue') : t('admin_access_enter')}
+          </button>
+        </div>
+
+        <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 p-6 text-white shadow-xl sm:p-8">
+          <div className="max-w-3xl space-y-4">
+            <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+              {t('nav_platform_owner')}
+            </span>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('admin_access_title')}</h1>
+            <p className="text-sm text-slate-200 sm:text-base">{t('admin_access_desc')}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {accessCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-slate-900">{t(card.key)}</h2>
+                    <p className="text-sm leading-6 text-slate-600">{t(card.descKey)}</p>
+                    <p className="text-xs font-medium text-blue-700">{t('open_section_hint')}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupplierAccess({ onNavigate, t, authSession }) {
+  const accessCards = [
+    { key: 'supplier_dashboard_title', descKey: 'supplier_dashboard_desc', icon: BarChart3 },
+    { key: 'supplier_products_title', descKey: 'supplier_products_desc', icon: Package },
+    { key: 'supplier_orders_title', descKey: 'supplier_orders_desc', icon: Receipt },
+    { key: 'supplier_profile_title', descKey: 'supplier_profile_desc', icon: Building },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button onClick={() => onNavigate('landing')} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            {t('supplier_back_home')}
+          </button>
+          <button onClick={() => onNavigate(authSession?.role === 'supplier' ? 'supplier_dashboard' : { view: 'role_login', role: 'supplier' })} className="inline-flex items-center justify-center rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">
+            {authSession?.role === 'supplier' ? t('auth_continue') : t('supplier_access_enter')}
+          </button>
+        </div>
+
+        <div className="rounded-3xl bg-gradient-to-br from-blue-900 via-sky-800 to-cyan-700 p-6 text-white shadow-xl sm:p-8">
+          <div className="max-w-3xl space-y-4">
+            <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
+              {t('nav_supplier_portal')}
+            </span>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('supplier_access_title')}</h1>
+            <p className="text-sm text-slate-100 sm:text-base">{t('supplier_access_desc')}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {accessCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl bg-blue-50 p-3 text-blue-700">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-slate-900">{t(card.key)}</h2>
+                    <p className="text-sm leading-6 text-slate-600">{t(card.descKey)}</p>
+                    <p className="text-xs font-medium text-blue-700">{t('open_section_hint')}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SupplierPortal({ onNavigate, t, language, projectsList, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, supplierProducts, setSupplierProducts }) {
+  const [activeTab, setActiveTab] = useState('supplier_overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [productFormData, setProductFormData] = useState(createSupplierProductEntry());
+  const [productSearch, setProductSearch] = useState('');
+  const [productStatusFilter, setProductStatusFilter] = useState('all');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
+  const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
+  const [csvImportFileName, setCsvImportFileName] = useState('');
+  const [csvPreviewRows, setCsvPreviewRows] = useState([]);
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [selectedSupplierOrderId, setSelectedSupplierOrderId] = useState('');
+  const [profileFormData, setProfileFormData] = useState(createSupplierEntry());
+
+  const navItems = [
+    { tab: 'supplier_overview', labelKey: 'supplier_menu_overview', icon: BarChart3 },
+    { tab: 'supplier_products', labelKey: 'supplier_menu_products', icon: Package },
+    { tab: 'supplier_orders', labelKey: 'supplier_menu_orders', icon: Receipt },
+    { tab: 'supplier_profile', labelKey: 'supplier_menu_profile', icon: Building },
+  ];
+
+  const sectionConfig = {
+    supplier_overview: {
+      title: t('supplier_dashboard_title'),
+      desc: t('supplier_dashboard_desc'),
+      accent: 'from-blue-600 to-cyan-500',
+      icon: BarChart3,
+    },
+    supplier_products: {
+      title: t('supplier_products_title'),
+      desc: t('supplier_products_desc'),
+      accent: 'from-emerald-500 to-teal-500',
+      icon: Package,
+    },
+    supplier_orders: {
+      title: t('supplier_orders_title'),
+      desc: t('supplier_orders_desc'),
+      accent: 'from-amber-500 to-orange-500',
+      icon: Receipt,
+    },
+    supplier_profile: {
+      title: t('supplier_profile_title'),
+      desc: t('supplier_profile_desc'),
+      accent: 'from-violet-500 to-indigo-500',
+      icon: Building,
+    },
+  };
+
+  const activeSection = sectionConfig[activeTab] || sectionConfig.supplier_overview;
+  const ActiveIcon = activeSection.icon;
+  const allSupplierCategories = Array.isArray(supplierCategories) ? supplierCategories : [];
+  const supplierDirectoryList = Array.isArray(supplierDirectory) ? supplierDirectory : [];
+  const currentSupplierProfile = supplierDirectoryList[0] ? normalizeSupplierEntry(supplierDirectoryList[0]) : null;
+  const currentSupplierId = currentSupplierProfile?.id || '';
+  const activeSupplierCategories = allSupplierCategories.filter((category) => category.status !== 'inactive');
+  const resolvedSupplierProducts = (Array.isArray(supplierProducts) ? supplierProducts : []).map((product) => {
+    const matchedCategory = allSupplierCategories.find((category) => category.id === product.categoryId)
+      || allSupplierCategories.find((category) => category.slug && category.slug === product.categorySlug);
+    return {
+      ...product,
+      resolvedCategoryName: matchedCategory ? getSupplierCategoryDisplayName(matchedCategory, t) : product.categoryName || '-',
+    };
+  });
+  const filteredSupplierProducts = resolvedSupplierProducts.filter((product) => {
+    const query = productSearch.trim().toLowerCase();
+    const matchesQuery = !query
+      || String(product.productCode || '').toLowerCase().includes(query)
+      || String(product.productName || '').toLowerCase().includes(query)
+      || String(product.resolvedCategoryName || '').toLowerCase().includes(query)
+      || String(product.description || '').toLowerCase().includes(query)
+      || String(product.deliveryArea || '').toLowerCase().includes(query);
+    const matchesStatus = productStatusFilter === 'all' || product.status === productStatusFilter;
+    const matchesCategory = productCategoryFilter === 'all' || product.categoryId === productCategoryFilter;
+    return matchesQuery && matchesStatus && matchesCategory;
+  });
+  const activeProductsCount = resolvedSupplierProducts.filter((product) => product.status !== 'inactive').length;
+  const inactiveProductsCount = resolvedSupplierProducts.filter((product) => product.status === 'inactive').length;
+  const productCategoryCount = new Set(
+    resolvedSupplierProducts.map((product) => product.categoryId || product.categorySlug || product.categoryName).filter(Boolean)
+  ).size;
+  const supplierOrders = (Array.isArray(purchaseOrders) ? purchaseOrders : [])
+    .filter((order) => order.status !== 'draft')
+    .filter((order) => !currentSupplierId || order.supplierId === currentSupplierId)
+    .map((order) => {
+    const supplier = supplierDirectoryList.find((item) => item.id === order.supplierId);
+    const project = (Array.isArray(projectsList) ? projectsList : []).find((item) => item.id === order.projectId);
+    const orderTotal = (order.items || []).reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0)), 0);
+    const supplierStatus = order?.supplierWorkflow?.status || 'new';
+    return {
+      ...order,
+      supplierStatus,
+      supplierName: supplier?.publicProfile?.supplierName || '-',
+      customerDisplayName: order.contractorName || order.customerName || '-',
+      projectDisplayName: order.projectName || project?.name || '-',
+      orderTotal,
+    };
+  });
+  const filteredSupplierOrders = supplierOrders.filter((order) => {
+    const query = orderSearch.trim().toLowerCase();
+    const matchesQuery = !query
+      || String(order.poNumber || '').toLowerCase().includes(query)
+      || String(order.customerDisplayName || '').toLowerCase().includes(query)
+      || String(order.projectDisplayName || '').toLowerCase().includes(query)
+      || String(order.notes || '').toLowerCase().includes(query);
+    const matchesStatus = orderStatusFilter === 'all' || order.supplierStatus === orderStatusFilter;
+    return matchesQuery && matchesStatus;
+  });
+  const selectedSupplierOrder = filteredSupplierOrders.find((order) => order.id === selectedSupplierOrderId)
+    || supplierOrders.find((order) => order.id === selectedSupplierOrderId)
+    || filteredSupplierOrders[0]
+    || null;
+  const openSupplierOrdersCount = supplierOrders.filter((order) => ['new', 'confirmed', 'preparing'].includes(order.supplierStatus)).length;
+  const supplierOrdersInTransitCount = supplierOrders.filter((order) => order.supplierStatus === 'shipped').length;
+  const supplierOrdersCompletedCount = supplierOrders.filter((order) => ['delivered', 'cancelled', 'rejected'].includes(order.supplierStatus)).length;
+
+  useEffect(() => {
+    setProfileFormData(currentSupplierProfile || createSupplierEntry());
+  }, [currentSupplierProfile]);
+
+  const openAddProductModal = () => {
+    setEditingProductId(null);
+    setProductFormData(createSupplierProductEntry());
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseCsvImportModal = () => {
+    setIsCsvImportModalOpen(false);
+    setCsvImportFileName('');
+    setCsvPreviewRows([]);
+  };
+
+  const openEditProductModal = (product) => {
+    setEditingProductId(product.id);
+    setProductFormData(normalizeSupplierProductEntry(product));
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseProductModal = () => {
+    setIsProductModalOpen(false);
+    setEditingProductId(null);
+    setProductFormData(createSupplierProductEntry());
+  };
+
+  const handleProductFieldChange = (field, value) => {
+    setProductFormData((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleProductCategoryChange = (categoryId) => {
+    const matchedCategory = allSupplierCategories.find((category) => category.id === categoryId);
+    setProductFormData((current) => ({
+      ...current,
+      categoryId,
+      categorySlug: matchedCategory?.slug || '',
+      categoryName: matchedCategory ? getSupplierCategoryDisplayName(matchedCategory, t) : '',
+    }));
+  };
+
+  const handleProductImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProductFormData((current) => ({
+        ...current,
+        productImage: {
+          dataUrl: typeof reader.result === 'string' ? reader.result : '',
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+          updatedAt: Date.now(),
+        },
+      }));
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const handleRemoveProductImage = () => {
+    setProductFormData((current) => ({
+      ...current,
+      productImage: {
+        dataUrl: '',
+        fileName: '',
+        mimeType: '',
+        fileSize: 0,
+        updatedAt: 0,
+      },
+    }));
+  };
+
+  const resolveCsvCategory = (rawValue) => {
+    const normalizedValue = String(rawValue || '').trim().toLowerCase();
+    if (!normalizedValue) return null;
+    return allSupplierCategories.find((category) => {
+      const displayName = getSupplierCategoryDisplayName(category, t).toLowerCase();
+      return category.id === rawValue
+        || (category.slug && category.slug.toLowerCase() === normalizedValue)
+        || displayName === normalizedValue;
+    }) || null;
+  };
+
+  const handleCsvFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      try {
+        const content = typeof reader.result === 'string' ? reader.result : '';
+        const rows = parseCsvText(content);
+        if (rows.length === 0) {
+          setCsvPreviewRows([]);
+          setCsvImportFileName(file.name);
+          return;
+        }
+
+        const headers = rows[0].map((header) => normalizeCsvHeader(header));
+        const batchId = `csv-${Date.now()}`;
+        const preview = rows.slice(1).map((row, index) => {
+          const raw = {};
+          headers.forEach((header, headerIndex) => {
+            raw[header] = row[headerIndex] ?? '';
+          });
+
+          const matchedCategory = resolveCsvCategory(raw.category || raw.category_slug || raw.category_name || '');
+          return normalizeSupplierProductEntry({
+            productCode: raw.product_code || raw.code || '',
+            productName: raw.product_name || raw.name || '',
+            categoryId: matchedCategory?.id || '',
+            categorySlug: matchedCategory?.slug || normalizeCsvHeader(raw.category || raw.category_slug || ''),
+            categoryName: matchedCategory ? getSupplierCategoryDisplayName(matchedCategory, t) : String(raw.category || raw.category_name || '').trim(),
+            description: raw.description || '',
+            unit: raw.unit || '',
+            price: Number(raw.price || 0),
+            minimumOrderQuantity: Number(raw.minimum_order_quantity || raw.min_order_qty || raw.moq || 1),
+            availableQuantity: Number(raw.available_quantity || raw.stock || raw.quantity || 0),
+            leadTime: raw.lead_time || '',
+            deliveryArea: raw.delivery_area || '',
+            status: String(raw.status || 'active').trim().toLowerCase() === 'inactive' ? 'inactive' : 'active',
+            importMeta: {
+              source: 'csv',
+              batchId,
+              rowNumber: index + 2,
+              originalFileName: file.name,
+            },
+          });
+        }).filter((row) => row.productName || row.productCode || row.categoryName);
+
+        setCsvPreviewRows(preview);
+        setCsvImportFileName(file.name);
+      } catch (error) {
+        console.error('CSV parse failed:', error);
+        alert(t('supplier_products_csv_parse_error'));
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleSaveProduct = () => {
+    const normalizedProduct = normalizeSupplierProductEntry({
+      ...productFormData,
+      price: Number(productFormData.price || 0),
+      minimumOrderQuantity: Number(productFormData.minimumOrderQuantity || 1),
+      availableQuantity: Number(productFormData.availableQuantity || 0),
+      importMeta: {
+        ...productFormData.importMeta,
+        source: productFormData.importMeta?.source || 'manual',
+      },
+      updatedAt: Date.now(),
+    });
+
+    setSupplierProducts((current) => {
+      const existingProducts = Array.isArray(current) ? current : [];
+      if (editingProductId) {
+        return existingProducts.map((product) => product.id === editingProductId ? normalizedProduct : product);
+      }
+      return [normalizedProduct, ...existingProducts];
+    });
+    handleCloseProductModal();
+  };
+
+  const handleToggleProductStatus = (productId) => {
+    setSupplierProducts((current) => (Array.isArray(current) ? current : []).map((product) => {
+      if (product.id !== productId) return product;
+      return normalizeSupplierProductEntry({
+        ...product,
+        status: product.status === 'inactive' ? 'active' : 'inactive',
+        updatedAt: Date.now(),
+      });
+    }));
+  };
+
+  const handleRemoveProduct = (productId) => {
+    const targetProduct = resolvedSupplierProducts.find((product) => product.id === productId);
+    if (!targetProduct || targetProduct.status !== 'inactive') return;
+    if (!window.confirm(t('supplier_products_remove_confirm'))) return;
+    setSupplierProducts((current) => (Array.isArray(current) ? current : []).filter((product) => product.id !== productId));
+  };
+
+  const handleConfirmCsvImport = () => {
+    if (csvPreviewRows.length === 0) {
+      alert(t('supplier_products_csv_required'));
+      return;
+    }
+
+    setSupplierProducts((current) => [...csvPreviewRows, ...(Array.isArray(current) ? current : [])]);
+    handleCloseCsvImportModal();
+  };
+
+  const handleSupplierOrderStatusChange = (orderId, nextSupplierStatus) => {
+    const statusMap = {
+      new: 'submitted',
+      confirmed: 'confirmed',
+      rejected: 'cancelled',
+      preparing: 'processing',
+      shipped: 'shipped',
+      delivered: 'delivered',
+      cancelled: 'cancelled',
+    };
+
+    setPurchaseOrders((current) => (Array.isArray(current) ? current : []).map((order) => {
+      if (order.id !== orderId) return order;
+      return normalizePurchaseOrders([{
+        ...order,
+        status: statusMap[nextSupplierStatus] || order.status,
+        supplierWorkflow: {
+          ...(order.supplierWorkflow || {}),
+          status: nextSupplierStatus,
+          respondedAt: Date.now(),
+        },
+      }])[0];
+    }));
+  };
+
+  const updateProfilePublicField = (field, value) => {
+    setProfileFormData((current) => ({
+      ...current,
+      publicProfile: {
+        ...(current.publicProfile || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const updateProfileBillingField = (field, value) => {
+    setProfileFormData((current) => ({
+      ...current,
+      internalMeta: {
+        ...(current.internalMeta || {}),
+        billingContact: {
+          ...(current.internalMeta?.billingContact || {}),
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const handleSaveSupplierProfile = () => {
+    const normalizedProfile = normalizeSupplierEntry({
+      ...profileFormData,
+      publicProfile: {
+        ...(profileFormData.publicProfile || {}),
+        notes: profileFormData.publicProfile?.notes || '',
+      },
+      internalMeta: {
+        ...(profileFormData.internalMeta || {}),
+        billingContact: {
+          name: profileFormData.internalMeta?.billingContact?.name || '',
+          email: profileFormData.internalMeta?.billingContact?.email || '',
+          phone: profileFormData.internalMeta?.billingContact?.phone || '',
+        },
+      },
+    });
+
+    setSupplierDirectory((current) => {
+      const existing = Array.isArray(current) ? current : [];
+      if (!currentSupplierProfile) {
+        return [normalizedProfile, ...existing];
+      }
+      return existing.map((item) => item.id === currentSupplierProfile.id ? normalizedProfile : item);
+    });
+  };
+
+  const getStockStatusLabel = (product) => {
+    if (Number(product.availableQuantity || 0) <= 0) return t('supplier_products_stock_out');
+    if (Number(product.availableQuantity || 0) <= Number(product.minimumOrderQuantity || 0)) return t('supplier_products_stock_low');
+    return t('supplier_products_stock_available');
+  };
+
+  const getStockStatusTone = (product) => {
+    if (Number(product.availableQuantity || 0) <= 0) return 'bg-rose-100 text-rose-700';
+    if (Number(product.availableQuantity || 0) <= Number(product.minimumOrderQuantity || 0)) return 'bg-amber-100 text-amber-700';
+    return 'bg-emerald-100 text-emerald-700';
+  };
+
+  const placeholderPanel = (
+    <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+        <h3 className="text-lg font-semibold text-slate-900">{activeSection.title}</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{activeSection.desc}</p>
+        <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900">
+          {t('supplier_section_ready')}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900">{t('nav_supplier_portal')}</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-600">{t('supplier_portal_isolated_notice')}</p>
+        <div className="mt-4 space-y-3">
+          {navItems.map((item) => (
+            <div key={item.tab} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+              <span className="text-sm font-medium text-slate-700">{t(item.labelKey)}</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${activeTab === item.tab ? 'bg-blue-100 text-blue-700' : 'bg-white text-slate-500'}`}>
+                {activeTab === item.tab ? t('supplier_section_ready') : t('supplier_section_available')}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const productsPanel = (
+    <div className="mt-6 space-y-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard title={t('supplier_products_total')} value={formatNumberByLanguage(resolvedSupplierProducts.length, language)} icon={<Package />} color="text-slate-700" bg="bg-slate-200" />
+        <StatCard title={t('supplier_products_active')} value={formatNumberByLanguage(activeProductsCount, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+        <StatCard title={t('supplier_products_inactive')} value={formatNumberByLanguage(inactiveProductsCount, language)} icon={<AlertCircle />} color="text-amber-700" bg="bg-amber-100" />
+        <StatCard title={t('supplier_products_categories')} value={formatNumberByLanguage(productCategoryCount, language)} icon={<Inbox />} color="text-blue-700" bg="bg-blue-100" />
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <h3 className="text-lg font-bold text-slate-900">{t('supplier_products_title')}</h3>
+            <p className="text-sm leading-6 text-slate-600">{t('supplier_products_desc')}</p>
+            <p className="text-xs font-medium text-blue-700">{t('supplier_products_csv_ready')}</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button onClick={() => setIsCsvImportModalOpen(true)} className="inline-flex items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+              <UploadCloud className="mr-2 h-4 w-4" /> {t('supplier_products_import_csv')}
+            </button>
+            <button onClick={openAddProductModal} className="inline-flex items-center justify-center rounded-2xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">
+              <Plus className="mr-2 h-4 w-4" /> {t('supplier_products_add')}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-4">
+          <input
+            value={productSearch}
+            onChange={(event) => setProductSearch(event.target.value)}
+            placeholder={t('supplier_products_search_placeholder')}
+            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400"
+          />
+          <select value={productStatusFilter} onChange={(event) => setProductStatusFilter(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400">
+            <option value="all">{t('supplier_products_filter_all_statuses')}</option>
+            <option value="active">{t('supplier_status_active')}</option>
+            <option value="inactive">{t('supplier_status_inactive')}</option>
+          </select>
+          <select value={productCategoryFilter} onChange={(event) => setProductCategoryFilter(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400">
+            <option value="all">{t('supplier_products_filter_all_categories')}</option>
+            {activeSupplierCategories.map((category) => (
+              <option key={category.id} value={category.id}>{getSupplierCategoryDisplayName(category, t)}</option>
+            ))}
+          </select>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <span className="font-medium text-slate-800">{t('supplier_products_import_source')}:</span> {t('supplier_products_manual_source')}
+          </div>
+        </div>
+
+        {activeSupplierCategories.length === 0 && (
+          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {t('supplier_products_no_categories')}
+          </div>
+        )}
+
+        <div className="mt-6 hidden overflow-x-auto lg:block">
+          <table className="min-w-full divide-y divide-slate-200">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_name')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_category')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_effective_price')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_available_qty')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_status')}</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">{t('table_actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {filteredSupplierProducts.map((product) => (
+                <tr key={product.id}>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-3">
+                      {product.productImage?.dataUrl ? (
+                        <img src={product.productImage.dataUrl} alt={product.productName} className="h-12 w-12 rounded-2xl object-cover" />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400"><ImageIcon className="h-5 w-5" /></div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-slate-900">{product.productName || '-'}</div>
+                        <div className="mt-1 text-xs text-slate-500">{product.productCode}</div>
+                        <div className="mt-1 text-xs text-slate-500">{product.unit || '-'} | {product.leadTime || '-'}</div>
+                        <div className="mt-1 text-[11px] text-slate-400">{product.importMeta?.source === 'csv' ? `${t('supplier_products_csv_imported')} · ${product.importMeta?.originalFileName || '-'}` : t('supplier_products_manual_source')}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-slate-700">
+                    <div>{product.resolvedCategoryName}</div>
+                    <div className="mt-1 text-xs text-slate-500">{product.deliveryArea || '-'}</div>
+                  </td>
+                  <td className="px-4 py-4 text-sm font-semibold text-slate-900">{formatMoneyByLanguage(product.price || 0, language)}</td>
+                  <td className="px-4 py-4 text-sm text-slate-700">
+                    <div>{formatNumberByLanguage(product.availableQuantity || 0, language)} {product.unit || '-'}</div>
+                    <div className="mt-1 text-xs text-slate-500">MOQ {formatNumberByLanguage(product.minimumOrderQuantity || 0, language)}</div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col gap-2">
+                      <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${product.status === 'inactive' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        {product.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}
+                      </span>
+                      <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${getStockStatusTone(product)}`}>
+                        {getStockStatusLabel(product)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => openEditProductModal(product)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">{t('dashboard_edit')}</button>
+                      <button onClick={() => handleToggleProductStatus(product.id)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">
+                        {product.status === 'inactive' ? t('supplier_products_activate') : t('supplier_products_deactivate')}
+                      </button>
+                      <button
+                        onClick={() => handleRemoveProduct(product.id)}
+                        disabled={product.status !== 'inactive'}
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${product.status !== 'inactive' ? 'cursor-not-allowed bg-slate-100 text-slate-400' : 'border border-rose-200 text-rose-700 hover:bg-rose-50'}`}
+                      >
+                        {t('supplier_products_remove')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-6 space-y-4 lg:hidden">
+          {filteredSupplierProducts.map((product) => (
+            <div key={product.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start gap-3">
+                {product.productImage?.dataUrl ? (
+                  <img src={product.productImage.dataUrl} alt={product.productName} className="h-16 w-16 rounded-2xl object-cover" />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-slate-400"><ImageIcon className="h-6 w-6" /></div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-base font-semibold text-slate-900">{product.productName || '-'}</h4>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${product.status === 'inactive' ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                      {product.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">{product.productCode}</div>
+                  <div className="mt-2 text-sm text-slate-700">{product.resolvedCategoryName}</div>
+                  <div className="mt-1 text-[11px] text-slate-400">{product.importMeta?.source === 'csv' ? `${t('supplier_products_csv_imported')} · ${product.importMeta?.originalFileName || '-'}` : t('supplier_products_manual_source')}</div>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-white px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_effective_price')}</div>
+                  <div className="mt-1 font-semibold text-slate-900">{formatMoneyByLanguage(product.price || 0, language)}</div>
+                </div>
+                <div className="rounded-2xl bg-white px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_available_qty')}</div>
+                  <div className="mt-1 font-semibold text-slate-900">{formatNumberByLanguage(product.availableQuantity || 0, language)} {product.unit || '-'}</div>
+                </div>
+                <div className="rounded-2xl bg-white px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_delivery_area')}</div>
+                  <div className="mt-1 text-sm font-medium text-slate-700">{product.deliveryArea || '-'}</div>
+                </div>
+                <div className="rounded-2xl bg-white px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_status')}</div>
+                  <div className="mt-1">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStockStatusTone(product)}`}>
+                      {getStockStatusLabel(product)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={() => openEditProductModal(product)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">{t('dashboard_edit')}</button>
+                <button onClick={() => handleToggleProductStatus(product.id)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+                  {product.status === 'inactive' ? t('supplier_products_activate') : t('supplier_products_deactivate')}
+                </button>
+                <button
+                  onClick={() => handleRemoveProduct(product.id)}
+                  disabled={product.status !== 'inactive'}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold ${product.status !== 'inactive' ? 'cursor-not-allowed bg-slate-200 text-slate-400' : 'bg-rose-50 text-rose-700'}`}
+                >
+                  {t('supplier_products_remove')}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredSupplierProducts.length === 0 && (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+            <div>{t('supplier_products_empty')}</div>
+            <div className="mt-2 text-xs text-slate-400">{t('supplier_products_empty_hint')}</div>
+          </div>
+        )}
+
+        <div className="mt-4 text-xs text-slate-500">{t('supplier_products_safe_remove_hint')}</div>
+      </div>
+    </div>
+  );
+
+  const ordersPanel = (
+    <div className="mt-6 space-y-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard title={t('supplier_orders_total')} value={formatNumberByLanguage(supplierOrders.length, language)} icon={<Receipt />} color="text-slate-700" bg="bg-slate-200" />
+        <StatCard title={t('supplier_orders_open')} value={formatNumberByLanguage(openSupplierOrdersCount, language)} icon={<Clock />} color="text-blue-700" bg="bg-blue-100" />
+        <StatCard title={t('supplier_orders_in_transit')} value={formatNumberByLanguage(supplierOrdersInTransitCount, language)} icon={<Package />} color="text-amber-700" bg="bg-amber-100" />
+        <StatCard title={t('supplier_orders_completed')} value={formatNumberByLanguage(supplierOrdersCompletedCount, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+      </div>
+
+      {!currentSupplierId && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {t('supplier_orders_profile_required')}
+        </div>
+      )}
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={orderSearch}
+              onChange={(event) => setOrderSearch(event.target.value)}
+              placeholder={t('supplier_orders_search_placeholder')}
+              className="w-full rounded-2xl border border-slate-200 py-3 pl-9 pr-4 text-sm outline-none transition focus:border-blue-400"
+            />
+          </div>
+          <select value={orderStatusFilter} onChange={(event) => setOrderStatusFilter(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400 md:w-56">
+            <option value="all">{t('supplier_orders_filter_all')}</option>
+            <option value="new">{t('supplier_orders_status_new')}</option>
+            <option value="confirmed">{t('supplier_orders_status_confirmed')}</option>
+            <option value="rejected">{t('supplier_orders_status_rejected')}</option>
+            <option value="preparing">{t('supplier_orders_status_preparing')}</option>
+            <option value="shipped">{t('supplier_orders_status_shipped')}</option>
+            <option value="delivered">{t('supplier_orders_status_delivered')}</option>
+            <option value="cancelled">{t('supplier_orders_status_cancelled')}</option>
+          </select>
+        </div>
+
+        {filteredSupplierOrders.length > 0 ? (
+          <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('purchase_order_number')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_orders_customer')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_orders_project')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('purchase_order_total')}</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_orders_status')}</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">{t('table_actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {filteredSupplierOrders.map((order) => (
+                      <tr key={order.id} className={selectedSupplierOrder?.id === order.id ? 'bg-blue-50/60' : ''}>
+                        <td className="px-4 py-4">
+                          <div className="font-semibold text-slate-900">{order.poNumber}</div>
+                          <div className="mt-1 text-xs text-slate-500">{order.orderDate || '-'}</div>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-slate-700">{order.customerDisplayName}</td>
+                        <td className="px-4 py-4 text-sm text-slate-700">{order.projectDisplayName}</td>
+                        <td className="px-4 py-4 text-sm font-semibold text-slate-900">{formatMoneyByLanguage(order.orderTotal, language)}</td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                            {t(`supplier_orders_status_${order.supplierStatus}`)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <button onClick={() => setSelectedSupplierOrderId(order.id)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                            {t('supplier_orders_open_details')}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-4 lg:hidden">
+                {filteredSupplierOrders.map((order) => (
+                  <button key={order.id} onClick={() => setSelectedSupplierOrderId(order.id)} className={`w-full rounded-2xl border p-4 text-left ${selectedSupplierOrder?.id === order.id ? 'border-blue-300 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-slate-900">{order.poNumber}</div>
+                        <div className="mt-1 text-xs text-slate-500">{order.orderDate || '-'}</div>
+                      </div>
+                      <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+                        {t(`supplier_orders_status_${order.supplierStatus}`)}
+                      </span>
+                    </div>
+                    <div className="mt-3 text-sm text-slate-700">{order.customerDisplayName}</div>
+                    <div className="mt-1 text-xs text-slate-500">{order.projectDisplayName}</div>
+                    <div className="mt-3 font-semibold text-slate-900">{formatMoneyByLanguage(order.orderTotal, language)}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+              {selectedSupplierOrder ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">{t('supplier_orders_details')}</h3>
+                    <p className="mt-1 text-sm text-slate-500">{selectedSupplierOrder.poNumber}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('purchase_order_date')}</div><div className="mt-1 text-sm font-medium text-slate-700">{selectedSupplierOrder.orderDate || '-'}</div></div>
+                    <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('purchase_order_total')}</div><div className="mt-1 text-sm font-medium text-slate-700">{formatMoneyByLanguage(selectedSupplierOrder.orderTotal, language)}</div></div>
+                    <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_orders_customer')}</div><div className="mt-1 text-sm font-medium text-slate-700">{selectedSupplierOrder.customerDisplayName}</div></div>
+                    <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_orders_project')}</div><div className="mt-1 text-sm font-medium text-slate-700">{selectedSupplierOrder.projectDisplayName}</div></div>
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4">
+                    <div className="text-sm font-semibold text-slate-800">{t('supplier_orders_update_status')}</div>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <select value={selectedSupplierOrder.supplierStatus} onChange={(event) => handleSupplierOrderStatusChange(selectedSupplierOrder.id, event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400">
+                        <option value="new">{t('supplier_orders_status_new')}</option>
+                        <option value="confirmed">{t('supplier_orders_status_confirmed')}</option>
+                        <option value="rejected">{t('supplier_orders_status_rejected')}</option>
+                        <option value="preparing">{t('supplier_orders_status_preparing')}</option>
+                        <option value="shipped">{t('supplier_orders_status_shipped')}</option>
+                        <option value="delivered">{t('supplier_orders_status_delivered')}</option>
+                        <option value="cancelled">{t('supplier_orders_status_cancelled')}</option>
+                      </select>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleSupplierOrderStatusChange(selectedSupplierOrder.id, 'confirmed')} className="flex-1 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700">{t('supplier_orders_confirm')}</button>
+                        <button onClick={() => handleSupplierOrderStatusChange(selectedSupplierOrder.id, 'rejected')} className="flex-1 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white hover:bg-rose-700">{t('supplier_orders_reject')}</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4">
+                    <div className="mb-3 text-sm font-semibold text-slate-800">{t('purchase_order_items')}</div>
+                    <div className="space-y-3">
+                      {(selectedSupplierOrder.items || []).map((item) => (
+                        <div key={item.id} className="flex items-start justify-between gap-4 border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
+                          <div>
+                            <div className="font-medium text-slate-800">{item.description || '-'}</div>
+                            <div className="mt-1 text-xs text-slate-500">{formatNumberByLanguage(item.quantity || 0, language)} x {formatMoneyByLanguage(item.unitPrice || 0, language)}</div>
+                          </div>
+                          <div className="text-sm font-semibold text-slate-800">{formatMoneyByLanguage(Number(item.quantity || 0) * Number(item.unitPrice || 0), language)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4 text-sm text-slate-700 whitespace-pre-wrap">
+                    <div className="mb-2 font-semibold text-slate-800">{t('purchase_order_notes')}</div>
+                    {selectedSupplierOrder.notes || '-'}
+                  </div>
+
+                  <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">
+                    <div className="mb-2 font-semibold text-slate-800">{t('supplier_orders_response_note')}</div>
+                    {selectedSupplierOrder.supplierWorkflow?.responseNote || '-'}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-10 text-center text-sm text-slate-500">
+                  <div>{t('supplier_orders_empty')}</div>
+                  <div className="mt-2 text-xs text-slate-400">{t('supplier_orders_empty_hint')}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+            <div>{t('supplier_orders_empty')}</div>
+            <div className="mt-2 text-xs text-slate-400">{t('supplier_orders_empty_hint')}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const profileAssignmentSummaries = Array.isArray(profileFormData.internalMeta?.categoryAssignments)
+    ? profileFormData.internalMeta.categoryAssignments.map((assignment) => {
+      const matchedCategory = allSupplierCategories.find((category) => category.id === assignment.categoryId)
+        || allSupplierCategories.find((category) => category.slug && category.slug === assignment.categorySlug);
+      return matchedCategory ? getSupplierCategoryDisplayName(matchedCategory, t) : assignment.categorySlug || '-';
+    })
+    : [];
+
+  const profilePanel = (
+    <div className="mt-6 space-y-6">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">{t('supplier_profile_title')}</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600">{t('supplier_profile_desc')}</p>
+            <p className="mt-2 text-xs font-medium text-blue-700">{t('supplier_profile_sync_notice')}</p>
+          </div>
+          <button onClick={handleSaveSupplierProfile} className="inline-flex items-center justify-center rounded-2xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">
+            {t('supplier_profile_save')}
+          </button>
+        </div>
+
+        {!currentSupplierProfile && (
+          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div>{t('supplier_profile_empty')}</div>
+            <div className="mt-2 text-xs text-amber-700/80">{t('supplier_profile_empty_hint')}</div>
+          </div>
+        )}
+
+        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-slate-200 p-4">
+              <h4 className="text-sm font-semibold text-slate-900">{t('supplier_profile_public_section')}</h4>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_name')}</label>
+                  <input value={profileFormData.publicProfile?.supplierName || ''} onChange={(event) => updateProfilePublicField('supplierName', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_contact_person')}</label>
+                  <input value={profileFormData.publicProfile?.contactPerson || ''} onChange={(event) => updateProfilePublicField('contactPerson', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_phone')}</label>
+                  <input value={profileFormData.publicProfile?.phone || ''} onChange={(event) => updateProfilePublicField('phone', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_email')}</label>
+                  <input value={profileFormData.publicProfile?.email || ''} onChange={(event) => updateProfilePublicField('email', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_other_contact')}</label>
+                  <input value={profileFormData.publicProfile?.otherContact || ''} onChange={(event) => updateProfilePublicField('otherContact', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_address')}</label>
+                  <textarea value={profileFormData.publicProfile?.address || ''} onChange={(event) => updateProfilePublicField('address', event.target.value)} rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_profile_service_area')}</label>
+                  <input value={profileFormData.publicProfile?.serviceArea || ''} onChange={(event) => updateProfilePublicField('serviceArea', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_profile_business_notes')}</label>
+                  <textarea value={profileFormData.publicProfile?.notes || ''} onChange={(event) => updateProfilePublicField('notes', event.target.value)} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 p-4">
+              <h4 className="text-sm font-semibold text-slate-900">{t('supplier_profile_billing_section')}</h4>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_contact_person')}</label>
+                  <input value={profileFormData.internalMeta?.billingContact?.name || ''} onChange={(event) => updateProfileBillingField('name', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_email')}</label>
+                  <input value={profileFormData.internalMeta?.billingContact?.email || ''} onChange={(event) => updateProfileBillingField('email', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_phone')}</label>
+                  <input value={profileFormData.internalMeta?.billingContact?.phone || ''} onChange={(event) => updateProfileBillingField('phone', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h4 className="text-sm font-semibold text-slate-900">{t('supplier_profile_supported_categories')}</h4>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profileAssignmentSummaries.length > 0 ? profileAssignmentSummaries.map((label, index) => (
+                  <span key={`${label}-${index}`} className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">{label}</span>
+                )) : (
+                  <span className="text-sm text-slate-500">-</span>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="font-semibold text-slate-900">{t('supplier_profile_sync_notice')}</div>
+              <div className="mt-2 leading-6">
+                {t('supplier_profile_desc')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const productModal = isProductModalOpen ? (
+    <div className="fixed inset-0 z-40 bg-slate-950/50 px-3 py-4 sm:px-6" onClick={handleCloseProductModal}>
+      <div className="mx-auto flex h-full max-w-4xl items-center justify-center">
+        <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">{editingProductId ? t('supplier_products_form_title_edit') : t('supplier_products_form_title_add')}</h3>
+              <p className="mt-1 text-sm text-slate-500">{t('supplier_products_csv_ready')}</p>
+            </div>
+            <button onClick={handleCloseProductModal} className="rounded-xl border border-slate-200 p-2 text-slate-500">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <h4 className="text-sm font-semibold text-slate-900">{t('supplier_products_form_basic')}</h4>
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_code')}</label>
+                    <input value={productFormData.productCode} onChange={(event) => handleProductFieldChange('productCode', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_name')}</label>
+                    <input value={productFormData.productName} onChange={(event) => handleProductFieldChange('productName', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_category')}</label>
+                    <select value={productFormData.categoryId} onChange={(event) => handleProductCategoryChange(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400">
+                      <option value="">{t('supplier_products_filter_all_categories')}</option>
+                      {activeSupplierCategories.map((category) => (
+                        <option key={category.id} value={category.id}>{getSupplierCategoryDisplayName(category, t)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_status')}</label>
+                    <select value={productFormData.status} onChange={(event) => handleProductFieldChange('status', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400">
+                      <option value="active">{t('supplier_status_active')}</option>
+                      <option value="inactive">{t('supplier_status_inactive')}</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_description')}</label>
+                    <textarea value={productFormData.description} onChange={(event) => handleProductFieldChange('description', event.target.value)} rows={4} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <h4 className="text-sm font-semibold text-slate-900">{t('supplier_products_form_inventory')}</h4>
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_unit')}</label>
+                    <input value={productFormData.unit} onChange={(event) => handleProductFieldChange('unit', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_price')}</label>
+                    <input type="number" min="0" value={productFormData.price} onChange={(event) => handleProductFieldChange('price', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_min_order_qty')}</label>
+                    <input type="number" min="1" value={productFormData.minimumOrderQuantity} onChange={(event) => handleProductFieldChange('minimumOrderQuantity', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_available_qty')}</label>
+                    <input type="number" min="0" value={productFormData.availableQuantity} onChange={(event) => handleProductFieldChange('availableQuantity', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                </div>
+                <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <span className="font-medium text-slate-800">{t('supplier_products_effective_price')}:</span> {formatMoneyByLanguage(productFormData.price || 0, language)}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <h4 className="text-sm font-semibold text-slate-900">{t('supplier_products_form_delivery')}</h4>
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_lead_time')}</label>
+                    <input value={productFormData.leadTime} onChange={(event) => handleProductFieldChange('leadTime', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('supplier_products_delivery_area')}</label>
+                    <input value={productFormData.deliveryArea} onChange={(event) => handleProductFieldChange('deliveryArea', event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-400" />
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr,0.8fr]">
+                  <div className="rounded-2xl border border-dashed border-slate-300 p-4">
+                    <div className="text-sm font-medium text-slate-700">{t('supplier_products_image')}</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <label className="inline-flex cursor-pointer items-center rounded-2xl bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800">
+                        <UploadCloud className="mr-2 h-4 w-4" />
+                        {productFormData.productImage?.dataUrl ? t('supplier_products_image_replace') : t('supplier_products_image_upload')}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleProductImageChange} />
+                      </label>
+                      {productFormData.productImage?.dataUrl && (
+                        <button onClick={handleRemoveProductImage} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                          {t('supplier_products_image_remove')}
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-3 text-xs text-slate-500">
+                      {productFormData.productImage?.fileName || t('supplier_products_csv_ready')}
+                    </div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      <span className="font-medium text-slate-700">{t('supplier_products_image_meta')}:</span>{' '}
+                      {productFormData.productImage?.fileName
+                        ? `${productFormData.productImage.fileName} / ${formatNumberByLanguage(productFormData.productImage.fileSize || 0, language)} B / ${productFormData.productImage.mimeType || '-'}`
+                        : '-'}
+                    </div>
+                    <div className="mt-2 text-xs text-slate-500">{t('supplier_products_image_hint')}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <div className="text-sm font-medium text-slate-700">{t('supplier_products_image_preview')}</div>
+                    <div className="mt-3 flex min-h-[180px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-3">
+                      {productFormData.productImage?.dataUrl ? (
+                        <img src={productFormData.productImage.dataUrl} alt={productFormData.productName || 'Product Preview'} className="max-h-40 rounded-2xl object-contain" />
+                      ) : (
+                        <div className="text-center text-sm text-slate-400">
+                          <ImageIcon className="mx-auto mb-2 h-8 w-8" />
+                          {t('supplier_products_image_preview')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div className="sticky bottom-0 flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="text-xs text-slate-500">{t('supplier_products_safe_remove_hint')}</div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button onClick={handleCloseProductModal} className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                {t('btn_cancel')}
+              </button>
+              <button onClick={handleSaveProduct} className="rounded-2xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">
+                {t('supplier_products_save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const csvImportModal = isCsvImportModalOpen ? (
+    <div className="fixed inset-0 z-40 bg-slate-950/50 px-3 py-4 sm:px-6" onClick={handleCloseCsvImportModal}>
+      <div className="mx-auto flex h-full max-w-5xl items-center justify-center">
+        <div className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">{t('supplier_products_import_csv')}</h3>
+              <p className="mt-1 text-sm text-slate-500">{t('supplier_products_csv_example')}</p>
+            </div>
+            <button onClick={handleCloseCsvImportModal} className="rounded-xl border border-slate-200 p-2 text-slate-500">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr,1fr]">
+                  <div>
+                    <div className="mb-2 text-sm font-medium text-slate-700">{t('supplier_products_csv_file')}</div>
+                    <label className="inline-flex cursor-pointer items-center rounded-2xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">
+                      <UploadCloud className="mr-2 h-4 w-4" />
+                      {t('supplier_products_csv_upload')}
+                      <input type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvFileChange} />
+                    </label>
+                    <div className="mt-3 text-sm text-slate-600">{csvImportFileName || '-'}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                    <div className="font-medium text-slate-800">{t('supplier_products_csv_columns')}</div>
+                    <div className="mt-2 leading-6">{t('supplier_products_csv_example')}</div>
+                    <div className="mt-3 text-xs text-slate-500">{t('supplier_products_csv_rows')}: {formatNumberByLanguage(csvPreviewRows.length, language)}</div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="text-sm font-semibold text-slate-900">{t('supplier_products_csv_preview_title')}</h4>
+                  <div className="text-sm text-slate-500">{t('supplier_products_csv_rows')}: {formatNumberByLanguage(csvPreviewRows.length, language)}</div>
+                </div>
+
+                {csvPreviewRows.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">
+                    {t('supplier_products_csv_preview_empty')}
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-4 hidden overflow-x-auto lg:block">
+                      <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_name')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_category')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_effective_price')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_available_qty')}</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t('supplier_products_status')}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {csvPreviewRows.map((row) => (
+                            <tr key={row.id}>
+                              <td className="px-4 py-4">
+                                <div className="font-semibold text-slate-900">{row.productName || '-'}</div>
+                                <div className="mt-1 text-xs text-slate-500">{row.productCode}</div>
+                              </td>
+                              <td className="px-4 py-4 text-sm text-slate-700">{row.categoryName || row.categorySlug || '-'}</td>
+                              <td className="px-4 py-4 text-sm font-semibold text-slate-900">{formatMoneyByLanguage(row.price || 0, language)}</td>
+                              <td className="px-4 py-4 text-sm text-slate-700">{formatNumberByLanguage(row.availableQuantity || 0, language)} {row.unit || '-'}</td>
+                              <td className="px-4 py-4 text-sm text-slate-700">{row.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mt-4 space-y-3 lg:hidden">
+                      {csvPreviewRows.map((row) => (
+                        <div key={row.id} className="rounded-2xl bg-slate-50 p-4">
+                          <div className="font-semibold text-slate-900">{row.productName || '-'}</div>
+                          <div className="mt-1 text-xs text-slate-500">{row.productCode}</div>
+                          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_category')}</div><div className="mt-1 text-sm font-medium text-slate-700">{row.categoryName || row.categorySlug || '-'}</div></div>
+                            <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_effective_price')}</div><div className="mt-1 text-sm font-medium text-slate-700">{formatMoneyByLanguage(row.price || 0, language)}</div></div>
+                            <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_available_qty')}</div><div className="mt-1 text-sm font-medium text-slate-700">{formatNumberByLanguage(row.availableQuantity || 0, language)} {row.unit || '-'}</div></div>
+                            <div className="rounded-2xl bg-white px-4 py-3"><div className="text-xs uppercase tracking-wide text-slate-400">{t('supplier_products_status')}</div><div className="mt-1 text-sm font-medium text-slate-700">{row.status === 'inactive' ? t('supplier_status_inactive') : t('supplier_status_active')}</div></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+            </div>
+          </div>
+
+          <div className="sticky bottom-0 flex flex-col gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div className="text-xs text-slate-500">{t('supplier_products_csv_example')}</div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button onClick={handleCloseCsvImportModal} className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                {t('btn_cancel')}
+              </button>
+              <button onClick={handleConfirmCsvImport} className="rounded-2xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800">
+                {t('supplier_products_csv_confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <div className="flex min-h-screen">
+        <aside className="hidden w-72 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 lg:flex">
+          <div className="border-b border-slate-800 px-6 py-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-blue-600 p-3">
+                <Building className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-200">{t('nav_supplier_portal')}</div>
+                <div className="text-lg font-semibold text-white">BuildSabaidee</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 space-y-2 px-4 py-6">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.tab;
+              return (
+                <button
+                  key={item.tab}
+                  onClick={() => setActiveTab(item.tab)}
+                  className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                    isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium">{t(item.labelKey)}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
+          <div className="border-t border-slate-800 p-4">
+            <button onClick={() => onNavigate({ view: 'logout', role: 'supplier', redirectTo: 'supplier_access' })} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-slate-300 transition hover:bg-slate-900 hover:text-white">
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">{t('supplier_access_title')}</span>
+            </button>
+          </div>
+        </aside>
+
+        <div className="flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsSidebarOpen(true)} className="inline-flex rounded-xl border border-slate-200 p-2 text-slate-600 lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-600">{t('nav_supplier_portal')}</div>
+                  <h1 className="text-xl font-bold text-slate-900">{activeSection.title}</h1>
+                </div>
+              </div>
+              <button onClick={() => onNavigate({ view: 'logout', role: 'supplier', redirectTo: 'supplier_access' })} className="hidden rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:inline-flex">
+                {t('supplier_back_home')}
+              </button>
+            </div>
+            <div className="overflow-x-auto px-4 pb-4 sm:px-6 lg:hidden">
+              <div className="flex gap-2">
+                {navItems.map((item) => {
+                  const isActive = activeTab === item.tab;
+                  return (
+                    <button
+                      key={item.tab}
+                      onClick={() => setActiveTab(item.tab)}
+                      className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${
+                        isActive ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {t(item.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </header>
+
+          {isSidebarOpen && (
+            <div className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" onClick={() => setIsSidebarOpen(false)}>
+              <div className="h-full w-72 bg-slate-950 p-4 text-slate-100 shadow-xl" onClick={(event) => event.stopPropagation()}>
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-200">{t('nav_supplier_portal')}</div>
+                  <button onClick={() => setIsSidebarOpen(false)} className="rounded-xl border border-slate-800 p-2 text-slate-300">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.tab;
+                    return (
+                      <button
+                        key={item.tab}
+                        onClick={() => {
+                          setActiveTab(item.tab);
+                          setIsSidebarOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition ${
+                          isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-900 hover:text-white'
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="font-medium">{t(item.labelKey)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <main className="flex-1 px-4 py-6 sm:px-6">
+            <div className={`rounded-3xl bg-gradient-to-br ${activeSection.accent} p-6 text-white shadow-xl`}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="max-w-3xl space-y-3">
+                  <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
+                    {t('nav_supplier_portal')}
+                  </span>
+                  <h2 className="text-2xl font-bold sm:text-3xl">{activeSection.title}</h2>
+                  <p className="text-sm leading-6 text-white/90 sm:text-base">{activeSection.desc}</p>
+                </div>
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+                  <ActiveIcon className="h-7 w-7" />
+                </div>
+              </div>
+            </div>
+
+            {activeTab === 'supplier_products' ? productsPanel : activeTab === 'supplier_orders' ? ordersPanel : activeTab === 'supplier_profile' ? profilePanel : placeholderPanel}
+          </main>
+        </div>
+      </div>
+      {productModal}
+      {csvImportModal}
+    </div>
+  );
+}
+
+// ==========================================
+// 4. OWNER PORTAL SIMULATOR (Mobile App View for Homeowner)
+// ==========================================
+function OwnerPortal({ onNavigate, t, globalChats, docsList, language }) {
+  const [activeNav, setActiveNav] = useState('home'); 
+  const ownerName = 'คุณ อลินดา';
+
+  const [chatInput, setChatInput] = useState('');
+  const chatContainerRef = useRef(null);
+  const ownerDocs = [...docsList]
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+    .slice(0, 6);
+
+  // 🎙️ Firebase Audio Recorder สำหรับ Owner
+  const { isRecording: isRecordingAudio, startRecording, stopRecording } = useAudioRecorder(async (base64Audio) => {
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'chats'), {
+       sender: ownerName, senderRole: 'owner', text: t('voice_message_label'), audioUrl: base64Audio, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: '1', createdAt: Date.now()
+    });
+  });
+
+  useEffect(() => {
+    if (activeNav === 'chat' && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [globalChats, activeNav]);
+
+  const handleSendChat = async () => {
+    if(!chatInput.trim()) return;
+    if(!db) return alert(t('firebase_required'));
+    await addDoc(collection(db, 'chats'), {
+       sender: ownerName, senderRole: 'owner', text: chatInput, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: '1', createdAt: Date.now()
+    });
+    setChatInput('');
+  };
+  const handleKeyPress = (e) => { if(e.key === 'Enter') handleSendChat(); };
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative">
+      <div className="bg-slate-50 w-full max-w-[400px] h-[800px] max-h-[90vh] rounded-[3rem] overflow-hidden shadow-2xl relative border-8 border-slate-800 flex flex-col">
+        
+        {/* Header */}
+        <div className="bg-blue-600 text-white pt-10 pb-6 px-6 rounded-b-3xl shadow-md relative z-10 shrink-0">
+          <button onClick={() => onNavigate('landing')} className="absolute top-6 right-6 text-blue-200 hover:text-white">
+            <X className="h-6 w-6" />
+          </button>
+          <div className="text-blue-200 text-sm font-medium">{t('owner_welcome')}</div>
+          <h2 className="text-2xl font-bold mt-1">{ownerName}</h2>
+          <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl mt-4 flex items-center justify-between border border-white/20">
+            <div>
+              <div className="text-xs text-blue-100">{t('owner_current_project')}</div>
+              <div className="font-bold">{t('owner_current_project_name')}</div>
+            </div>
+            <div className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-lg">{t('owner_current_stage')}</div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50">
+          
+          {activeNav === 'home' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center border border-slate-100">
+                <div className="relative w-32 h-32 flex items-center justify-center mb-2">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#f1f5f9" strokeWidth="10" />
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#3b82f6" strokeWidth="10" strokeDasharray="282.7" strokeDashoffset={282.7 - (282.7 * 0.65)} strokeLinecap="round" />
+                  </svg>
+                  <div className="absolute text-3xl font-bold text-slate-800">65%</div>
+                </div>
+                <h3 className="font-bold text-slate-700">{t('owner_progress')}</h3>
+                <p className="text-sm text-slate-500 text-center mt-1">{t('owner_expected_completion')}: 15 Dec 2026</p>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-end mb-3 px-1">
+                  <h3 className="font-bold text-slate-800">{t('owner_timeline')}</h3>
+                  <span className="text-xs text-blue-600 font-medium">{t('owner_view_all')}</span>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center text-sm font-bold text-slate-700">
+                        <CheckCircle className="h-4 w-4 text-green-500 mr-2" /> {t('owner_latest_update_title')}
+                      </div>
+                      <span className="text-xs text-slate-400">{t('owner_latest_update_time')}</span>
+                    </div>
+                    <div className="h-32 bg-slate-200 rounded-xl bg-[url('https://images.unsplash.com/photo-1541888081467-548c78574163?q=80&w=400&auto=format&fit=crop')] bg-cover mb-2"></div>
+                    <p className="text-xs text-slate-500">{t('owner_latest_update_note')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeNav === 'docs' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+                <h3 className="font-bold text-slate-800">{t('owner_docs_title')}</h3>
+                <p className="mt-1 text-sm text-slate-500">{t('manager_tab_docs_title')}</p>
+              </div>
+              {ownerDocs.length > 0 ? ownerDocs.map((docItem) => (
+                <div key={docItem.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-800">{docItem.title || '-'}</div>
+                      <div className="mt-1 text-xs text-slate-500">{t(`doc_type_${docItem.type || 'invoice'}`)} • {docItem.date || '-'}</div>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                      {t(`doc_status_${docItem.status || 'pending'}`)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="text-slate-500">{docItem.submittedBy || docItem.customerName || '-'}</span>
+                    <span className="font-semibold text-blue-700">
+                      {Number(docItem.amount) > 0 ? formatMoneyByLanguage(docItem.amount, language) : '-'}
+                    </span>
+                  </div>
+                </div>
+              )) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                  {t('owner_docs_empty')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* REAL-TIME CHAT VIEW (WITH AUDIO) */}
+          {activeNav === 'chat' && (
+            <div className="bg-slate-50 rounded-3xl flex flex-col h-full max-h-full overflow-hidden animate-in fade-in duration-300 border border-slate-200 -m-4">
+               <div className="bg-white p-3 border-b border-slate-200 flex items-center shrink-0">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">MG</div>
+                  <span className="font-bold text-sm">{t('owner_manager_chat')}</span>
+               </div>
+               
+               <div ref={chatContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto">
+                 {globalChats.map(msg => {
+                   const isMe = msg.senderRole === 'owner';
+                   return (
+                     <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className={`p-3 rounded-2xl text-sm shadow-sm max-w-[90%] ${isMe ? 'bg-orange-500 text-white rounded-tr-sm' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-sm'}`}>
+                          {!isMe && <div className="text-[10px] font-bold text-blue-500 mb-1">{msg.sender}</div>}
+                          {msg.audioUrl ? (
+                             <audio controls src={msg.audioUrl} className="max-w-[200px] sm:max-w-full h-10 mt-1 rounded-full outline-none bg-transparent" />
+                          ) : (
+                             msg.text
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 mx-1">{msg.time}</span>
+                     </div>
+                   )
+                 })}
+               </div>
+               
+               <div className="p-3 bg-white border-t border-slate-200 flex items-center shrink-0">
+                  <button onMouseDown={startRecording} onMouseUp={stopRecording} onMouseLeave={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording} className={`p-2 transition rounded-full ${isRecordingAudio ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:bg-slate-100'}`} title={t('chat_hold_record')}><Mic className="w-5 h-5"/></button>
+                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={handleKeyPress} className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 mx-2" placeholder={isRecordingAudio ? t('chat_recording') : t('chat_placeholder')} disabled={isRecordingAudio} />
+                  <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`p-2 rounded-full transition ${chatInput.trim() ? 'text-orange-500 hover:bg-orange-50' : 'text-slate-300'}`}><Send className="w-5 h-5"/></button>
+               </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Bottom Nav */}
+        <div className="bg-white border-t border-slate-200 px-6 py-4 rounded-t-3xl flex justify-between shrink-0">
+          <div onClick={() => setActiveNav('home')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'home' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><Building className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('owner_nav_project')}</span></div>
+          <div onClick={() => setActiveNav('docs')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'docs' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><FileText className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('owner_nav_docs')}</span></div>
+          <div onClick={() => setActiveNav('chat')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'chat' ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'} relative`}>
+            <div className="absolute -top-1 -right-1 bg-red-500 w-3 h-3 rounded-full border-2 border-white"></div>
+            <MessageSquare className="h-6 w-6 mb-1"/>
+            <span className="text-[10px] font-bold">{t('owner_nav_chat')}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}function StatCard({ title, value, icon, color = "text-slate-700", bg = "bg-slate-100" }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-sm text-slate-500">{title}</div>
+          <div className="text-2xl font-bold text-slate-800 mt-1">{value}</div>
+        </div>
+        <div className={`${bg} ${color} p-3 rounded-xl`}>
+          {React.cloneElement(icon, { className: "h-6 w-6" })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProjectRow({ name, progress, status, workers, hasAlert, t }) {
+  return (
+    <div className="p-4 border-b border-slate-100 last:border-b-0">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <div className="font-bold text-slate-800">{name}</div>
+          <div className="text-xs text-slate-500">{workers} {t('workers_unit')}</div>
+        </div>
+        <div>
+          {status === "active" && <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">{t('status_active')}</span>}
+          {status === "delayed" && <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">{t('status_delayed')}</span>}
+          {status === "completed" && <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">{t('status_completed')}</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="w-full bg-slate-200 rounded-full h-2">
+          <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${progress || 0}%` }}></div>
+        </div>
+        <div className="text-sm font-bold text-blue-600 min-w-[48px] text-right">{progress || 0}%</div>
+      </div>
+      {hasAlert && <div className="text-xs text-red-500 mt-2">{t('project_risk_alert')}</div>}
+    </div>
+  );
+
+}
