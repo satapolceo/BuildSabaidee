@@ -29,6 +29,7 @@ import {
   saveToStorage,
   updateWorkerTaskStatus,
 } from './workerStorage';
+import { compressImageFile, DATA_SAVER_DEFAULTS, formatBytes } from './imageDataSaver';
 
 const TAB_HOME = 'home';
 const TAB_TASKS = 'tasks';
@@ -43,7 +44,7 @@ const SCREEN_PHOTO = 'photo';
 const SCREEN_REQUEST = 'request';
 const SCREEN_ISSUE = 'issue';
 
-const defaultPhotoForm = { category: '', detail: '', imageData: '' };
+const defaultPhotoForm = { category: '', detail: '', imageData: '', imageStats: null };
 const defaultIssueForm = { category: 'safety', urgency: 'high', detail: '', imageData: '' };
 const defaultRequestForm = { itemName: '', quantity: '1', unit: 'piece', note: '', imageData: '' };
 
@@ -66,14 +67,6 @@ const formatDateTime = (timestamp, locale) =>
 
 const formatDate = (value, locale) =>
   new Intl.DateTimeFormat(locale, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value));
-
-const readFileAsDataUrl = (file) =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 
 function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], projectsList = [] }) {
   const currentWorker = useMemo(() => {
@@ -105,6 +98,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [photoReports, setPhotoReports] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.photoReports, []));
   const [issues, setIssues] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.issues, []));
   const [materialRequests, setMaterialRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, []));
+  const [settings, setSettings] = useState(() => ({ ...DATA_SAVER_DEFAULTS, ...loadFromStorage(WORKER_STORAGE_KEYS.settings, {}) }));
   const [tasks, setTasks] = useState(() => {
     const saved = loadFromStorage(WORKER_STORAGE_KEYS.tasks, []);
     return getWorkerTasks(saved, currentWorker.id, siteName);
@@ -118,6 +112,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.photoReports, photoReports), [photoReports]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.issues, issues), [issues]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.materialRequests, materialRequests), [materialRequests]);
+  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.settings, settings), [settings]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.tasks, tasks), [tasks]);
 
   useEffect(() => {
@@ -261,8 +256,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const handleFileChange = async (event, setter) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const imageData = await readFileAsDataUrl(file);
-    setter((current) => ({ ...current, imageData }));
+    const { imageData, stats } = await compressImageFile(file, settings);
+    setter((current) => ({
+      ...current,
+      imageData,
+      imageStats: stats,
+      originalName: file.name || '',
+    }));
   };
 
   const submitPhoto = () => {
@@ -279,6 +279,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       category: photoForm.category,
       detail: photoForm.detail,
       imageData: photoForm.imageData,
+      imageMeta: photoForm.imageStats || {},
       status: online ? 'submitted' : 'queued',
     });
 
@@ -547,6 +548,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           <MetricCard label={pickText(t, 'worker_sos', 'SOS')} value={`${latestIssues.length}`} compact />
         </div>
       </div>
+      <DataSaverCard settings={settings} setSettings={setSettings} t={t} />
     </div>
   );
 
@@ -557,8 +559,24 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       onBack={goBack}
       t={t}
     >
+      <DataSaverCard settings={settings} setSettings={setSettings} t={t} compact />
       <FormCard title={pickText(t, 'worker_photo', 'Upload Photo')}>
         <FilePicker imageData={photoForm.imageData} onChange={(event) => handleFileChange(event, setPhotoForm)} label={pickText(t, 'worker_report_photo', 'Photo')} t={t} />
+        {photoForm.imageStats ? (
+          <div className="mt-3 rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
+            <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
+            <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl bg-white px-3 py-2">
+                <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
+                <div className="mt-1 font-semibold text-slate-900">{formatBytes(photoForm.imageStats.originalBytes)}</div>
+              </div>
+              <div className="rounded-xl bg-white px-3 py-2">
+                <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
+                <div className="mt-1 font-semibold text-slate-900">{formatBytes(photoForm.imageStats.compressedBytes)}</div>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <input value={photoForm.category} onChange={(event) => setPhotoForm((current) => ({ ...current, category: event.target.value }))} placeholder={pickText(t, 'worker_report_category', 'Job category')} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
         <textarea value={photoForm.detail} onChange={(event) => setPhotoForm((current) => ({ ...current, detail: event.target.value }))} placeholder={pickText(t, 'worker_report_details', 'Details')} rows={4} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
         <button onClick={submitPhoto} className="mt-3 w-full rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white">{pickText(t, 'worker_report_submit', 'Submit report')}</button>
@@ -773,6 +791,34 @@ function FormCard({ title, children }) {
     <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
       <div className="mb-3 text-base font-semibold text-slate-900">{title}</div>
       {children}
+    </div>
+  );
+}
+
+function DataSaverCard({ settings, setSettings, t, compact = false }) {
+  return (
+    <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-base font-semibold text-slate-900">{pickText(t, 'worker_data_saver_mode', 'Data Saver Mode')}</div>
+          <div className="mt-1 text-sm text-slate-500">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
+        </div>
+        <button onClick={() => setSettings((current) => ({ ...current, dataSaverMode: !current.dataSaverMode }))} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${settings.dataSaverMode ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+          {settings.dataSaverMode ? 'ON' : 'OFF'}
+        </button>
+      </div>
+      <div className={`mt-3 ${compact ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-3 gap-3'}`}>
+        {['low', 'medium', 'high'].map((level) => (
+          <button
+            key={level}
+            onClick={() => setSettings((current) => ({ ...current, uploadQuality: level }))}
+            className={`rounded-xl px-3 py-2 text-xs font-semibold ${settings.uploadQuality === level ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700'}`}
+          >
+            {pickText(t, `worker_quality_${level}`, level)}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 text-xs text-slate-500">{pickText(t, 'worker_upload_quality', 'Upload Quality')}</div>
     </div>
   );
 }

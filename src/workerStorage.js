@@ -6,6 +6,7 @@ export const WORKER_STORAGE_KEYS = {
   issues: `${STORAGE_PREFIX}issues`,
   materialRequests: `${STORAGE_PREFIX}materialRequests`,
   tasks: `${STORAGE_PREFIX}tasks`,
+  settings: `${STORAGE_PREFIX}settings`,
 };
 
 export const ATTENDANCE_STATUS = {
@@ -17,6 +18,14 @@ export const TASK_STATUS = {
   inProgress: 'in_progress',
   completed: 'completed',
 };
+
+function createSyncFields(status = 'local', timestamp = Date.now()) {
+  return {
+    syncStatus: status,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
 
 export function loadFromStorage(key, fallback) {
   if (typeof window === 'undefined') return fallback;
@@ -75,6 +84,7 @@ export function createAttendanceRecord({
     dateKey: getDateKey(timestamp),
     note,
     status,
+    ...createSyncFields('local', timestamp),
   };
 }
 
@@ -101,6 +111,7 @@ export function createPhotoReport({
   category,
   detail,
   imageData,
+  imageMeta = {},
   status = 'submitted',
   timestamp = Date.now(),
 }) {
@@ -115,6 +126,8 @@ export function createPhotoReport({
     submittedAt: timestamp,
     dateKey: getDateKey(timestamp),
     status,
+    imageMeta,
+    ...createSyncFields(status === 'submitted' ? 'pending' : 'local', timestamp),
   };
 }
 
@@ -141,6 +154,7 @@ export function createIssueReport({
     reportedAt: timestamp,
     dateKey: getDateKey(timestamp),
     status,
+    ...createSyncFields('pending', timestamp),
   };
 }
 
@@ -169,6 +183,7 @@ export function createMaterialRequest({
     requestedAt: timestamp,
     dateKey: getDateKey(timestamp),
     status,
+    ...createSyncFields('pending', timestamp),
   };
 }
 
