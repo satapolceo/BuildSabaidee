@@ -154,6 +154,8 @@ const readBlobAsDataUrl = (blob) =>
     reader.readAsDataURL(blob);
   });
 
+const wait = (ms = 0) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
 const getLocalizedValue = (labels = {}, language = 'EN') => labels[language] || labels.EN || labels.TH || labels.LA || '';
 
 const normalizeProjectOptions = (items = [], language = 'EN') =>

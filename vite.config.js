@@ -5,4 +5,10 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: '/BuildSabaidee/',
+  test: {
+    environment: 'jsdom',
+    setupFiles: './tests/setupTests.js',
+    globals: true,
+    css: true,
+  },
 })
