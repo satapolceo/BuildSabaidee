@@ -3,6 +3,7 @@ const STORAGE_PREFIX = 'buildsabaidee.worker.';
 export const WORKER_STORAGE_KEYS = {
   attendance: `${STORAGE_PREFIX}attendance`,
   photoReports: `${STORAGE_PREFIX}photoReports`,
+  voiceNotes: `${STORAGE_PREFIX}voiceNotes`,
   issues: `${STORAGE_PREFIX}issues`,
   materialRequests: `${STORAGE_PREFIX}materialRequests`,
   tasks: `${STORAGE_PREFIX}tasks`,
@@ -128,6 +129,31 @@ export function createPhotoReport({
     status,
     imageMeta,
     ...createSyncFields(status === 'submitted' ? 'pending' : 'local', timestamp),
+  };
+}
+
+export function createVoiceNoteRecord({
+  workerId,
+  workerName,
+  siteName,
+  audioData,
+  durationMs = 0,
+  mimeType = 'audio/webm',
+  status = 'saved',
+  timestamp = Date.now(),
+}) {
+  return {
+    id: createLocalId('voice_note'),
+    workerId,
+    workerName,
+    siteName,
+    audioData,
+    durationMs,
+    mimeType,
+    recordedAt: timestamp,
+    dateKey: getDateKey(timestamp),
+    status,
+    ...createSyncFields('local', timestamp),
   };
 }
 
