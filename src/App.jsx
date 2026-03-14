@@ -399,6 +399,150 @@ Object.assign(translations.LA, {
 });
 
 Object.assign(translations.TH, {
+  worker_nav_submit: 'ส่งงาน',
+  worker_home_title: 'หน้าแรก',
+  worker_attendance_title: 'ลงเวลา',
+  worker_checkin_cta: 'ลงเวลาเข้างาน',
+  worker_checkout_cta: 'ลงเวลาเลิกงาน',
+  worker_attendance_not_started: 'ยังไม่เข้างาน',
+  worker_attendance_checked_in: 'เข้างานแล้ว',
+  worker_attendance_checked_out: 'เลิกงานแล้ว',
+  worker_latest_active: 'ใช้งานล่าสุด',
+  worker_sync_when_online: 'ข้อมูลจะส่งอัตโนมัติเมื่อมีเน็ต',
+  worker_today_title: 'งานวันนี้',
+  worker_pending_title: 'รอดำเนินการ',
+  worker_latest_alerts_title: 'แจ้งเตือนล่าสุด',
+  worker_submit_work_title: 'ส่งงาน',
+  worker_profile_status_ready: 'พร้อมเริ่มงาน',
+  worker_profile_status_active: 'อยู่หน้างาน',
+  worker_profile_status_done: 'ปิดกะแล้ว',
+  worker_site_name_fallback: 'ยังไม่ได้ระบุโครงการ',
+  worker_project_label: 'โครงการ',
+  worker_header_badge: 'Worker App',
+  worker_header_caption: 'พร้อมทำงานภาคสนาม',
+  worker_hero_title: 'ลงเวลาและอัปเดตงานจากมือถือเครื่องเดียว',
+  worker_hero_desc: 'กด action หลักได้ทันที เหมาะกับการใช้งานหน้างานจริงทั้ง iPhone และ Android',
+  worker_attendance_hint_idle: 'พร้อมลงเวลาเมื่อถึงไซต์งาน',
+  worker_attendance_hint_active: 'เวลาเข้างานล่าสุด',
+  worker_attendance_hint_done: 'บันทึกการเลิกงานแล้ว',
+  worker_action_primary: 'เมนูด่วน',
+  worker_action_upload_desc: 'ส่งรูปและอัปเดตความคืบหน้า',
+  worker_action_request_desc: 'ขอเบิกวัสดุและอุปกรณ์',
+  worker_action_sos_desc: 'แจ้งปัญหาเร่งด่วนถึงทีม',
+  worker_submit_card_desc: 'ส่งรูปงาน รายละเอียด และหลักฐานหน้างาน',
+  worker_submit_secondary_desc: 'เลือกประเภทการส่งที่ต้องการได้ทันที',
+  worker_task_1_meta: 'โซน A • ทีมคอนกรีต',
+  worker_task_2_meta: 'คลังวัสดุ • เสร็จแล้ว',
+  worker_task_status_in_progress: 'กำลังทำ',
+  worker_task_status_done: 'เสร็จแล้ว',
+  worker_pending_materials: 'คำขอเบิกวัสดุรออนุมัติ',
+  worker_pending_report: 'รอส่งรายงานปิดงาน',
+  worker_pending_safety: 'ตรวจอุปกรณ์ความปลอดภัย',
+  worker_notification_sync: 'ระบบบันทึกข้อมูลออฟไลน์ไว้แล้ว',
+  worker_notification_manager: 'หัวหน้าทีมอัปเดตงานรอบบ่าย',
+  worker_notification_request: 'มีคำขอวัสดุก่อนหน้ารออนุมัติ',
+  worker_open_camera_short: 'เปิดกล้อง',
+  worker_open_request_short: 'ขอเบิกของ',
+  worker_open_sos_short: 'แจ้ง SOS',
+});
+
+Object.assign(translations.EN, {
+  worker_nav_submit: 'Submit',
+  worker_home_title: 'Home',
+  worker_attendance_title: 'Attendance',
+  worker_checkin_cta: 'Check In',
+  worker_checkout_cta: 'Check Out',
+  worker_attendance_not_started: 'Not checked in',
+  worker_attendance_checked_in: 'Checked in',
+  worker_attendance_checked_out: 'Checked out',
+  worker_latest_active: 'Latest active',
+  worker_sync_when_online: 'Data will sync automatically when online',
+  worker_today_title: 'Today\'s Tasks',
+  worker_pending_title: 'Pending',
+  worker_latest_alerts_title: 'Latest Notifications',
+  worker_submit_work_title: 'Submit Work',
+  worker_profile_status_ready: 'Ready to start',
+  worker_profile_status_active: 'On site',
+  worker_profile_status_done: 'Shift closed',
+  worker_site_name_fallback: 'Project not assigned',
+  worker_project_label: 'Project',
+  worker_header_badge: 'Worker App',
+  worker_header_caption: 'Ready for field work',
+  worker_hero_title: 'Clock in and update work from one mobile screen',
+  worker_hero_desc: 'Core actions stay one tap away for real on-site use on iPhone and Android',
+  worker_attendance_hint_idle: 'Ready to clock in when you reach the site',
+  worker_attendance_hint_active: 'Latest check-in time',
+  worker_attendance_hint_done: 'Check-out recorded',
+  worker_action_primary: 'Quick Actions',
+  worker_action_upload_desc: 'Send photos and progress updates',
+  worker_action_request_desc: 'Request materials and tools',
+  worker_action_sos_desc: 'Report urgent issues to the team',
+  worker_submit_card_desc: 'Send work photos, notes, and field proof',
+  worker_submit_secondary_desc: 'Choose the submission you need right away',
+  worker_task_1_meta: 'Zone A • Concrete team',
+  worker_task_2_meta: 'Material yard • Completed',
+  worker_task_status_in_progress: 'In progress',
+  worker_task_status_done: 'Done',
+  worker_pending_materials: 'Material request waiting approval',
+  worker_pending_report: 'End-of-shift report pending',
+  worker_pending_safety: 'Safety gear check pending',
+  worker_notification_sync: 'Offline data has been safely saved',
+  worker_notification_manager: 'Team lead updated the afternoon work plan',
+  worker_notification_request: 'A previous material request is still pending',
+  worker_open_camera_short: 'Open Camera',
+  worker_open_request_short: 'Request Items',
+  worker_open_sos_short: 'Open SOS',
+});
+
+Object.assign(translations.LA, {
+  worker_nav_submit: 'ສົ່ງວຽກ',
+  worker_home_title: 'ໜ້າຫຼັກ',
+  worker_attendance_title: 'ລົງເວລາ',
+  worker_checkin_cta: 'ລົງເວລາເຂົ້າວຽກ',
+  worker_checkout_cta: 'ລົງເວລາເລີກວຽກ',
+  worker_attendance_not_started: 'ຍັງບໍ່ເຂົ້າວຽກ',
+  worker_attendance_checked_in: 'ເຂົ້າວຽກແລ້ວ',
+  worker_attendance_checked_out: 'ເລີກວຽກແລ້ວ',
+  worker_latest_active: 'ໃຊ້ງານຫຼ້າສຸດ',
+  worker_sync_when_online: 'ຂໍ້ມູນຈະຖືກສົ່ງອັດຕະໂນມັດເມື່ອມີເນັດ',
+  worker_today_title: 'ວຽກມື້ນີ້',
+  worker_pending_title: 'ລໍດຳເນີນການ',
+  worker_latest_alerts_title: 'ແຈ້ງເຕືອນຫຼ້າສຸດ',
+  worker_submit_work_title: 'ສົ່ງວຽກ',
+  worker_profile_status_ready: 'ພ້ອມເລີ່ມວຽກ',
+  worker_profile_status_active: 'ຢູ່ໜ້າວຽກ',
+  worker_profile_status_done: 'ປິດກະແລ້ວ',
+  worker_site_name_fallback: 'ຍັງບໍ່ໄດ້ລະບຸໂຄງການ',
+  worker_project_label: 'ໂຄງການ',
+  worker_header_badge: 'Worker App',
+  worker_header_caption: 'ພ້ອມເຮັດວຽກໜ້າງານ',
+  worker_hero_title: 'ລົງເວລາ ແລະ ອັບເດດວຽກຈາກມືຖືເຄື່ອງດຽວ',
+  worker_hero_desc: 'ປຸ່ມຫຼັກຢູ່ໃກ້ມື ເໝາະກັບການໃຊ້ງານຈິງທັງ iPhone ແລະ Android',
+  worker_attendance_hint_idle: 'ພ້ອມລົງເວລາເມື່ອຮອດໄຊຕ໌',
+  worker_attendance_hint_active: 'ເວລາເຂົ້າວຽກຫຼ້າສຸດ',
+  worker_attendance_hint_done: 'ບັນທຶກການເລີກວຽກແລ້ວ',
+  worker_action_primary: 'ເມນູດ່ວນ',
+  worker_action_upload_desc: 'ສົ່ງຮູບ ແລະ ອັບເດດຄວາມຄືບໜ້າ',
+  worker_action_request_desc: 'ຂໍເບີກວັດສະດຸ ແລະ ອຸປະກອນ',
+  worker_action_sos_desc: 'ແຈ້ງບັນຫາດ່ວນໃຫ້ທີມ',
+  worker_submit_card_desc: 'ສົ່ງຮູບວຽກ ລາຍລະອຽດ ແລະ ຫຼັກຖານໜ້າວຽກ',
+  worker_submit_secondary_desc: 'ເລືອກປະເພດການສົ່ງທີ່ຕ້ອງການໄດ້ທັນທີ',
+  worker_task_1_meta: 'ໂຊນ A • ທີມຄອນກຣີດ',
+  worker_task_2_meta: 'ຄັງວັດສະດຸ • ສຳເລັດແລ້ວ',
+  worker_task_status_in_progress: 'ກຳລັງເຮັດ',
+  worker_task_status_done: 'ສຳເລັດແລ້ວ',
+  worker_pending_materials: 'ຄຳຂໍເບີກວັດສະດຸລໍອະນຸມັດ',
+  worker_pending_report: 'ລໍສົ່ງລາຍງານປິດວຽກ',
+  worker_pending_safety: 'ກວດອຸປະກອນຄວາມປອດໄພ',
+  worker_notification_sync: 'ລະບົບບັນທຶກຂໍ້ມູນອອຟລາຍໄວ້ແລ້ວ',
+  worker_notification_manager: 'ຫົວໜ້າທີມອັບເດດແຜນວຽກຮອບບ່າຍ',
+  worker_notification_request: 'ຄຳຂໍວັດສະດຸກ່ອນໜ້າຍັງລໍອະນຸມັດ',
+  worker_open_camera_short: 'ເປີດກ້ອງ',
+  worker_open_request_short: 'ຂໍເບີກຂອງ',
+  worker_open_sos_short: 'ແຈ້ງ SOS',
+});
+
+Object.assign(translations.TH, {
   label_person_type: 'ประเภทบุคคล / นิติบุคคล',
   worker_section_personal: 'ข้อมูลบุคคล',
   worker_section_assignment: 'ข้อมูลงานและการมอบหมาย',
@@ -4361,7 +4505,7 @@ export default function BuildSabaideeApp() {
       {currentView === 'worker' && (
         <WorkerApp 
           onNavigate={navigateTo} t={t} 
-          globalRequests={globalRequests} globalIssues={globalIssues} docsList={docsList} workersList={workersList} globalChats={globalChats}
+          globalRequests={globalRequests} globalIssues={globalIssues} docsList={docsList} workersList={workersList} globalChats={globalChats} projectsList={projectsList}
         />
       )}
       {currentView === 'manager' && (
@@ -4941,7 +5085,7 @@ function ArrowRightIcon() {
 // ==========================================
 // 2. WORKER APP SIMULATOR (Mobile View)
 // ==========================================
-function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, workersList, globalChats }) {
+function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, workersList, globalChats, projectsList = [] }) {
   const worker = workersList.map((entry) => normalizeWorkerEntry(entry)).find((entry) => isRoleBasedWorkerType(entry.personType)) || { id: 'temp', name: t('worker_role_worker'), assignedSiteId: '', attendanceRate: 0 };
   const isCheckedIn = worker?.attendanceRate > 0;
   const [activeNav, setActiveNav] = useState('home'); 
@@ -4959,6 +5103,41 @@ function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, work
 
   const [chatInput, setChatInput] = useState('');
   const chatContainerRef = useRef(null);
+  const assignedProject = projectsList.find((project) => String(project.id) === String(worker.assignedSiteId));
+  const siteName = assignedProject?.name || t('worker_site_name_fallback');
+  const workerInitial = worker.name?.trim()?.charAt(0)?.toUpperCase() || 'W';
+  const attendanceStatusKey = isCheckedIn ? 'worker_attendance_checked_in' : 'worker_attendance_not_started';
+  const profileStatusKey = isCheckedIn ? 'worker_profile_status_active' : 'worker_profile_status_ready';
+  const attendanceCtaKey = isCheckedIn ? 'worker_checkout_cta' : 'worker_checkin_cta';
+  const attendanceHintKey = isCheckedIn ? 'worker_attendance_hint_active' : 'worker_attendance_hint_idle';
+  const recentReport = docsList
+    .filter((item) => item.type === 'report' && String(item.projectId || '') === String(worker.assignedSiteId || ''))
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0];
+  const recentRequest = globalRequests
+    .filter((item) => String(item.projectId || '') === String(worker.assignedSiteId || ''))
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0];
+  const recentIssue = globalIssues
+    .filter((item) => String(item.projectId || '') === String(worker.assignedSiteId || ''))
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))[0];
+  const pendingItems = [
+    { id: 'materials', label: t('worker_pending_materials'), tone: 'amber' },
+    { id: 'report', label: t('worker_pending_report'), tone: 'blue' },
+    { id: 'safety', label: t('worker_pending_safety'), tone: 'emerald' },
+  ];
+  const todayTasks = [
+    { id: 'task-1', title: t('worker_task_1_title'), detail: t('worker_task_1_time'), meta: t('worker_task_1_meta'), status: t('worker_task_status_in_progress'), done: false },
+    { id: 'task-2', title: t('worker_task_2_title'), detail: t('worker_task_2_done'), meta: t('worker_task_2_meta'), status: t('worker_task_status_done'), done: true },
+  ];
+  const latestNotifications = [
+    { id: 'sync', title: t('worker_notification_sync'), time: t('worker_latest_active'), tone: 'amber' },
+    { id: 'manager', title: recentReport?.title || t('worker_notification_manager'), time: recentReport?.date || '14:30', tone: 'blue' },
+    { id: 'request', title: recentRequest?.title || recentIssue?.title || t('worker_notification_request'), time: recentRequest?.date || recentIssue?.date || '12:10', tone: 'slate' },
+  ];
+  const quickActions = [
+    { id: 'photo', title: t('worker_photo'), description: t('worker_action_upload_desc'), icon: Camera, tone: 'blue', onClick: () => setIsPhotoModalOpen(true) },
+    { id: 'request', title: t('worker_material'), description: t('worker_action_request_desc'), icon: Package, tone: 'orange', onClick: () => setIsReqModalOpen(true) },
+    { id: 'sos', title: t('worker_sos'), description: t('worker_action_sos_desc'), icon: AlertTriangle, tone: 'red', onClick: () => setIsSosModalOpen(true) },
+  ];
 
   // 🎙️ Firebase Audio Recorder (แปลงเป็น Base64 ส่งขึ้น Firebase)
   const { isRecording: isRecordingAudio, startRecording, stopRecording } = useAudioRecorder(async (base64Audio) => {
@@ -5024,130 +5203,331 @@ function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, work
   };
 
   return (
-    <div className="min-h-screen bg-slate-800 flex items-center justify-center p-4 relative">
-      <div className="bg-slate-100 w-full max-w-[400px] h-[800px] max-h-[90vh] rounded-[3rem] overflow-hidden shadow-2xl relative border-8 border-slate-900 flex flex-col">
-        
-        {/* Top Status Bar */}
-        <div className="bg-white pt-6 pb-4 px-6 rounded-b-3xl shadow-sm z-10 shrink-0">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">ส</div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1d4ed8_0%,_#0f172a_38%,_#020617_100%)] p-0 sm:p-4">
+      <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col overflow-hidden bg-[#eef3f8] shadow-[0_28px_80px_rgba(15,23,42,0.45)] sm:min-h-[820px] sm:max-h-[92vh] sm:rounded-[2.4rem] sm:border-[10px] sm:border-slate-950">
+        <div className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-blue-600 px-5 pb-6 pt-6 text-white">
+          <div className="absolute -right-12 top-8 h-32 w-32 rounded-full bg-orange-400/25 blur-3xl"></div>
+          <div className="absolute left-0 top-0 h-24 w-24 rounded-full bg-white/10 blur-2xl"></div>
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-2xl font-semibold shadow-lg shadow-slate-950/20 backdrop-blur">
+                {workerInitial}
+              </div>
               <div>
-                <div className="font-bold text-slate-800">{worker.name}</div>
-                <div className="text-xs text-slate-500 flex items-center"><MapPin className="h-3 w-3 mr-1"/> {t('worker_latest_site')}</div>
+                <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-100">
+                  {t('worker_header_badge')}
+                </div>
+                <div className="mt-2 text-lg font-semibold leading-tight">{worker.name}</div>
+                <div className="mt-1 flex items-center gap-1.5 text-xs text-blue-100/90">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>{siteName}</span>
+                </div>
               </div>
             </div>
-            <button onClick={() => onNavigate('landing')} className="text-slate-400 hover:text-slate-600"><X className="h-6 w-6" /></button>
+            <button onClick={() => onNavigate('landing')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white/90 transition hover:bg-white/15 active:scale-95">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="relative mt-5 rounded-[1.75rem] border border-white/15 bg-white/10 p-4 shadow-lg shadow-slate-950/20 backdrop-blur">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-medium text-blue-100/75">{t('worker_header_caption')}</div>
+                <h1 className="mt-1 text-2xl font-semibold leading-tight">{t('worker_hero_title')}</h1>
+                <p className="mt-2 text-sm leading-6 text-blue-50/88">{t('worker_hero_desc')}</p>
+              </div>
+              <div className="rounded-2xl bg-orange-400 p-3 text-slate-950 shadow-lg shadow-orange-900/25">
+                <HardHat className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-xs text-blue-100/80">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{t('worker_latest_active')}</span>
+              <span className="rounded-full bg-white/10 px-2 py-1">{t(profileStatusKey)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          
+        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
           {activeNav === 'home' && (
-            <div className="space-y-4 animate-in fade-in duration-300">
-              <div className="bg-orange-100 text-orange-800 p-3 rounded-2xl flex items-center text-sm font-medium">
-                <WifiOff className="h-5 w-5 mr-2" /> {t('worker_offline_mode')}
-              </div>
-
-              {/* Check in */}
-              <button onClick={toggleCheckIn} className={`w-full py-8 rounded-3xl flex flex-col items-center justify-center shadow-lg transition-transform active:scale-95 ${isCheckedIn ? 'bg-slate-200 text-slate-500' : 'bg-green-500 text-white'}`}>
-                <div className={`p-4 rounded-full mb-2 ${isCheckedIn ? 'bg-slate-300' : 'bg-green-400'}`}>
-                  <MapPin className="h-10 w-10" />
+            <div className="space-y-4">
+              <div className="rounded-[1.6rem] border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 text-slate-800 shadow-[0_10px_30px_rgba(245,158,11,0.14)]">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-2xl bg-amber-400/20 p-2 text-amber-700">
+                    <WifiOff className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-amber-900">{t('worker_offline_mode')}</div>
+                    <div className="mt-1 text-sm leading-6 text-amber-800/90">{t('worker_sync_when_online')}</div>
+                  </div>
                 </div>
-                <span className="text-2xl font-bold">{isCheckedIn ? t('worker_checked') : t('worker_checkin')}</span>
-                <span className="text-sm opacity-80 mt-1">{isCheckedIn ? t('worker_checkin_time') : t('worker_checkin_hint')}</span>
-              </button>
-
-              {/* Action Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setIsPhotoModalOpen(true)} className="bg-blue-500 text-white p-6 rounded-3xl flex flex-col items-center justify-center shadow-md active:scale-95">
-                  <Camera className="h-8 w-8 mb-2" />
-                  <span className="font-bold text-lg text-center leading-tight">{t('worker_photo')}</span>
-                </button>
-                <button onClick={() => setIsReqModalOpen(true)} className="bg-orange-500 text-white p-6 rounded-3xl flex flex-col items-center justify-center shadow-md active:scale-95 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition duration-500"></div>
-                  <Package className="h-8 w-8 mb-2 relative z-10" />
-                  <span className="font-bold text-lg text-center leading-tight relative z-10">{t('worker_material')}</span>
-                </button>
               </div>
 
-              {/* Emergency SOS */}
-              <button onClick={() => setIsSosModalOpen(true)} className="w-full bg-red-500 text-white p-4 rounded-3xl flex items-center justify-center shadow-md active:scale-95 mt-4">
-                <AlertTriangle className="h-6 w-6 mr-2 flex-shrink-0" />
-                <span className="font-bold text-lg leading-tight">{t('worker_sos')}</span>
-              </button>
+              <div className="overflow-hidden rounded-[1.9rem] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80">
+                <div className="bg-gradient-to-br from-slate-950 via-blue-900 to-blue-700 p-5 text-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-100/75">{t('worker_attendance_title')}</div>
+                      <div className="mt-2 text-2xl font-semibold">{t(attendanceStatusKey)}</div>
+                      <div className="mt-2 text-sm text-blue-100/85">{t(attendanceHintKey)}</div>
+                    </div>
+                    <div className={`rounded-2xl p-3 ${isCheckedIn ? 'bg-emerald-400/20 text-emerald-100' : 'bg-white/10 text-white'}`}>
+                      <MapPin className="h-6 w-6" />
+                    </div>
+                  </div>
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
+                      <div className="text-xs text-blue-100/70">{t('worker_project_label')}</div>
+                      <div className="mt-1 font-medium text-white">{siteName}</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
+                      <div className="text-xs text-blue-100/70">{t('worker_latest_active')}</div>
+                      <div className="mt-1 font-medium text-white">{isCheckedIn ? t('worker_checkin_time') : '07:45'}</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <button onClick={toggleCheckIn} className={`flex w-full items-center justify-between rounded-[1.4rem] px-4 py-4 text-left text-white shadow-lg transition active:scale-[0.99] ${isCheckedIn ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-emerald-500/25' : 'bg-gradient-to-r from-blue-700 to-blue-500 shadow-blue-500/25'}`}>
+                    <div>
+                      <div className="text-lg font-semibold">{t(attendanceCtaKey)}</div>
+                      <div className="mt-1 text-sm text-white/85">{isCheckedIn ? t('worker_attendance_hint_done') : t('worker_attendance_hint_idle')}</div>
+                    </div>
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <section>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 className="text-base font-semibold text-slate-900">{t('worker_action_primary')}</h2>
+                  <span className="text-right text-xs font-medium text-slate-500">{t('worker_submit_secondary_desc')}</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {quickActions.map((action) => {
+                    const Icon = action.icon;
+                    const toneClass = action.tone === 'red' ? 'border-rose-200 bg-rose-50 text-rose-700' : action.tone === 'orange' ? 'border-orange-200 bg-orange-50 text-orange-700' : 'border-blue-200 bg-blue-50 text-blue-700';
+                    const iconClass = action.tone === 'red' ? 'bg-rose-600 text-white' : action.tone === 'orange' ? 'bg-orange-500 text-white' : 'bg-blue-700 text-white';
+                    return (
+                      <button key={action.id} onClick={action.onClick} className={`flex items-center gap-4 rounded-[1.5rem] border p-4 text-left shadow-sm transition hover:shadow-md active:scale-[0.99] ${toneClass}`}>
+                        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${iconClass}`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-base font-semibold leading-tight">{action.title}</div>
+                          <div className="mt-1 text-sm leading-6 text-slate-600">{action.description}</div>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-slate-400" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-base font-semibold text-slate-900">{t('worker_today_title')}</h3>
+                    <button onClick={() => setActiveNav('tasks')} className="text-sm font-medium text-blue-700">{t('worker_nav_tasks')}</button>
+                  </div>
+                  <div className="space-y-3">
+                    {todayTasks.map((task) => (
+                      <div key={task.id} className={`rounded-[1.25rem] border p-3.5 ${task.done ? 'border-emerald-200 bg-emerald-50/70' : 'border-slate-200 bg-slate-50'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${task.done ? 'bg-emerald-500 text-white' : 'border-2 border-blue-300 bg-white text-blue-700'}`}>
+                            {task.done ? <Check className="h-4 w-4" /> : <Clock className="h-3.5 w-3.5" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className={`text-sm font-semibold ${task.done ? 'text-emerald-900 line-through' : 'text-slate-900'}`}>{task.title}</div>
+                                <div className="mt-1 text-xs text-slate-500">{task.meta}</div>
+                              </div>
+                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${task.done ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{task.status}</span>
+                            </div>
+                            <div className="mt-2 text-sm text-slate-600">{task.detail}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <h3 className="text-base font-semibold text-slate-900">{t('worker_pending_title')}</h3>
+                  <div className="mt-3 space-y-2.5">
+                    {pendingItems.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3.5 py-3">
+                        <div className={`h-2.5 w-2.5 rounded-full ${item.tone === 'amber' ? 'bg-amber-500' : item.tone === 'emerald' ? 'bg-emerald-500' : 'bg-blue-600'}`}></div>
+                        <div className="flex-1 text-sm font-medium text-slate-700">{item.label}</div>
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <h3 className="text-base font-semibold text-slate-900">{t('worker_latest_alerts_title')}</h3>
+                  <div className="mt-3 space-y-3">
+                    {latestNotifications.map((notice) => (
+                      <div key={notice.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-sm font-medium text-slate-800">{notice.title}</div>
+                          <span className={`mt-0.5 rounded-full px-2 py-1 text-[11px] font-semibold ${notice.tone === 'amber' ? 'bg-amber-100 text-amber-700' : notice.tone === 'blue' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>{notice.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
             </div>
           )}
 
           {activeNav === 'tasks' && (
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 animate-in fade-in duration-300 min-h-full">
-              <h3 className="font-bold text-lg text-slate-800 mb-4">{t('worker_tasks_title')}</h3>
-              <div className="space-y-3">
-                <div className="flex items-start p-3 bg-slate-50 rounded-xl border border-slate-100">
-                   <div className="w-6 h-6 rounded-full border-2 border-slate-300 mr-3 mt-0.5 flex-shrink-0"></div>
-                   <div><p className="text-sm font-bold text-slate-700">{t('worker_task_1_title')}</p><p className="text-xs text-slate-500">{t('worker_task_1_time')}</p></div>
-                </div>
-                <div className="flex items-start p-3 bg-slate-50 rounded-xl border border-slate-100 opacity-50">
-                   <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center mr-3 mt-0.5 flex-shrink-0"><Check className="w-4 h-4"/></div>
-                   <div><p className="text-sm font-bold text-slate-700 line-through">{t('worker_task_2_title')}</p><p className="text-xs text-slate-500">{t('worker_task_2_done')}</p></div>
-                </div>
+            <div className="space-y-4">
+              <div className="rounded-[1.7rem] bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">{t('worker_nav_tasks')}</div>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">{t('worker_tasks_title')}</h2>
+                <div className="mt-2 text-sm leading-6 text-slate-600">{siteName}</div>
               </div>
+              {todayTasks.map((task) => (
+                <div key={task.id} className={`rounded-[1.7rem] p-4 shadow-sm ring-1 ${task.done ? 'bg-emerald-50 ring-emerald-200' : 'bg-white ring-slate-200/80'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${task.done ? 'bg-emerald-500 text-white' : 'bg-blue-50 text-blue-700'}`}>
+                      {task.done ? <Check className="h-5 w-5" /> : <HardHat className="h-5 w-5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className={`text-base font-semibold ${task.done ? 'text-emerald-900' : 'text-slate-900'}`}>{task.title}</div>
+                          <div className="mt-1 text-sm text-slate-500">{task.meta}</div>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${task.done ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{task.status}</span>
+                      </div>
+                      <div className="mt-3 text-sm leading-6 text-slate-600">{task.detail}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* REAL-TIME CHAT VIEW */}
+          {activeNav === 'submit' && (
+            <div className="space-y-4">
+              <div className="rounded-[1.7rem] bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">{t('worker_submit_work_title')}</div>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900">{t('worker_photo')}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{t('worker_submit_card_desc')}</p>
+              </div>
+              <button onClick={() => setIsPhotoModalOpen(true)} className="flex w-full items-center gap-4 rounded-[1.7rem] bg-gradient-to-r from-blue-700 to-blue-500 p-5 text-left text-white shadow-lg shadow-blue-500/25 active:scale-[0.99]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+                  <Camera className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-lg font-semibold">{t('worker_photo')}</div>
+                  <div className="mt-1 text-sm text-white/85">{t('worker_open_camera_short')}</div>
+                </div>
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <button onClick={() => setIsReqModalOpen(true)} className="flex w-full items-center gap-4 rounded-[1.7rem] bg-white p-5 text-left shadow-sm ring-1 ring-orange-200 active:scale-[0.99]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white">
+                  <Package className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-lg font-semibold text-slate-900">{t('worker_material')}</div>
+                  <div className="mt-1 text-sm text-slate-600">{t('worker_open_request_short')}</div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-400" />
+              </button>
+              <button onClick={() => setIsSosModalOpen(true)} className="flex w-full items-center gap-4 rounded-[1.7rem] bg-white p-5 text-left shadow-sm ring-1 ring-rose-200 active:scale-[0.99]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-600 text-white">
+                  <AlertTriangle className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-lg font-semibold text-slate-900">{t('worker_sos')}</div>
+                  <div className="mt-1 text-sm text-slate-600">{t('worker_open_sos_short')}</div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+          )}
+
           {activeNav === 'chat' && (
-            <div className="bg-slate-50 rounded-3xl flex flex-col h-[calc(100vh-250px)] max-h-full overflow-hidden animate-in fade-in duration-300 border border-slate-200">
-               <div className="bg-white p-3 border-b border-slate-200 flex items-center shrink-0">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">MG</div>
-                  <span className="font-bold text-sm">{t('chat_manager_title') || 'แชทโครงการ'}</span>
+            <div className="overflow-hidden rounded-[1.7rem] bg-white shadow-sm ring-1 ring-slate-200/80">
+               <div className="border-b border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-700 text-sm font-semibold text-white">MG</div>
+                    <div>
+                      <div className="font-semibold text-slate-900">{t('chat_manager_title') || 'Project Chat'}</div>
+                      <div className="text-xs text-slate-500">{siteName}</div>
+                    </div>
+                  </div>
                </div>
-               
-               <div ref={chatContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto bg-slate-50">
+
+               <div ref={chatContainerRef} className="flex h-[52vh] flex-col gap-4 overflow-y-auto bg-slate-50 p-4">
                  {globalChats.map(msg => {
                    const isMe = msg.senderRole === 'worker';
                    return (
                      <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                        <div className={`p-3 rounded-2xl text-sm shadow-sm max-w-[90%] md:max-w-[70%] ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm'}`}>
-                          {!isMe && <div className="text-[10px] font-bold text-blue-500 mb-1">{msg.sender}</div>}
+                        <div className={`max-w-[86%] rounded-2xl p-3 text-sm shadow-sm ${isMe ? 'rounded-tr-sm bg-blue-700 text-white' : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700'}`}>
+                          {!isMe && <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-blue-600">{msg.sender}</div>}
                           {msg.audioUrl ? (
-                             <audio controls src={msg.audioUrl} className="max-w-[200px] sm:max-w-full h-10 mt-1 rounded-full outline-none bg-transparent" />
+                             <audio controls src={msg.audioUrl} className="mt-1 h-10 max-w-[200px] rounded-full" />
                           ) : (
                              msg.text
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-400 mt-1 mx-1">{msg.time}</span>
+                        <span className="mt-1 px-1 text-[10px] text-slate-400">{msg.time}</span>
                      </div>
                    )
                  })}
                </div>
-               
-               <div className="p-3 bg-white border-t border-slate-200 flex items-center shrink-0">
-                  <button 
-                    onMouseDown={startRecording} onMouseUp={stopRecording} onMouseLeave={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording} 
-                    className={`p-2 transition rounded-full ${isRecordingAudio ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:bg-slate-100'}`}
+
+               <div className="flex items-center gap-2 border-t border-slate-200 bg-white p-3">
+                  <button
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onMouseLeave={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    className={`flex h-11 w-11 items-center justify-center rounded-full transition ${isRecordingAudio ? 'animate-pulse bg-red-50 text-red-500' : 'bg-slate-100 text-slate-500'}`}
                     title={t('chat_hold_record')}
                   >
-                    <Mic className="w-5 h-5"/>
+                    <Mic className="h-5 w-5"/>
                   </button>
-                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={handleKeyPress}
-                    className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mx-2" 
-                    placeholder={isRecordingAudio ? t('chat_recording') : (t('chat_placeholder') || 'Type message...')} disabled={isRecordingAudio}
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="h-11 flex-1 rounded-full bg-slate-100 px-4 text-sm outline-none ring-0 focus:bg-slate-200"
+                    placeholder={isRecordingAudio ? t('chat_recording') : (t('chat_placeholder') || 'Type message...')}
+                    disabled={isRecordingAudio}
                   />
-                  <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`p-2 rounded-full transition ${chatInput.trim() ? 'text-blue-600 hover:bg-blue-50' : 'text-slate-300'}`}>
-                    <Send className="w-5 h-5"/>
+                  <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`flex h-11 w-11 items-center justify-center rounded-full transition ${chatInput.trim() ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-300'}`}>
+                    <Send className="h-5 w-5"/>
                   </button>
                </div>
             </div>
           )}
         </div>
 
-        {/* Bottom Nav Bar */}
-        <div className="bg-white border-t border-slate-200 px-6 py-4 rounded-t-3xl flex justify-between shrink-0">
-          <div onClick={() => setActiveNav('home')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'home' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><HardHat className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('worker_nav_home')}</span></div>
-          <div onClick={() => setActiveNav('tasks')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'tasks' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><FileText className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('worker_nav_tasks')}</span></div>
-          <div onClick={() => setActiveNav('chat')} className={`flex flex-col items-center cursor-pointer transition-colors ${activeNav === 'chat' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}><MessageSquare className="h-6 w-6 mb-1"/><span className="text-[10px] font-bold">{t('worker_nav_chat')}</span></div>
+        <div className="fixed bottom-0 left-0 right-0 z-20 px-3 pb-3 pt-2 sm:absolute sm:bottom-0 sm:left-0 sm:right-0 sm:px-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}>
+          <div className="mx-auto flex w-full max-w-[430px] items-center justify-between rounded-[1.8rem] border border-slate-200/80 bg-white/96 px-3 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+            {[
+              { id: 'home', label: t('worker_nav_home'), icon: Home },
+              { id: 'tasks', label: t('worker_nav_tasks'), icon: FileText },
+              { id: 'submit', label: t('worker_nav_submit'), icon: UploadCloud },
+              { id: 'chat', label: t('worker_nav_chat'), icon: MessageSquare },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeNav === item.id;
+              return (
+                <button key={item.id} onClick={() => setActiveNav(item.id)} className={`flex min-w-0 flex-1 flex-col items-center rounded-2xl px-2 py-2.5 text-center transition active:scale-[0.98] ${isActive ? 'bg-blue-700 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:bg-slate-100'}`}>
+                  <Icon className="h-5 w-5" />
+                  <span className="mt-1 text-[11px] font-semibold leading-none">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* OVERLAYS MODALS */}
