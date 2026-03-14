@@ -190,6 +190,8 @@ export function createPhotoSubmissionBatch({
 export function normalizePhotoSubmissionBatch(entry) {
   if (!entry) return null;
 
+  const normalizedPhotos = Array.isArray(entry.photos) ? entry.photos.filter(Boolean) : null;
+
   const normalizedVoiceNote = entry.voiceNote
     ? {
         id: entry.voiceNote.id || createLocalId('batch_voice'),
@@ -201,7 +203,7 @@ export function normalizePhotoSubmissionBatch(entry) {
       }
     : null;
 
-  if (Array.isArray(entry.photos)) {
+  if (normalizedPhotos) {
     const timestamp = Number(entry.submittedAt || entry.updatedAt || entry.createdAt || Date.now());
     const normalizedStatus = entry.status === 'draft' ? 'draft' : 'submitted';
     return {
@@ -215,8 +217,8 @@ export function normalizePhotoSubmissionBatch(entry) {
       roomName: entry.roomName || '',
       batchTitle: entry.batchTitle || entry.workType || entry.category || '',
       notes: entry.notes || entry.detail || '',
-      photos: entry.photos,
-      photoCount: entry.photoCount || entry.photos.length,
+      photos: normalizedPhotos,
+      photoCount: entry.photoCount || normalizedPhotos.length,
       voiceNote: normalizedVoiceNote,
       submittedAt: timestamp,
       dateKey: entry.dateKey || getDateKey(timestamp),

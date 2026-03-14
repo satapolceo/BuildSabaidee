@@ -173,6 +173,44 @@ const getOptionLabel = (options, value) => options.find((option) => option.value
 const getProjectNameById = (projects, projectId) =>
   projects.find((project) => String(project.id) === String(projectId))?.name || '';
 
+const getPreferredProject = (projects, currentProject) => {
+  if (currentProject?.id) return currentProject;
+  return projects[0] || null;
+};
+
+const createDefaultPhotoBatchForm = (project) => ({
+  ...defaultPhotoBatch,
+  projectId: project?.id ? String(project.id) : '',
+  projectName: project?.name || '',
+});
+
+const resolveBatchSelectionDefaults = (current, projectBatchOptions, fallbackProjectName = '') => {
+  const nextWorkType = projectBatchOptions.workTypes.some((option) => option.value === current.workType)
+    ? current.workType
+    : (projectBatchOptions.workTypes[0]?.value || '');
+  const filteredTrades = projectBatchOptions.tradeTeams.filter((option) => !nextWorkType || option.workTypes?.includes(nextWorkType));
+  const nextTradeTeam = filteredTrades.some((option) => option.value === current.tradeTeam)
+    ? current.tradeTeam
+    : (filteredTrades[0]?.value || '');
+  const filteredRooms = projectBatchOptions.rooms.filter((option) => {
+    const matchesWorkType = !nextWorkType || option.workTypes?.includes(nextWorkType);
+    const matchesTrade = !nextTradeTeam || option.tradeTeams?.includes(nextTradeTeam);
+    return matchesWorkType && matchesTrade;
+  });
+  const nextRoomId = filteredRooms.some((option) => option.value === current.roomId)
+    ? current.roomId
+    : (filteredRooms[0]?.value || '');
+  const nextRoomName = nextRoomId ? getOptionLabel(filteredRooms, nextRoomId) : '';
+
+  return {
+    projectName: current.projectName || fallbackProjectName || '',
+    workType: nextWorkType,
+    tradeTeam: nextTradeTeam,
+    roomId: nextRoomId,
+    roomName: nextRoomName,
+  };
+};
+
 const formatBatchStatusLabel = (status, language) => {
   if (language === 'TH') return status === 'draft' ? 'ฉบับร่าง' : 'ส่งแล้ว';
   if (language === 'LA') return status === 'draft' ? 'ຮ່າງ' : 'ສົ່ງແລ້ວ';
@@ -437,6 +475,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [toast, setToast] = useState('');
   const [validationError, setValidationError] = useState('');
   const [attendanceNote, setAttendanceNote] = useState('');
+  const [attendanceOverride, setAttendanceOverride] = useState(null);
   const [busyAction, setBusyAction] = useState('');
   const [voiceError, setVoiceError] = useState('');
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -460,11 +499,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     return getWorkerTasks(saved, currentWorker.id, siteName);
   });
 
-  const [photoBatchForm, setPhotoBatchForm] = useState(() => ({
-    ...defaultPhotoBatch,
-    projectId: currentProject?.id ? String(currentProject.id) : '',
-    projectName: currentProject?.name || '',
-  }));
+  const [photoBatchForm, setPhotoBatchForm] = useState(() => createDefaultPhotoBatchForm(getPreferredProject(projectsList, currentProject)));
   const [issueForm, setIssueForm] = useState(defaultIssueForm);
   const [requestForm, setRequestForm] = useState(defaultRequestForm);
   const mediaRecorderRef = useRef(null);
@@ -494,16 +529,17 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   }, [currentWorker.id, siteName]);
 
   useEffect(() => {
-    if (!currentProject?.id) return;
+    const preferredProject = getPreferredProject(projectsList, currentProject);
+    if (!preferredProject?.id) return;
     setPhotoBatchForm((current) => {
       if (current.projectId) return current;
       return {
         ...current,
-        projectId: String(currentProject.id),
-        projectName: currentProject.name || '',
+        projectId: String(preferredProject.id),
+        projectName: preferredProject.name || '',
       };
     });
-  }, [currentProject]);
+  }, [currentProject, projectsList]);
 
   useEffect(() => {
     if (!photoBatchForm.projectId) {
@@ -529,34 +565,32 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   useEffect(() => {
     setPhotoBatchForm((current) => {
-      const hasWorkType = projectBatchOptions.workTypes.some((option) => option.value === current.workType);
-      const filteredTrades = projectBatchOptions.tradeTeams.filter((option) => !current.workType || option.workTypes?.includes(current.workType));
-      const hasTrade = filteredTrades.some((option) => option.value === current.tradeTeam);
-      const filteredRooms = projectBatchOptions.rooms.filter((option) => {
-        const matchesWorkType = !current.workType || option.workTypes?.includes(current.workType);
-        const matchesTrade = !current.tradeTeam || option.tradeTeams?.includes(current.tradeTeam);
-        return matchesWorkType && matchesTrade;
-      });
-      const hasRoom = filteredRooms.some((option) => option.value === current.roomId);
+      const selectionDefaults = resolveBatchSelectionDefaults(
+        current,
+        projectBatchOptions,
+        getProjectNameById(projectsList, current.projectId)
+      );
 
-      const nextWorkType = hasWorkType ? current.workType : '';
-      const nextTradeTeam = hasTrade ? current.tradeTeam : '';
-      const nextRoomId = hasRoom ? current.roomId : '';
-      const nextRoomName = hasRoom ? getOptionLabel(filteredRooms, current.roomId) : '';
-
-      if (nextWorkType === current.workType && nextTradeTeam === current.tradeTeam && nextRoomId === current.roomId && nextRoomName === current.roomName) {
+      if (
+        selectionDefaults.projectName === current.projectName
+        && selectionDefaults.workType === current.workType
+        && selectionDefaults.tradeTeam === current.tradeTeam
+        && selectionDefaults.roomId === current.roomId
+        && selectionDefaults.roomName === current.roomName
+      ) {
         return current;
       }
 
       return {
         ...current,
-        workType: nextWorkType,
-        tradeTeam: nextTradeTeam,
-        roomId: nextRoomId,
-        roomName: nextRoomName,
+        ...selectionDefaults,
       };
     });
-  }, [projectBatchOptions]);
+  }, [projectBatchOptions, projectsList]);
+
+  useEffect(() => {
+    setAttendanceOverride(null);
+  }, [attendanceRecords]);
 
   useEffect(() => {
     const handler = () => setOnline(navigator.onLine);
@@ -613,9 +647,12 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     [photoBatchForm.tradeTeam, photoBatchForm.workType, projectBatchOptions.rooms]
   );
 
-  const isCheckedIn = Boolean(todayAttendance.checkIn);
-  const isCheckedOut = Boolean(todayAttendance.checkOut);
+  const effectiveAttendance = attendanceOverride || todayAttendance;
+  const isCheckedIn = Boolean(effectiveAttendance.checkIn);
+  const isCheckedOut = Boolean(effectiveAttendance.checkOut);
   const canUseWorkActions = isCheckedIn && !isCheckedOut;
+  const hasBatchRoomSelection = Boolean(photoBatchForm.roomId);
+  const canOpenWorkerTools = canUseWorkActions && hasBatchRoomSelection && !isProjectBatchOptionsLoading;
   const todayPhotoCount = photoReports
     .filter((entry) => entry.workerId === currentWorker.id && entry.dateKey === today)
     .reduce((total, entry) => total + Number(entry.photoCount || entry.photos?.length || 0), 0);
@@ -727,18 +764,25 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const handleAttendance = async (type) => {
     setValidationError('');
-    if (type === 'checkin' && todayAttendance.checkIn) {
+    if (type === 'checkin' && effectiveAttendance.checkIn) {
       setValidationError(pickText(t, 'worker_validation_checkin_exists', 'Check-in already recorded today'));
       return;
     }
-    if (type === 'checkout' && !todayAttendance.checkIn) {
+    if (type === 'checkout' && !effectiveAttendance.checkIn) {
       setValidationError(pickText(t, 'worker_validation_checkout_requires_checkin', 'Check in first before checking out'));
       return;
     }
-    if (type === 'checkout' && todayAttendance.checkOut) {
+    if (type === 'checkout' && effectiveAttendance.checkOut) {
       setValidationError(pickText(t, 'worker_validation_checkout_exists', 'Check-out already recorded today'));
       return;
     }
+
+    const optimisticTimestamp = Date.now();
+    setAttendanceOverride({
+      ...effectiveAttendance,
+      checkIn: type === 'checkin' ? { timestamp: optimisticTimestamp } : effectiveAttendance.checkIn,
+      checkOut: type === 'checkout' ? { timestamp: optimisticTimestamp } : effectiveAttendance.checkOut,
+    });
 
     await withBusyAction(type, async () => {
       await wait(420);
@@ -837,11 +881,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   };
 
   const resetPhotoBatchForm = () => {
-    setPhotoBatchForm({
-      ...defaultPhotoBatch,
-      projectId: currentProject?.id ? String(currentProject.id) : '',
-      projectName: currentProject?.name || '',
-    });
+    setPhotoBatchForm(createDefaultPhotoBatchForm(getPreferredProject(projectsList, currentProject)));
   };
 
   const submitPhotoBatch = async (nextStatus) => {
@@ -1106,10 +1146,18 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     {
       id: 'photo',
       label: pickText(t, 'worker_photo', 'Upload Photo'),
-      helper: todayPhotoCount > 0 ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}` : canUseWorkActions ? localCopy.active : localCopy.disabled,
+      helper: todayPhotoCount > 0
+        ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}`
+        : !canUseWorkActions
+          ? localCopy.disabled
+          : isProjectBatchOptionsLoading
+            ? localCopy.batchProjectDataLoading
+            : hasBatchRoomSelection
+              ? `${localCopy.active} • ${photoBatchForm.roomName}`
+              : localCopy.batchFilterRoom,
       icon: Camera,
       tone: 'slate',
-      disabled: !canUseWorkActions,
+      disabled: !canOpenWorkerTools,
       loading: busyAction === 'photo-upload' || busyAction === 'photo-submit' || busyAction === 'photo-draft',
       active: activeScreen === SCREEN_PHOTO || todayPhotoCount > 0,
       onClick: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
@@ -1117,10 +1165,20 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     {
       id: 'voice',
       label: localCopy.voiceTitle,
-      helper: isRecordingVoice ? localCopy.recording : todayVoiceCount > 0 ? `${todayVoiceCount} ${localCopy.done}` : canUseWorkActions ? localCopy.active : localCopy.disabled,
+      helper: isRecordingVoice
+        ? localCopy.recording
+        : todayVoiceCount > 0
+          ? `${todayVoiceCount} ${localCopy.done}`
+          : !canUseWorkActions
+            ? localCopy.disabled
+            : isProjectBatchOptionsLoading
+              ? localCopy.batchProjectDataLoading
+              : hasBatchRoomSelection
+                ? `${localCopy.active} • ${photoBatchForm.roomName}`
+                : localCopy.batchFilterRoom,
       icon: Mic,
       tone: 'amber',
-      disabled: !canUseWorkActions,
+      disabled: !canOpenWorkerTools,
       loading: isVoiceProcessing,
       active: activeScreen === SCREEN_VOICE || isRecordingVoice || todayVoiceCount > 0,
       onClick: () => openScreen(SCREEN_VOICE, localCopy.openVoice),
@@ -1144,11 +1202,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
               <div className="text-xs text-blue-100/70">{pickText(t, 'worker_last_checkin', 'Latest check-in')}</div>
-              <div className="mt-1 font-medium">{todayAttendance.checkIn ? formatTime(todayAttendance.checkIn.timestamp, locale) : '-'}</div>
+              <div className="mt-1 font-medium">{effectiveAttendance.checkIn ? formatTime(effectiveAttendance.checkIn.timestamp, locale) : '-'}</div>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
               <div className="text-xs text-blue-100/70">{pickText(t, 'worker_last_checkout', 'Latest check-out')}</div>
-              <div className="mt-1 font-medium">{todayAttendance.checkOut ? formatTime(todayAttendance.checkOut.timestamp, locale) : '-'}</div>
+              <div className="mt-1 font-medium">{effectiveAttendance.checkOut ? formatTime(effectiveAttendance.checkOut.timestamp, locale) : '-'}</div>
             </div>
           </div>
         </div>
@@ -1165,7 +1223,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         </div>
       </section>
 
-      <section className="sticky bottom-3 z-10 -mx-1 rounded-[1.8rem] border border-slate-200/80 bg-white/95 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur">
+      <section className="pointer-events-auto sticky bottom-4 z-20 -mx-1 rounded-[1.8rem] border border-slate-200/80 bg-white/95 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur supports-[backdrop-filter]:bg-white/85">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="text-base font-semibold text-slate-900">{pickText(t, 'worker_action_primary', 'Quick Actions')}</div>
           <div className="text-xs text-slate-500">{localCopy.checkoutHelper}</div>
@@ -1328,6 +1386,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           <div className={`rounded-[1.3rem] border px-4 py-3 text-sm ${isProjectBatchOptionsLoading ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-blue-200 bg-blue-50 text-blue-900'}`}>
             {isProjectBatchOptionsLoading ? localCopy.batchProjectDataLoading : photoBatchForm.projectId ? localCopy.batchProjectDataReady : localCopy.batchSelectionHelp}
           </div>
+          {photoBatchForm.roomId ? (
+            <div className="mt-3 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {photoBatchForm.projectName || '-'} • {getOptionLabel(workTypeOptions, photoBatchForm.workType)} • {getOptionLabel(tradeTeamOptions, photoBatchForm.tradeTeam)} • {photoBatchForm.roomName || getOptionLabel(roomOptions, photoBatchForm.roomId)}
+            </div>
+          ) : null}
           <div className="mt-4 space-y-4">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">{pickText(t, 'label_name', 'Project')}</label>
@@ -1407,7 +1470,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               </div>
             </div>
           ) : null}
-          <div className={`mt-3 rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-200 bg-rose-50' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+          <div className={`mt-3 rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_1px_rgba(244,63,94,0.14)]' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
             <div className="flex items-start gap-3">
               <div className={`rounded-2xl p-3 ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
                 <Mic className="h-5 w-5" />
@@ -1415,20 +1478,30 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-slate-900">{localCopy.batchInlineVoice}</div>
                 <div className="mt-1 text-sm text-slate-600">{batchStatusLabel}</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : isBatchVoiceProcessing ? 'bg-amber-100 text-amber-800' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {isBatchRecordingVoice ? localCopy.recording : isBatchVoiceProcessing ? localCopy.batchVoiceProcessing : photoBatchForm.voiceNote ? localCopy.batchVoiceAttachedCount : localCopy.batchVoiceReady}
+                  </span>
+                  {photoBatchForm.voiceNote?.durationMs ? (
+                    <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
+                      {formatDuration(photoBatchForm.voiceNote.durationMs)}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button onClick={startBatchVoiceRecording} disabled={!canUseWorkActions || !canRecordVoice || isBatchRecordingVoice || isBatchVoiceProcessing} className={`inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed ${isBatchRecordingVoice ? 'bg-rose-500' : 'bg-slate-900'} disabled:bg-slate-300`}>
+              <button onClick={startBatchVoiceRecording} disabled={!canOpenWorkerTools || !canRecordVoice || isBatchRecordingVoice || isBatchVoiceProcessing} className={`inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed ${isBatchRecordingVoice ? 'bg-rose-500' : 'bg-slate-900'} disabled:bg-slate-300`}>
                 <Mic className="h-4 w-4" />
                 {localCopy.batchVoiceStart}
               </button>
-              <button onClick={stopVoiceRecording} disabled={!isBatchRecordingVoice} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
+              <button onClick={stopVoiceRecording} disabled={!isBatchRecordingVoice} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
                 <Square className="h-4 w-4" />
                 {localCopy.batchVoiceStop}
               </button>
             </div>
             {photoBatchForm.voiceNote ? <audio controls src={photoBatchForm.voiceNote.audioData} className="mt-3 w-full" /> : null}
-            <button onClick={deleteBatchVoiceNote} disabled={!photoBatchForm.voiceNote || isBatchRecordingVoice || isBatchVoiceProcessing} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+            <button onClick={deleteBatchVoiceNote} disabled={!photoBatchForm.voiceNote || isBatchRecordingVoice || isBatchVoiceProcessing} className="mt-3 inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
               <Trash2 className="h-4 w-4" />
               {localCopy.batchVoiceDelete}
             </button>
@@ -1459,11 +1532,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             voiceLabel={localCopy.batchVoiceAttachedCount}
           />
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button onClick={() => submitPhotoBatch('draft')} disabled={busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+            <button onClick={() => submitPhotoBatch('draft')} disabled={!batchReadyForPhotos || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
               {busyAction === 'photo-draft' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileImage className="h-4 w-4" />}
               {localCopy.batchDraftAction}
             </button>
-            <button onClick={() => submitPhotoBatch('submitted')} disabled={busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300">
+            <button onClick={() => submitPhotoBatch('submitted')} disabled={!batchReadyForPhotos || !photoBatchForm.photos.length || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300">
               {busyAction === 'photo-submit' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
               {localCopy.batchSubmitAction}
             </button>
@@ -1510,11 +1583,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             </div>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button onClick={startVoiceRecording} disabled={!canUseWorkActions || !canRecordVoice || isRecordingVoice || isVoiceProcessing} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+            <button onClick={startVoiceRecording} disabled={!canOpenWorkerTools || !canRecordVoice || isRecordingVoice || isVoiceProcessing} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
               <Mic className="h-4 w-4" />
               {localCopy.voiceStart}
             </button>
-            <button onClick={stopVoiceRecording} disabled={!isRecordingVoice} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
+            <button onClick={stopVoiceRecording} disabled={!isRecordingVoice} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
               <Square className="h-4 w-4" />
               {localCopy.voiceStop}
             </button>
@@ -1667,7 +1740,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6.5rem)' }}>
+        <div className="pointer-events-auto flex-1 overflow-y-auto px-4 pb-6 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}>
           <div className={`mb-4 rounded-[1.4rem] border p-4 shadow-sm ${online ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
             <div className="flex items-start gap-3">
               <div className={`rounded-2xl p-2 ${online ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{online ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}</div>
@@ -1684,13 +1757,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           {renderBody()}
         </div>
 
-        <div className="border-t border-slate-200 bg-white px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.85rem)] pt-3">
+        <div className="pointer-events-auto sticky bottom-0 z-30 border-t border-slate-200 bg-white/98 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.85rem)] pt-3 backdrop-blur supports-[backdrop-filter]:bg-white/90">
           <div className="grid grid-cols-4 gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = item.id === activeTab && activeScreen === activeTab;
               return (
-                <button key={item.id} onClick={() => setTabScreen(item.id)} className={`rounded-2xl px-2 py-3 text-center ${active ? 'bg-blue-700 text-white' : 'text-slate-500'}`}>
+                <button key={item.id} onClick={() => setTabScreen(item.id)} className={`min-h-14 rounded-2xl px-2 py-3 text-center touch-manipulation ${active ? 'bg-blue-700 text-white' : 'text-slate-500'}`}>
                   <Icon className="mx-auto h-5 w-5" />
                   <div className="mt-1 text-[11px] font-semibold">{item.label}</div>
                 </button>
@@ -1752,7 +1825,7 @@ function SelectorPillGroup({ label, options, value, onChange, emptyLabel, disabl
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(option.value)}
-                className={`min-h-12 rounded-2xl border px-3 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed ${active ? 'border-blue-600 bg-blue-700 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 disabled:bg-slate-100 disabled:text-slate-400'}`}
+                className={`min-h-12 rounded-2xl border px-3 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed touch-manipulation ${active ? 'border-blue-600 bg-blue-700 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 disabled:bg-slate-100 disabled:text-slate-400'}`}
               >
                 {option.label}
               </button>
@@ -1802,7 +1875,7 @@ function MultiPhotoPicker({
               <img src={photo.imageData} alt={`${label} ${index + 1}`} className="h-28 w-full object-cover" />
               <div className="flex items-center justify-between gap-2 px-3 py-2">
                 <div className="min-w-0 text-xs text-slate-500">#{index + 1}</div>
-                <button type="button" onClick={() => onRemove(photo.id)} className="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+                <button type="button" onClick={() => onRemove(photo.id)} className="inline-flex min-h-10 touch-manipulation items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
                   {removeLabel}
                 </button>
               </div>
@@ -1818,7 +1891,7 @@ function MultiPhotoPicker({
         type="button"
         disabled={loading || disabled}
         onClick={() => inputRef.current?.click()}
-        className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="mt-4 inline-flex min-h-12 w-full touch-manipulation items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : photos.length ? retakeLabel : actionLabel}
       </button>
@@ -1918,7 +1991,7 @@ function WorkerActionButton({ label, helper, icon: Icon, tone, disabled, loading
   const className = disabled ? palette.disabled : active || loading ? palette.active : palette.base;
 
   return (
-    <button onClick={onClick} disabled={disabled || loading} className={`min-h-[88px] rounded-[1.35rem] border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed ${className}`}>
+    <button onClick={onClick} disabled={disabled || loading} className={`min-h-[92px] rounded-[1.35rem] border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed touch-manipulation ${className}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold">{label}</div>

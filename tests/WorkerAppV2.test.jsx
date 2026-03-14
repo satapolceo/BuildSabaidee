@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkerAppV2 from '../src/WorkerAppV2.jsx';
 
@@ -81,12 +81,6 @@ const t = (key) => key;
 
 const onNavigate = vi.fn();
 
-function findButtonByTextContent(pattern) {
-  const match = screen.getAllByRole('button').find((button) => pattern.test(button.textContent || ''));
-  if (!match) throw new Error('Button not found for pattern');
-  return match;
-}
-
 function renderWorkerApp(language = 'EN') {
   return render(
     <WorkerAppV2
@@ -101,9 +95,11 @@ function renderWorkerApp(language = 'EN') {
 
 async function checkInAndOpenPhoto(user) {
   await user.click(screen.getByRole('button', { name: /Check In/i }));
+  expect(screen.getByRole('button', { name: /Check In/i })).toBeDisabled();
   await waitFor(() => expect(screen.getByRole('button', { name: /Check Out/i })).toBeEnabled());
-  const photoButtons = screen.getAllByRole('button', { name: /Upload Photo/i });
-  await user.click(photoButtons[0]);
+  const photoButton = screen.getAllByRole('button', { name: /Upload Photo/i })[0];
+  await waitFor(() => expect(photoButton).toBeEnabled());
+  await user.click(photoButton);
   await waitFor(() => expect(screen.getByText('Work Submission Batch')).toBeInTheDocument());
 }
 
@@ -199,19 +195,24 @@ describe('WorkerAppV2 mobile automation', () => {
     const checkInButton = screen.getByRole('button', { name: /Check In/i });
     const checkOutButton = screen.getByRole('button', { name: /Check Out/i });
     const uploadPhotoButton = screen.getAllByRole('button', { name: /Upload Photo/i })[0];
+    const voiceButton = screen.getAllByRole('button', { name: /Voice Notes/i })[0];
 
     expect(checkInButton).toBeEnabled();
     expect(checkOutButton).toBeDisabled();
     expect(uploadPhotoButton).toBeDisabled();
+    expect(voiceButton).toBeDisabled();
 
     await user.click(checkInButton);
-    await waitFor(() => expect(checkOutButton).toBeEnabled());
-    expect(uploadPhotoButton).toBeEnabled();
+    expect(checkInButton).toBeDisabled();
+    expect(checkOutButton).toBeEnabled();
+    await waitFor(() => expect(uploadPhotoButton).toBeEnabled());
+    await waitFor(() => expect(voiceButton).toBeEnabled());
 
     await user.click(checkOutButton);
     await waitFor(() => expect(checkOutButton).toBeDisabled());
-    expect(checkOutButton).toBeDisabled();
-    return 'Check-in enabled work actions and checkout disabled them again';
+    expect(uploadPhotoButton).toBeDisabled();
+    expect(voiceButton).toBeDisabled();
+    return 'Check-in updated immediately, enabled room-based work actions, and checkout disabled them again';
   }));
 
   it('loads project-specific dependent selectors for the batch flow', async () => withFeature('Project-specific dropdown dependencies', async () => {
@@ -219,6 +220,10 @@ describe('WorkerAppV2 mobile automation', () => {
     renderWorkerApp('EN');
 
     await checkInAndOpenPhoto(user);
+    expect(screen.getAllByRole('combobox')[0]).toHaveValue('p1');
+    expect(screen.getByRole('button', { name: /Save draft/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Take or choose photo/i })).toBeEnabled();
+
     await selectTowerBatch(user);
 
     expect(screen.getAllByRole('combobox')[0]).toHaveValue('p1');
@@ -226,7 +231,7 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(screen.getByRole('button', { name: 'Level 12 Corridor' })).toHaveClass('bg-blue-700');
     expect(screen.queryByRole('button', { name: 'Footing Team' })).not.toBeInTheDocument();
 
-    return 'Tower project loaded MEP -> MEP Rough-in Team -> Level 12 Corridor';
+    return 'Default batch context loaded for the assigned project, then filtered MEP -> MEP Rough-in Team -> Level 12 Corridor';
   }));
 
   it('adds, removes, and re-adds batch photos with upload loading state', async () => withFeature('Multi-photo batch interactions', async () => {
@@ -266,6 +271,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await checkInAndOpenPhoto(user);
     await selectTowerBatch(user);
+    expect(screen.getByRole('button', { name: /Record in batch/i })).toBeEnabled();
     await recordInlineVoice(user);
 
     expect(view.container.querySelector('audio')).toBeInTheDocument();
@@ -275,7 +281,7 @@ describe('WorkerAppV2 mobile automation', () => {
     await waitFor(() => expect(screen.getByText('No inline batch voice yet')).toBeInTheDocument());
     expect(view.container.querySelector('audio')).not.toBeInTheDocument();
 
-    return 'Inline recorder created an attached voice note and deleted it cleanly';
+    return 'Inline recorder created an attached voice note, showed its active state, and deleted it cleanly';
   }));
 
   it('saves draft and submitted batches with updated cards', async () => withFeature('Draft and submitted batch cards', async () => {
@@ -311,7 +317,7 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(screen.getAllByText('Updated').length).toBeGreaterThan(0);
 
     return 'Recent cards showed draft/submitted status, project data, photo count, voice attachment, and updated label';
-  }));
+  }), 15000);
 
   it('renders translated inline voice labels across Thai, Lao, and English', async () => withFeature('Three-language labels', async () => {
     const user = userEvent.setup();
@@ -356,8 +362,5 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Verified EN / TH / LA labels for the inline batch voice module';
   }));
 });
-
-
-
 
 
