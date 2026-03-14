@@ -132,6 +132,137 @@ export function createPhotoReport({
   };
 }
 
+export function createPhotoBatchPhoto({
+  imageData,
+  imageMeta = {},
+  originalName = '',
+  timestamp = Date.now(),
+}) {
+  return {
+    id: createLocalId('photo_item'),
+    imageData,
+    imageMeta,
+    originalName,
+    capturedAt: timestamp,
+  };
+}
+
+export function createPhotoSubmissionBatch({
+  workerId,
+  workerName,
+  projectId = '',
+  projectName = '',
+  workType,
+  tradeTeam,
+  roomId,
+  roomName,
+  batchTitle,
+  notes = '',
+  photos = [],
+  voiceNote = null,
+  status = 'submitted',
+  timestamp = Date.now(),
+}) {
+  const normalizedStatus = status === 'draft' ? 'draft' : 'submitted';
+  return {
+    id: createLocalId('photo_batch'),
+    workerId,
+    workerName,
+    projectId,
+    projectName,
+    siteName: projectName,
+    workType,
+    tradeTeam,
+    roomId,
+    roomName,
+    batchTitle,
+    notes,
+    photos,
+    voiceNote,
+    photoCount: photos.length,
+    submittedAt: timestamp,
+    dateKey: getDateKey(timestamp),
+    status: normalizedStatus,
+    ...createSyncFields(normalizedStatus === 'submitted' ? 'pending' : 'local', timestamp),
+  };
+}
+
+export function normalizePhotoSubmissionBatch(entry) {
+  if (!entry) return null;
+
+  const normalizedVoiceNote = entry.voiceNote
+    ? {
+        id: entry.voiceNote.id || createLocalId('batch_voice'),
+        audioData: entry.voiceNote.audioData || '',
+        durationMs: Number(entry.voiceNote.durationMs || 0),
+        mimeType: entry.voiceNote.mimeType || 'audio/webm',
+        recordedAt: Number(entry.voiceNote.recordedAt || entry.updatedAt || entry.createdAt || Date.now()),
+        source: entry.voiceNote.source || 'inline',
+      }
+    : null;
+
+  if (Array.isArray(entry.photos)) {
+    const timestamp = Number(entry.submittedAt || entry.updatedAt || entry.createdAt || Date.now());
+    const normalizedStatus = entry.status === 'draft' ? 'draft' : 'submitted';
+    return {
+      ...entry,
+      projectId: entry.projectId || '',
+      projectName: entry.projectName || entry.siteName || '',
+      siteName: entry.projectName || entry.siteName || '',
+      workType: entry.workType || entry.category || '',
+      tradeTeam: entry.tradeTeam || '',
+      roomId: entry.roomId || '',
+      roomName: entry.roomName || '',
+      batchTitle: entry.batchTitle || entry.workType || entry.category || '',
+      notes: entry.notes || entry.detail || '',
+      photos: entry.photos,
+      photoCount: entry.photoCount || entry.photos.length,
+      voiceNote: normalizedVoiceNote,
+      submittedAt: timestamp,
+      dateKey: entry.dateKey || getDateKey(timestamp),
+      status: normalizedStatus,
+      syncStatus: entry.syncStatus || (normalizedStatus === 'submitted' ? 'pending' : 'local'),
+      createdAt: entry.createdAt || timestamp,
+      updatedAt: entry.updatedAt || timestamp,
+    };
+  }
+
+  if (!entry.imageData) return null;
+
+  const timestamp = Number(entry.submittedAt || entry.updatedAt || entry.createdAt || Date.now());
+  const normalizedStatus = entry.status === 'submitted' ? 'submitted' : 'draft';
+  return {
+    id: entry.id || createLocalId('photo_batch'),
+    workerId: entry.workerId || '',
+    workerName: entry.workerName || '',
+    projectId: entry.projectId || '',
+    projectName: entry.siteName || entry.projectName || '',
+    siteName: entry.siteName || entry.projectName || '',
+    workType: entry.category || '',
+    tradeTeam: entry.tradeTeam || '',
+    roomId: entry.roomId || '',
+    roomName: entry.roomName || '',
+    batchTitle: entry.category || 'Work photo',
+    notes: entry.detail || '',
+    photos: [
+      createPhotoBatchPhoto({
+        imageData: entry.imageData,
+        imageMeta: entry.imageMeta || {},
+        originalName: entry.originalName || '',
+        timestamp,
+      }),
+    ],
+    photoCount: 1,
+    voiceNote: normalizedVoiceNote,
+    submittedAt: timestamp,
+    dateKey: entry.dateKey || getDateKey(timestamp),
+    status: normalizedStatus,
+    syncStatus: entry.syncStatus || (normalizedStatus === 'submitted' ? 'pending' : 'local'),
+    createdAt: entry.createdAt || timestamp,
+    updatedAt: entry.updatedAt || timestamp,
+  };
+}
+
 export function createVoiceNoteRecord({
   workerId,
   workerName,

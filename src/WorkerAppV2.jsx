@@ -24,11 +24,12 @@ import {
   createAttendanceRecord,
   createIssueReport,
   createMaterialRequest,
-  createPhotoReport,
+  createPhotoSubmissionBatch,
   createVoiceNoteRecord,
   getTodayAttendance,
   getWorkerTasks,
   loadFromStorage,
+  normalizePhotoSubmissionBatch,
   saveToStorage,
   updateWorkerTaskStatus,
 } from './workerStorage';
@@ -48,9 +49,75 @@ const SCREEN_VOICE = 'voice';
 const SCREEN_REQUEST = 'request';
 const SCREEN_ISSUE = 'issue';
 
-const defaultPhotoForm = { category: '', detail: '', imageData: '', imageStats: null, originalName: '' };
+const defaultPhotoBatch = {
+  projectId: '',
+  projectName: '',
+  workType: '',
+  tradeTeam: '',
+  roomId: '',
+  roomName: '',
+  batchTitle: '',
+  notes: '',
+  photos: [],
+  voiceNote: null,
+  status: 'draft',
+};
 const defaultIssueForm = { category: 'safety', urgency: 'high', detail: '', imageData: '', imageStats: null, originalName: '' };
 const defaultRequestForm = { itemName: '', quantity: '1', unit: 'piece', note: '', imageData: '', imageStats: null, originalName: '' };
+
+const PROJECT_BATCH_LIBRARY = {
+  default: {
+    workTypes: [
+      { value: 'structure', labels: { TH: 'งานโครงสร้าง', LA: 'ວຽກໂຄງສ້າງ', EN: 'Structure' } },
+      { value: 'electrical', labels: { TH: 'งานไฟฟ้า', LA: 'ວຽກໄຟຟ້າ', EN: 'Electrical' } },
+      { value: 'finishing', labels: { TH: 'งานเก็บงาน', LA: 'ວຽກເກັບລາຍລະອຽດ', EN: 'Finishing' } },
+    ],
+    tradeTeams: [
+      { value: 'civil-core', workTypes: ['structure'], labels: { TH: 'ทีมโครงสร้างหลัก', LA: 'ທີມໂຄງສ້າງຫຼັກ', EN: 'Core Structure Team' } },
+      { value: 'electric-install', workTypes: ['electrical'], labels: { TH: 'ทีมติดตั้งไฟฟ้า', LA: 'ທີມຕິດຕັ້ງໄຟຟ້າ', EN: 'Electrical Install Team' } },
+      { value: 'finish-detail', workTypes: ['finishing'], labels: { TH: 'ทีมเก็บรายละเอียด', LA: 'ທີມເກັບລາຍລະອຽດ', EN: 'Finishing Detail Team' } },
+    ],
+    rooms: [
+      { value: 'zone-a', workTypes: ['structure'], tradeTeams: ['civil-core'], labels: { TH: 'โซน A', LA: 'ໂຊນ A', EN: 'Zone A' } },
+      { value: 'electrical-riser', workTypes: ['electrical'], tradeTeams: ['electric-install'], labels: { TH: 'ชาฟท์ไฟฟ้า', LA: 'ຊາຟໄຟຟ້າ', EN: 'Electrical Riser' } },
+      { value: 'handover-floor', workTypes: ['finishing'], tradeTeams: ['finish-detail'], labels: { TH: 'พื้นที่ส่งมอบ', LA: 'ພື້ນທີ່ສົ່ງມອບ', EN: 'Handover Area' } },
+    ],
+  },
+  tower: {
+    workTypes: [
+      { value: 'structure', labels: { TH: 'งานโครงสร้าง', LA: 'ວຽກໂຄງສ້າງ', EN: 'Structure' } },
+      { value: 'mep', labels: { TH: 'งานระบบ MEP', LA: 'ວຽກລະບົບ MEP', EN: 'MEP' } },
+      { value: 'finishing', labels: { TH: 'งานตกแต่ง', LA: 'ວຽກຕົກແຕ່ງ', EN: 'Interior Finish' } },
+    ],
+    tradeTeams: [
+      { value: 'concrete-team', workTypes: ['structure'], labels: { TH: 'ทีมเทคอนกรีต', LA: 'ທີມເທຄອນກຣີດ', EN: 'Concrete Team' } },
+      { value: 'mep-roughin', workTypes: ['mep'], labels: { TH: 'ทีมงานระบบเดินท่อ', LA: 'ທີມລະບົບເດີນທໍ່', EN: 'MEP Rough-in Team' } },
+      { value: 'ceiling-team', workTypes: ['finishing'], labels: { TH: 'ทีมฝ้าเพดาน', LA: 'ທີມຝ້າເພດານ', EN: 'Ceiling Team' } },
+    ],
+    rooms: [
+      { value: 'core-12', workTypes: ['structure'], tradeTeams: ['concrete-team'], labels: { TH: 'คอร์ชั้น 12', LA: 'ແກນຊັ້ນ 12', EN: 'Core Level 12' } },
+      { value: 'corridor-12', workTypes: ['mep', 'finishing'], tradeTeams: ['mep-roughin', 'ceiling-team'], labels: { TH: 'โถงทางเดินชั้น 12', LA: 'ທາງເດີນຊັ້ນ 12', EN: 'Level 12 Corridor' } },
+      { value: 'unit-1203', workTypes: ['mep', 'finishing'], tradeTeams: ['mep-roughin', 'ceiling-team'], labels: { TH: 'ห้อง 1203', LA: 'ຫ້ອງ 1203', EN: 'Unit 1203' } },
+    ],
+  },
+  villa: {
+    workTypes: [
+      { value: 'foundation', labels: { TH: 'งานฐานราก', LA: 'ວຽກຖານຮາກ', EN: 'Foundation' } },
+      { value: 'plumbing', labels: { TH: 'งานประปา', LA: 'ວຽກປະປາ', EN: 'Plumbing' } },
+      { value: 'finishing', labels: { TH: 'งานเก็บงาน', LA: 'ວຽກເກັບລາຍລະອຽດ', EN: 'Finishing' } },
+    ],
+    tradeTeams: [
+      { value: 'footing-team', workTypes: ['foundation'], labels: { TH: 'ทีมฐานราก', LA: 'ທີມຖານຮາກ', EN: 'Footing Team' } },
+      { value: 'pipe-team', workTypes: ['plumbing'], labels: { TH: 'ทีมเดินท่อ', LA: 'ທີມເດີນທໍ່', EN: 'Pipe Team' } },
+      { value: 'paint-team', workTypes: ['finishing'], labels: { TH: 'ทีมทาสี', LA: 'ທີມທາສີ', EN: 'Painting Team' } },
+    ],
+    rooms: [
+      { value: 'front-yard', workTypes: ['foundation'], tradeTeams: ['footing-team'], labels: { TH: 'ลานหน้าบ้าน', LA: 'ເດີ່ນໜ້າບ້ານ', EN: 'Front Yard' } },
+      { value: 'master-bath', workTypes: ['plumbing', 'finishing'], tradeTeams: ['pipe-team', 'paint-team'], labels: { TH: 'ห้องน้ำมาสเตอร์', LA: 'ຫ້ອງນ້ຳຫຼັກ', EN: 'Master Bath' } },
+      { value: 'living-room', workTypes: ['finishing'], tradeTeams: ['paint-team'], labels: { TH: 'ห้องนั่งเล่น', LA: 'ຫ້ອງນັ່ງເລ່ນ', EN: 'Living Room' } },
+    ],
+  },
+};
 
 const pickText = (t, key, fallback) => {
   const value = t(key);
@@ -86,6 +153,35 @@ const readBlobAsDataUrl = (blob) =>
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+
+const getLocalizedValue = (labels = {}, language = 'EN') => labels[language] || labels.EN || labels.TH || labels.LA || '';
+
+const normalizeProjectOptions = (items = [], language = 'EN') =>
+  items.map((item) => ({ ...item, label: getLocalizedValue(item.labels, language) }));
+
+const getProjectBatchConfigKey = (project = {}) => {
+  const name = String(project?.name || '').toLowerCase();
+  if (name.includes('tower') || name.includes('condo') || name.includes('apartment')) return 'tower';
+  if (name.includes('villa') || name.includes('house') || name.includes('home')) return 'villa';
+  return 'default';
+};
+
+const getOptionLabel = (options, value) => options.find((option) => option.value === value)?.label || value || '-';
+
+const getProjectNameById = (projects, projectId) =>
+  projects.find((project) => String(project.id) === String(projectId))?.name || '';
+
+const formatBatchStatusLabel = (status, language) => {
+  if (language === 'TH') return status === 'draft' ? 'ฉบับร่าง' : 'ส่งแล้ว';
+  if (language === 'LA') return status === 'draft' ? 'ຮ່າງ' : 'ສົ່ງແລ້ວ';
+  return status === 'draft' ? 'Draft' : 'Submitted';
+};
+
+const getBatchCardTone = (status) => (
+  status === 'draft'
+    ? 'border-amber-200 bg-amber-50 text-amber-800'
+    : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+);
 
 function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], projectsList = [] }) {
   const currentWorker = useMemo(() => {
@@ -144,6 +240,40 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         disabled: 'ยังใช้ไม่ได้',
         done: 'เสร็จแล้ว',
         lastVoice: 'เสียงล่าสุด',
+        photoBatchSaved: 'บันทึกชุดรูปแล้ว',
+        photoBatchSubmitted: 'ส่งชุดรูปแล้ว',
+        photoBatchCount: 'จำนวนรูป',
+        batchDraft: 'ฉบับร่าง',
+        batchSubmitted: 'ส่งแล้ว',
+        batchVoiceAttached: 'แนบเสียงแล้ว',
+        batchVoiceEmpty: 'ไม่แนบเสียง',
+        batchSelectionHelp: 'เลือกโครงการ ประเภทงาน ทีม และห้องก่อนเพิ่มรูป',
+        batchPhotoHelp: 'เพิ่มได้หลายรูปในชุดเดียว แล้วลบเฉพาะรูปที่ไม่ต้องการได้',
+        batchEmpty: 'ยังไม่มีชุดรูปงาน',
+        batchRecent: 'ชุดรูปงานล่าสุด',
+        batchDraftAction: 'บันทึกฉบับร่าง',
+        batchSubmitAction: 'ส่งชุดงาน',
+        batchAttachLatestVoice: 'แนบเสียงล่าสุด',
+        batchNoVoiceAvailable: 'ยังไม่มีเสียงล่าสุด',
+        batchPhotoRequired: 'ต้องมีรูปอย่างน้อย 1 รูป',
+        batchTitleAuto: 'อัปเดตหน้างาน',
+        batchUpdated: 'อัปเดต',
+        batchInlineVoice: 'เสียงในชุดงาน',
+        batchVoiceStart: 'อัดเสียงในฟอร์ม',
+        batchVoiceStop: 'หยุดอัด',
+        batchVoiceDelete: 'ลบเสียงในฟอร์ม',
+        batchVoiceReady: 'พร้อมบันทึกในชุดงาน',
+        batchVoiceRecording: 'กำลังอัดเสียงในชุดงาน...',
+        batchVoiceProcessing: 'กำลังเตรียมเสียงในชุดงาน...',
+        batchVoiceSaved: 'บันทึกเสียงในชุดงานแล้ว',
+        batchVoiceRemoved: 'ลบเสียงในชุดงานแล้ว',
+        batchVoiceAttachedCount: 'มีเสียงแนบ',
+        batchVoiceMissing: 'ยังไม่มีเสียงในชุดงาน',
+        batchProjectDataLoading: 'กำลังโหลดรายการงานของโครงการ...',
+        batchProjectDataReady: 'เลือกหมวดงาน ทีม และห้องจากข้อมูลของโครงการนี้',
+        batchNoProjectData: 'โครงการนี้ยังไม่มีข้อมูลหมวดงานจำลอง',
+        batchFilterTrade: 'เลือกประเภทงานก่อนจึงจะเลือกทีมได้',
+        batchFilterRoom: 'เลือกประเภทงานและทีมก่อนจึงจะเลือกห้องได้',
       }
     : language === 'LA'
       ? {
@@ -186,6 +316,40 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           disabled: 'ຍັງໃຊ້ບໍ່ໄດ້',
           done: 'ສຳເລັດແລ້ວ',
           lastVoice: 'ສຽງຫຼ້າສຸດ',
+          photoBatchSaved: 'ບັນທຶກຊຸດຮູບແລ້ວ',
+          photoBatchSubmitted: 'ສົ່ງຊຸດຮູບແລ້ວ',
+          photoBatchCount: 'ຈຳນວນຮູບ',
+          batchDraft: 'ຮ່າງ',
+          batchSubmitted: 'ສົ່ງແລ້ວ',
+          batchVoiceAttached: 'ແນບສຽງແລ້ວ',
+          batchVoiceEmpty: 'ບໍ່ໄດ້ແນບສຽງ',
+          batchSelectionHelp: 'ເລືອກໂຄງການ ປະເພດວຽກ ທີມ ແລະ ຫ້ອງ ກ່ອນເພີ່ມຮູບ',
+          batchPhotoHelp: 'ເພີ່ມໄດ້ຫຼາຍຮູບໃນຊຸດດຽວ ແລະ ລຶບສະເພາະຮູບທີ່ບໍ່ຕ້ອງການ',
+          batchEmpty: 'ຍັງບໍ່ມີຊຸດຮູບວຽກ',
+          batchRecent: 'ຊຸດຮູບວຽກຫຼ້າສຸດ',
+          batchDraftAction: 'ບັນທຶກຮ່າງ',
+          batchSubmitAction: 'ສົ່ງຊຸດວຽກ',
+          batchAttachLatestVoice: 'ແນບສຽງຫຼ້າສຸດ',
+          batchNoVoiceAvailable: 'ຍັງບໍ່ມີສຽງຫຼ້າສຸດ',
+          batchPhotoRequired: 'ຕ້ອງມີຮູບຢ່າງໜ້ອຍ 1 ຮູບ',
+          batchTitleAuto: 'ອັບເດດໜ້າວຽກ',
+          batchUpdated: 'ອັບເດດ',
+          batchInlineVoice: 'ສຽງໃນຊຸດວຽກ',
+          batchVoiceStart: 'ອັດສຽງໃນຟອມ',
+          batchVoiceStop: 'ຢຸດອັດ',
+          batchVoiceDelete: 'ລຶບສຽງໃນຟອມ',
+          batchVoiceReady: 'ພ້ອມບັນທຶກໃນຊຸດວຽກ',
+          batchVoiceRecording: 'ກຳລັງອັດສຽງໃນຊຸດວຽກ...',
+          batchVoiceProcessing: 'ກຳລັງຈັດກຽມສຽງໃນຊຸດວຽກ...',
+          batchVoiceSaved: 'ບັນທຶກສຽງໃນຊຸດວຽກແລ້ວ',
+          batchVoiceRemoved: 'ລຶບສຽງໃນຊຸດວຽກແລ້ວ',
+          batchVoiceAttachedCount: 'ມີສຽງແນບ',
+          batchVoiceMissing: 'ຍັງບໍ່ມີສຽງໃນຊຸດວຽກ',
+          batchProjectDataLoading: 'ກຳລັງໂຫຼດລາຍການວຽກຂອງໂຄງການ...',
+          batchProjectDataReady: 'ເລືອກປະເພດວຽກ ທີມ ແລະ ຫ້ອງ ຈາກຂໍ້ມູນໂຄງການນີ້',
+          batchNoProjectData: 'ໂຄງການນີ້ຍັງບໍ່ມີຂໍ້ມູນຈຳລອງ',
+          batchFilterTrade: 'ເລືອກປະເພດວຽກກ່ອນ ຈຶ່ງຈະເລືອກທີມໄດ້',
+          batchFilterRoom: 'ເລືອກປະເພດວຽກ ແລະ ທີມ ກ່ອນ ຈຶ່ງຈະເລືອກຫ້ອງໄດ້',
         }
       : {
           todayStatusLabel: 'Today status',
@@ -227,6 +391,40 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           disabled: 'Disabled',
           done: 'Done',
           lastVoice: 'Latest voice note',
+          photoBatchSaved: 'Photo batch saved',
+          photoBatchSubmitted: 'Photo batch submitted',
+          photoBatchCount: 'Photos',
+          batchDraft: 'Draft',
+          batchSubmitted: 'Submitted',
+          batchVoiceAttached: 'Voice attached',
+          batchVoiceEmpty: 'No voice attached',
+          batchSelectionHelp: 'Choose project, work type, trade/team, and room before adding photos',
+          batchPhotoHelp: 'Add multiple photos in one batch and remove only the ones you do not want',
+          batchEmpty: 'No work photo batches yet',
+          batchRecent: 'Recent work photo batches',
+          batchDraftAction: 'Save draft',
+          batchSubmitAction: 'Submit batch',
+          batchAttachLatestVoice: 'Attach latest voice note',
+          batchNoVoiceAvailable: 'No recent voice note yet',
+          batchPhotoRequired: 'Add at least one photo',
+          batchTitleAuto: 'Site update',
+          batchUpdated: 'Updated',
+          batchInlineVoice: 'Inline batch voice',
+          batchVoiceStart: 'Record in batch',
+          batchVoiceStop: 'Stop recording',
+          batchVoiceDelete: 'Delete batch voice',
+          batchVoiceReady: 'Ready to record inside this batch',
+          batchVoiceRecording: 'Recording inside this batch...',
+          batchVoiceProcessing: 'Preparing inline batch audio...',
+          batchVoiceSaved: 'Inline batch voice saved',
+          batchVoiceRemoved: 'Inline batch voice removed',
+          batchVoiceAttachedCount: 'Voice attached',
+          batchVoiceMissing: 'No inline batch voice yet',
+          batchProjectDataLoading: 'Loading project-specific work options...',
+          batchProjectDataReady: 'Choose work type, team, and room from this project',
+          batchNoProjectData: 'This project has no simulated work data yet',
+          batchFilterTrade: 'Pick a work type before choosing a team',
+          batchFilterRoom: 'Pick a work type and team before choosing a room',
         };
   const siteName = currentProject?.name || pickText(t, 'worker_site_name_fallback', 'Project not assigned');
   const today = new Date().toISOString().split('T')[0];
@@ -241,9 +439,16 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [voiceError, setVoiceError] = useState('');
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
+  const [batchVoiceError, setBatchVoiceError] = useState('');
+  const [isBatchRecordingVoice, setIsBatchRecordingVoice] = useState(false);
+  const [isBatchVoiceProcessing, setIsBatchVoiceProcessing] = useState(false);
+  const [projectBatchOptions, setProjectBatchOptions] = useState({ workTypes: [], tradeTeams: [], rooms: [] });
+  const [isProjectBatchOptionsLoading, setIsProjectBatchOptionsLoading] = useState(false);
 
   const [attendanceRecords, setAttendanceRecords] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.attendance, []));
-  const [photoReports, setPhotoReports] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.photoReports, []));
+  const [photoReports, setPhotoReports] = useState(() =>
+    loadFromStorage(WORKER_STORAGE_KEYS.photoReports, []).map(normalizePhotoSubmissionBatch).filter(Boolean)
+  );
   const [voiceNotes, setVoiceNotes] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.voiceNotes, []));
   const [issues, setIssues] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.issues, []));
   const [materialRequests, setMaterialRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, []));
@@ -253,13 +458,18 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     return getWorkerTasks(saved, currentWorker.id, siteName);
   });
 
-  const [photoForm, setPhotoForm] = useState(defaultPhotoForm);
+  const [photoBatchForm, setPhotoBatchForm] = useState(() => ({
+    ...defaultPhotoBatch,
+    projectId: currentProject?.id ? String(currentProject.id) : '',
+    projectName: currentProject?.name || '',
+  }));
   const [issueForm, setIssueForm] = useState(defaultIssueForm);
   const [requestForm, setRequestForm] = useState(defaultRequestForm);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingStartedAtRef = useRef(0);
+  const recordingModeRef = useRef('voice-screen');
   const canRecordVoice = typeof window !== 'undefined'
     && typeof navigator !== 'undefined'
     && Boolean(navigator.mediaDevices?.getUserMedia)
@@ -274,8 +484,77 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.tasks, tasks), [tasks]);
 
   useEffect(() => {
+    setPhotoReports((current) => current.map(normalizePhotoSubmissionBatch).filter(Boolean));
+  }, []);
+
+  useEffect(() => {
     setTasks(getWorkerTasks(loadFromStorage(WORKER_STORAGE_KEYS.tasks, []), currentWorker.id, siteName));
   }, [currentWorker.id, siteName]);
+
+  useEffect(() => {
+    if (!currentProject?.id) return;
+    setPhotoBatchForm((current) => {
+      if (current.projectId) return current;
+      return {
+        ...current,
+        projectId: String(currentProject.id),
+        projectName: currentProject.name || '',
+      };
+    });
+  }, [currentProject]);
+
+  useEffect(() => {
+    if (!photoBatchForm.projectId) {
+      setProjectBatchOptions({ workTypes: [], tradeTeams: [], rooms: [] });
+      return undefined;
+    }
+
+    setIsProjectBatchOptionsLoading(true);
+    const selectedProject = projectsList.find((project) => String(project.id) === String(photoBatchForm.projectId));
+    const configKey = getProjectBatchConfigKey(selectedProject);
+    const timeout = window.setTimeout(() => {
+      const config = PROJECT_BATCH_LIBRARY[configKey] || PROJECT_BATCH_LIBRARY.default;
+      setProjectBatchOptions({
+        workTypes: normalizeProjectOptions(config.workTypes, language),
+        tradeTeams: normalizeProjectOptions(config.tradeTeams, language),
+        rooms: normalizeProjectOptions(config.rooms, language),
+      });
+      setIsProjectBatchOptionsLoading(false);
+    }, 220);
+
+    return () => window.clearTimeout(timeout);
+  }, [language, photoBatchForm.projectId, projectsList]);
+
+  useEffect(() => {
+    setPhotoBatchForm((current) => {
+      const hasWorkType = projectBatchOptions.workTypes.some((option) => option.value === current.workType);
+      const filteredTrades = projectBatchOptions.tradeTeams.filter((option) => !current.workType || option.workTypes?.includes(current.workType));
+      const hasTrade = filteredTrades.some((option) => option.value === current.tradeTeam);
+      const filteredRooms = projectBatchOptions.rooms.filter((option) => {
+        const matchesWorkType = !current.workType || option.workTypes?.includes(current.workType);
+        const matchesTrade = !current.tradeTeam || option.tradeTeams?.includes(current.tradeTeam);
+        return matchesWorkType && matchesTrade;
+      });
+      const hasRoom = filteredRooms.some((option) => option.value === current.roomId);
+
+      const nextWorkType = hasWorkType ? current.workType : '';
+      const nextTradeTeam = hasTrade ? current.tradeTeam : '';
+      const nextRoomId = hasRoom ? current.roomId : '';
+      const nextRoomName = hasRoom ? getOptionLabel(filteredRooms, current.roomId) : '';
+
+      if (nextWorkType === current.workType && nextTradeTeam === current.tradeTeam && nextRoomId === current.roomId && nextRoomName === current.roomName) {
+        return current;
+      }
+
+      return {
+        ...current,
+        workType: nextWorkType,
+        tradeTeam: nextTradeTeam,
+        roomId: nextRoomId,
+        roomName: nextRoomName,
+      };
+    });
+  }, [projectBatchOptions]);
 
   useEffect(() => {
     const handler = () => setOnline(navigator.onLine);
@@ -318,11 +597,29 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     () => materialRequests.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
     [materialRequests, currentWorker.id]
   );
+  const workTypeOptions = useMemo(() => projectBatchOptions.workTypes, [projectBatchOptions.workTypes]);
+  const tradeTeamOptions = useMemo(
+    () => projectBatchOptions.tradeTeams.filter((option) => !photoBatchForm.workType || option.workTypes?.includes(photoBatchForm.workType)),
+    [photoBatchForm.workType, projectBatchOptions.tradeTeams]
+  );
+  const roomOptions = useMemo(
+    () => projectBatchOptions.rooms.filter((option) => {
+      const matchesWorkType = !photoBatchForm.workType || option.workTypes?.includes(photoBatchForm.workType);
+      const matchesTrade = !photoBatchForm.tradeTeam || option.tradeTeams?.includes(photoBatchForm.tradeTeam);
+      return matchesWorkType && matchesTrade;
+    }),
+    [photoBatchForm.tradeTeam, photoBatchForm.workType, projectBatchOptions.rooms]
+  );
 
   const isCheckedIn = Boolean(todayAttendance.checkIn);
   const isCheckedOut = Boolean(todayAttendance.checkOut);
   const canUseWorkActions = isCheckedIn && !isCheckedOut;
-  const todayPhotoCount = latestPhotoReports.filter((entry) => entry.dateKey === today).length;
+  const todayPhotoCount = photoReports
+    .filter((entry) => entry.workerId === currentWorker.id && entry.dateKey === today)
+    .reduce((total, entry) => total + Number(entry.photoCount || entry.photos?.length || 0), 0);
+  const todayBatchCount = photoReports
+    .filter((entry) => entry.workerId === currentWorker.id && entry.dateKey === today)
+    .length;
   const todayVoiceCount = latestVoiceNotes.filter((entry) => entry.dateKey === today).length;
   const todayStatus = isCheckedOut ? localCopy.checkedOut : isCheckedIn ? localCopy.working : localCopy.notCheckedIn;
 
@@ -343,11 +640,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     const photoItems = latestPhotoReports.map((entry) => ({
       id: entry.id,
       type: 'photo',
-      title: pickText(t, 'worker_photo', 'Upload Photo'),
-      detail: `${entry.category} • ${formatDateTime(entry.submittedAt, locale)}`,
+      title: entry.batchTitle || pickText(t, 'worker_photo', 'Upload Photo'),
+      detail: `${entry.projectName || siteName} • ${entry.roomName || '-'} • ${formatDateTime(entry.submittedAt, locale)}`,
       status: entry.status,
-      imageData: entry.imageData,
-      audioData: '',
+      imageData: entry.photos?.[0]?.imageData || '',
+      audioData: entry.voiceNote?.audioData || '',
       timestamp: entry.submittedAt,
     }));
 
@@ -390,6 +687,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   }, [attendanceRecords, currentWorker.id, latestIssues, latestPhotoReports, latestRequests, latestVoiceNotes, locale, localCopy.voiceSaved, siteName, t]);
 
   const pendingItems = [
+    ...latestPhotoReports.filter((entry) => entry.status === 'draft').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_photo', 'Photo')} • ${entry.batchTitle || entry.workType}` })),
     ...latestRequests.filter((entry) => entry.status === 'pending').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_material', 'Material')} • ${entry.itemName}` })),
     ...latestIssues.filter((entry) => entry.status === 'open').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_sos', 'SOS')} • ${entry.category}` })),
     ...tasks.filter((entry) => entry.status !== TASK_STATUS.completed).map((entry) => ({ id: entry.id, label: pickText(t, `worker_task_title_${entry.title}`, entry.title) })),
@@ -397,7 +695,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const latestNotifications = [
     { id: 'attendance', title: todayStatus },
-    { id: 'photos', title: latestPhotoReports[0] ? `${pickText(t, 'worker_photo', 'Photo')} • ${latestPhotoReports[0].category}` : pickText(t, 'worker_notification_sync', 'Offline data has been safely saved') },
+    { id: 'photos', title: latestPhotoReports[0] ? `${pickText(t, 'worker_photo', 'Photo')} • ${latestPhotoReports[0].batchTitle || latestPhotoReports[0].workType}` : pickText(t, 'worker_notification_sync', 'Offline data has been safely saved') },
     { id: 'voice', title: latestVoiceNotes[0] ? `${localCopy.lastVoice} • ${formatDuration(latestVoiceNotes[0].durationMs)}` : isCheckedOut ? localCopy.doneHelper : isCheckedIn ? localCopy.readyHelper : localCopy.gateHelper },
   ];
 
@@ -471,31 +769,129 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     event.target.value = '';
   };
 
-  const submitPhoto = async () => {
+  const setPhotoBatchField = (field, value) => {
+    setPhotoBatchForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleBatchProjectChange = (projectId) => {
+    setPhotoBatchForm((current) => ({
+      ...current,
+      projectId,
+      projectName: getProjectNameById(projectsList, projectId),
+      workType: '',
+      tradeTeam: '',
+      roomId: '',
+      roomName: '',
+    }));
+  };
+
+  const handleBatchOptionChange = (field, value) => {
+    setPhotoBatchForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'workType'
+        ? { tradeTeam: '', roomId: '', roomName: '' }
+        : field === 'tradeTeam'
+          ? { roomId: '', roomName: '' }
+          : field === 'roomId'
+            ? { roomName: getOptionLabel(roomOptions, value) }
+            : {}),
+    }));
+  };
+
+  const handleBatchPhotoChange = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    await withBusyAction('photo-upload', async () => {
+      const nextPhotos = [];
+      for (const file of files) {
+        const { imageData, stats } = await compressImageFile(file, settings);
+        nextPhotos.push({
+          id: `photo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          imageData,
+          imageStats: stats,
+          originalName: file.name || '',
+          capturedAt: Date.now(),
+        });
+      }
+
+      setPhotoBatchForm((current) => ({
+        ...current,
+        photos: [...current.photos, ...nextPhotos],
+      }));
+      setToast(localCopy.photoCaptured);
+    });
+
+    event.target.value = '';
+  };
+
+  const removeBatchPhoto = (photoId) => {
+    setPhotoBatchForm((current) => ({
+      ...current,
+      photos: current.photos.filter((photo) => photo.id !== photoId),
+    }));
+    setToast(localCopy.photoRemoved);
+  };
+
+  const resetPhotoBatchForm = () => {
+    setPhotoBatchForm({
+      ...defaultPhotoBatch,
+      projectId: currentProject?.id ? String(currentProject.id) : '',
+      projectName: currentProject?.name || '',
+    });
+  };
+
+  const submitPhotoBatch = async (nextStatus) => {
     setValidationError('');
     if (!canUseWorkActions) {
       setValidationError(localCopy.gateHelper);
       return;
     }
-    if (!photoForm.category || !photoForm.detail || !photoForm.imageData) {
+
+    if (!photoBatchForm.projectId || !photoBatchForm.workType || !photoBatchForm.tradeTeam || !photoBatchForm.roomId) {
       setValidationError(pickText(t, 'worker_validation_required', 'Please complete required fields'));
       return;
     }
 
-    await withBusyAction('photo-submit', async () => {
-      const record = createPhotoReport({
+    if (nextStatus === 'submitted' && !photoBatchForm.photos.length) {
+      setValidationError(localCopy.batchPhotoRequired);
+      return;
+    }
+
+    const timestamp = Date.now();
+    const projectName = photoBatchForm.projectName || getProjectNameById(projectsList, photoBatchForm.projectId) || siteName;
+    const workTypeLabel = getOptionLabel(workTypeOptions, photoBatchForm.workType);
+    const roomName = getOptionLabel(roomOptions, photoBatchForm.roomId);
+    const tradeTeamName = getOptionLabel(tradeTeamOptions, photoBatchForm.tradeTeam);
+    const batchTitle = photoBatchForm.batchTitle.trim() || `${localCopy.batchTitleAuto} • ${workTypeLabel}`;
+
+    await withBusyAction(nextStatus === 'draft' ? 'photo-draft' : 'photo-submit', async () => {
+      const record = createPhotoSubmissionBatch({
         workerId: currentWorker.id,
         workerName: currentWorker.name,
-        siteName,
-        category: photoForm.category,
-        detail: photoForm.detail,
-        imageData: photoForm.imageData,
-        imageMeta: photoForm.imageStats || {},
-        status: online ? 'submitted' : 'queued',
+        projectId: photoBatchForm.projectId,
+        projectName,
+        workType: workTypeLabel,
+        tradeTeam: tradeTeamName,
+        roomId: photoBatchForm.roomId,
+        roomName,
+        batchTitle,
+        notes: photoBatchForm.notes.trim(),
+        photos: photoBatchForm.photos.map((photo) => ({
+          id: photo.id,
+          imageData: photo.imageData,
+          imageMeta: photo.imageStats || {},
+          originalName: photo.originalName || '',
+          capturedAt: photo.capturedAt || timestamp,
+        })),
+        voiceNote: photoBatchForm.voiceNote,
+        status: nextStatus,
+        timestamp,
       });
       setPhotoReports((current) => [...current, record]);
-      setPhotoForm(defaultPhotoForm);
-      pushToast('worker_action_sent_success', 'Sent successfully');
+      resetPhotoBatchForm();
+      setToast(nextStatus === 'draft' ? localCopy.photoBatchSaved : localCopy.photoBatchSubmitted);
     });
   };
 
@@ -551,15 +947,20 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setToast(localCopy.photoRemoved);
   };
 
-  const startVoiceRecording = async () => {
+  const startAudioRecording = async (mode = 'voice-screen') => {
     setValidationError('');
-    setVoiceError('');
+    if (mode === 'batch') {
+      setBatchVoiceError('');
+    } else {
+      setVoiceError('');
+    }
     if (!canUseWorkActions) {
       setValidationError(localCopy.gateHelper);
       return;
     }
     if (!canRecordVoice) {
-      setVoiceError(localCopy.voiceFallback);
+      if (mode === 'batch') setBatchVoiceError(localCopy.voiceFallback);
+      else setVoiceError(localCopy.voiceFallback);
       return;
     }
 
@@ -570,53 +971,93 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
       recordingStartedAtRef.current = Date.now();
+      recordingModeRef.current = mode;
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       recorder.onstop = async () => {
+        const activeMode = recordingModeRef.current;
         setIsRecordingVoice(false);
-        setIsVoiceProcessing(true);
+        setIsBatchRecordingVoice(false);
+        if (activeMode === 'batch') setIsBatchVoiceProcessing(true);
+        else setIsVoiceProcessing(true);
+
         try {
           const mimeType = recorder.mimeType || 'audio/webm';
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
           const audioData = await readBlobAsDataUrl(audioBlob);
-          const record = createVoiceNoteRecord({
-            workerId: currentWorker.id,
-            workerName: currentWorker.name,
-            siteName,
-            audioData,
-            durationMs: Date.now() - recordingStartedAtRef.current,
-            mimeType,
-          });
-          setVoiceNotes((current) => [...current, record]);
-          setToast(localCopy.voiceSaved);
+          const durationMs = Date.now() - recordingStartedAtRef.current;
+
+          if (activeMode === 'batch') {
+            setPhotoBatchForm((current) => ({
+              ...current,
+              voiceNote: {
+                id: `batch_voice_${Date.now()}`,
+                audioData,
+                durationMs,
+                mimeType,
+                recordedAt: Date.now(),
+                source: 'inline',
+              },
+            }));
+            setToast(localCopy.batchVoiceSaved);
+          } else {
+            const record = createVoiceNoteRecord({
+              workerId: currentWorker.id,
+              workerName: currentWorker.name,
+              siteName,
+              audioData,
+              durationMs,
+              mimeType,
+            });
+            setVoiceNotes((current) => [...current, record]);
+            setToast(localCopy.voiceSaved);
+          }
         } catch (error) {
           console.error('Voice note processing failed:', error);
-          setVoiceError(localCopy.voiceProcessing);
+          if (activeMode === 'batch') setBatchVoiceError(localCopy.batchVoiceProcessing);
+          else setVoiceError(localCopy.voiceProcessing);
         } finally {
-          setIsVoiceProcessing(false);
+          if (activeMode === 'batch') setIsBatchVoiceProcessing(false);
+          else setIsVoiceProcessing(false);
           stream.getTracks().forEach((track) => track.stop());
           mediaStreamRef.current = null;
           mediaRecorderRef.current = null;
           audioChunksRef.current = [];
+          recordingModeRef.current = 'voice-screen';
         }
       };
 
       recorder.start();
-      setIsRecordingVoice(true);
+      if (mode === 'batch') setIsBatchRecordingVoice(true);
+      else setIsRecordingVoice(true);
     } catch (error) {
       console.error('Voice recording failed:', error);
-      setVoiceError(localCopy.voicePermission);
-      setIsRecordingVoice(false);
+      if (mode === 'batch') {
+        setBatchVoiceError(localCopy.voicePermission);
+        setIsBatchRecordingVoice(false);
+      } else {
+        setVoiceError(localCopy.voicePermission);
+        setIsRecordingVoice(false);
+      }
     }
   };
+
+  const startVoiceRecording = () => startAudioRecording('voice-screen');
+  const startBatchVoiceRecording = () => startAudioRecording('batch');
 
   const stopVoiceRecording = () => {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
+  };
+
+  const deleteBatchVoiceNote = () => {
+    setPhotoBatchForm((current) => ({ ...current, voiceNote: null }));
+    setBatchVoiceError('');
+    setToast(localCopy.batchVoiceRemoved);
   };
 
   const deleteVoiceNote = (voiceId) => {
@@ -663,11 +1104,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     {
       id: 'photo',
       label: pickText(t, 'worker_photo', 'Upload Photo'),
-      helper: todayPhotoCount > 0 ? `${todayPhotoCount} ${localCopy.done}` : canUseWorkActions ? localCopy.active : localCopy.disabled,
+      helper: todayPhotoCount > 0 ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}` : canUseWorkActions ? localCopy.active : localCopy.disabled,
       icon: Camera,
       tone: 'slate',
       disabled: !canUseWorkActions,
-      loading: busyAction === 'photo-upload' || busyAction === 'photo-submit',
+      loading: busyAction === 'photo-upload' || busyAction === 'photo-submit' || busyAction === 'photo-draft',
       active: activeScreen === SCREEN_PHOTO || todayPhotoCount > 0,
       onClick: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
     },
@@ -845,13 +1286,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         <div className="mt-1 text-sm text-slate-500">{siteName}</div>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <MetricCard label={pickText(t, 'worker_recent_attendance', 'Recent attendance')} value={`${todayAttendance.records.length}`} />
-          <MetricCard label={pickText(t, 'worker_sync_queue', 'Sync queue')} value={`${photoReports.filter((entry) => entry.status === 'queued').length}`} />
+          <MetricCard label={pickText(t, 'worker_sync_queue', 'Sync queue')} value={`${photoReports.filter((entry) => entry.status === 'draft').length}`} />
         </div>
       </div>
       <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
         <div className="mb-3 text-base font-semibold text-slate-900">{pickText(t, 'worker_submitted_items', 'Submitted items')}</div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard label={pickText(t, 'worker_photo', 'Photo')} value={`${latestPhotoReports.length}`} compact />
+          <MetricCard label={pickText(t, 'worker_photo', 'Photo')} value={`${photoReports.reduce((total, entry) => total + Number(entry.photoCount || entry.photos?.length || 0), 0)}`} compact />
           <MetricCard label={pickText(t, 'worker_material', 'Material')} value={`${latestRequests.length}`} compact />
           <MetricCard label={pickText(t, 'worker_sos', 'SOS')} value={`${latestIssues.length}`} compact />
           <MetricCard label={localCopy.voiceTitle} value={`${latestVoiceNotes.length}`} compact />
@@ -861,65 +1302,192 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     </div>
   );
 
-  const renderPhotoScreen = () => (
-    <SinglePurposeScreen
-      title={pickText(t, 'worker_photo_screen_title', 'Submit Work Photo')}
-      subtitle={localCopy.photoDesc}
-      onBack={goBack}
-      t={t}
-    >
-      <DataSaverCard settings={settings} setSettings={setSettings} t={t} compact />
-      <FormCard title={pickText(t, 'worker_photo', 'Upload Photo')}>
-        <FilePicker
-          imageData={photoForm.imageData}
-          onChange={(event) => handleFileChange(event, setPhotoForm)}
-          onRemove={() => clearImageForm(setPhotoForm)}
-          label={pickText(t, 'worker_report_photo', 'Photo')}
-          helperText={localCopy.photoHelp}
-          actionLabel={localCopy.photoPick}
-          retakeLabel={localCopy.photoRetake}
-          removeLabel={localCopy.photoRemove}
-          loading={busyAction === 'photo-upload'}
-          t={t}
-        />
-        {photoForm.imageStats ? (
-          <div className="mt-3 rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
-            <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
-            <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-xl bg-white px-3 py-2">
-                <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
-                <div className="mt-1 font-semibold text-slate-900">{formatBytes(photoForm.imageStats.originalBytes)}</div>
-              </div>
-              <div className="rounded-xl bg-white px-3 py-2">
-                <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
-                <div className="mt-1 font-semibold text-slate-900">{formatBytes(photoForm.imageStats.compressedBytes)}</div>
+  const renderPhotoScreen = () => {
+    const batchReadyForPhotos = Boolean(photoBatchForm.projectId && photoBatchForm.workType && photoBatchForm.tradeTeam && photoBatchForm.roomId);
+    const totalOriginalBytes = photoBatchForm.photos.reduce((total, photo) => total + Number(photo.imageStats?.originalBytes || 0), 0);
+    const totalCompressedBytes = photoBatchForm.photos.reduce((total, photo) => total + Number(photo.imageStats?.compressedBytes || 0), 0);
+    const batchStatusLabel = isBatchRecordingVoice
+      ? localCopy.batchVoiceRecording
+      : isBatchVoiceProcessing
+        ? localCopy.batchVoiceProcessing
+        : photoBatchForm.voiceNote
+          ? `${localCopy.batchVoiceAttachedCount} • ${formatDuration(photoBatchForm.voiceNote.durationMs || 0)}`
+          : localCopy.batchVoiceMissing;
+
+    return (
+      <SinglePurposeScreen
+        title={pickText(t, 'worker_photo_screen_title', 'Submit Work Photo')}
+        subtitle={localCopy.photoDesc}
+        onBack={goBack}
+        t={t}
+      >
+        <DataSaverCard settings={settings} setSettings={setSettings} t={t} compact />
+        <FormCard title={pickText(t, 'worker_photo_batch_setup', 'Work Submission Batch')}>
+          <div className={`rounded-[1.3rem] border px-4 py-3 text-sm ${isProjectBatchOptionsLoading ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-blue-200 bg-blue-50 text-blue-900'}`}>
+            {isProjectBatchOptionsLoading ? localCopy.batchProjectDataLoading : photoBatchForm.projectId ? localCopy.batchProjectDataReady : localCopy.batchSelectionHelp}
+          </div>
+          <div className="mt-4 space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">{pickText(t, 'label_name', 'Project')}</label>
+              <select value={photoBatchForm.projectId} onChange={(event) => handleBatchProjectChange(event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900">
+                <option value="">{pickText(t, 'filter_project', 'Select project')}</option>
+                {projectsList.map((project) => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
+            </div>
+            <SelectorPillGroup
+              label={pickText(t, 'worker_report_category', 'Work category')}
+              options={workTypeOptions}
+              value={photoBatchForm.workType}
+              onChange={(value) => handleBatchOptionChange('workType', value)}
+              emptyLabel={photoBatchForm.projectId && !isProjectBatchOptionsLoading ? localCopy.batchNoProjectData : localCopy.batchSelectionHelp}
+              disabled={!photoBatchForm.projectId || isProjectBatchOptionsLoading}
+            />
+            <SelectorPillGroup
+              label={pickText(t, 'worker_trade_team', 'Trade / Team')}
+              options={tradeTeamOptions}
+              value={photoBatchForm.tradeTeam}
+              onChange={(value) => handleBatchOptionChange('tradeTeam', value)}
+              emptyLabel={photoBatchForm.workType ? localCopy.batchNoProjectData : localCopy.batchFilterTrade}
+              disabled={!photoBatchForm.workType || isProjectBatchOptionsLoading}
+            />
+            <SelectorPillGroup
+              label={pickText(t, 'worker_room_label', 'Room / Area')}
+              options={roomOptions}
+              value={photoBatchForm.roomId}
+              onChange={(value) => handleBatchOptionChange('roomId', value)}
+              emptyLabel={photoBatchForm.workType && photoBatchForm.tradeTeam ? localCopy.batchNoProjectData : localCopy.batchFilterRoom}
+              disabled={!photoBatchForm.workType || !photoBatchForm.tradeTeam || isProjectBatchOptionsLoading}
+            />
+            <input
+              value={photoBatchForm.batchTitle}
+              onChange={(event) => setPhotoBatchField('batchTitle', event.target.value)}
+              placeholder={pickText(t, 'worker_batch_title', 'Batch title')}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+            />
+            <textarea
+              value={photoBatchForm.notes}
+              onChange={(event) => setPhotoBatchField('notes', event.target.value)}
+              placeholder={pickText(t, 'worker_report_details', 'Details')}
+              rows={4}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+            />
+          </div>
+        </FormCard>
+
+        <FormCard title={pickText(t, 'worker_report_photo', 'Photos')}>
+          <MultiPhotoPicker
+            photos={photoBatchForm.photos}
+            onChange={handleBatchPhotoChange}
+            onRemove={removeBatchPhoto}
+            label={pickText(t, 'worker_report_photo', 'Photos')}
+            helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
+            actionLabel={localCopy.photoPick}
+            retakeLabel={localCopy.photoRetake}
+            removeLabel={localCopy.photoRemove}
+            countLabel={localCopy.photoBatchCount}
+            loading={busyAction === 'photo-upload'}
+            disabled={!batchReadyForPhotos}
+          />
+          {photoBatchForm.photos.length ? (
+            <div className="mt-3 rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
+              <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
+              <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                <div className="rounded-xl bg-white px-3 py-2">
+                  <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
+                  <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalOriginalBytes)}</div>
+                </div>
+                <div className="rounded-xl bg-white px-3 py-2">
+                  <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
+                  <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalCompressedBytes)}</div>
+                </div>
               </div>
             </div>
+          ) : null}
+          <div className={`mt-3 rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-200 bg-rose-50' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+            <div className="flex items-start gap-3">
+              <div className={`rounded-2xl p-3 ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                <Mic className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-slate-900">{localCopy.batchInlineVoice}</div>
+                <div className="mt-1 text-sm text-slate-600">{batchStatusLabel}</div>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button onClick={startBatchVoiceRecording} disabled={!canUseWorkActions || !canRecordVoice || isBatchRecordingVoice || isBatchVoiceProcessing} className={`inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed ${isBatchRecordingVoice ? 'bg-rose-500' : 'bg-slate-900'} disabled:bg-slate-300`}>
+                <Mic className="h-4 w-4" />
+                {localCopy.batchVoiceStart}
+              </button>
+              <button onClick={stopVoiceRecording} disabled={!isBatchRecordingVoice} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
+                <Square className="h-4 w-4" />
+                {localCopy.batchVoiceStop}
+              </button>
+            </div>
+            {photoBatchForm.voiceNote ? <audio controls src={photoBatchForm.voiceNote.audioData} className="mt-3 w-full" /> : null}
+            <button onClick={deleteBatchVoiceNote} disabled={!photoBatchForm.voiceNote || isBatchRecordingVoice || isBatchVoiceProcessing} className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+              <Trash2 className="h-4 w-4" />
+              {localCopy.batchVoiceDelete}
+            </button>
+            {batchVoiceError ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{batchVoiceError}</div> : null}
           </div>
-        ) : null}
-        <input value={photoForm.category} onChange={(event) => setPhotoForm((current) => ({ ...current, category: event.target.value }))} placeholder={pickText(t, 'worker_report_category', 'Job category')} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-        <textarea value={photoForm.detail} onChange={(event) => setPhotoForm((current) => ({ ...current, detail: event.target.value }))} placeholder={pickText(t, 'worker_report_details', 'Details')} rows={4} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-        <button disabled={busyAction === 'photo-submit'} onClick={submitPhoto} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300">
-          {busyAction === 'photo-submit' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-          {pickText(t, 'worker_report_submit', 'Submit report')}
-        </button>
-      </FormCard>
-      <FormCard title={pickText(t, 'worker_recent_reports', 'Recent Photo Reports')}>
-        <HistoryList
-          items={latestPhotoReports}
-          emptyLabel={pickText(t, 'worker_no_data', 'No data yet')}
-          renderItem={(item) => (
-            <HistoryCard
-              title={item.category}
-              detail={`${item.detail} • ${formatDateTime(item.submittedAt, locale)}`}
-              status={pickText(t, item.status === 'queued' ? 'worker_saved_locally' : 'worker_record_status_submitted', item.status)}
-              imageData={item.imageData}
-            />
-          )}
-        />
-      </FormCard>
-    </SinglePurposeScreen>
-  );
+        </FormCard>
+
+        <FormCard title={pickText(t, 'worker_batch_preview', 'Batch Preview')}>
+          <PhotoBatchCard
+            item={{
+              id: 'draft-preview',
+              batchTitle: photoBatchForm.batchTitle || `${localCopy.batchTitleAuto} • ${getOptionLabel(workTypeOptions, photoBatchForm.workType)}`,
+              projectName: photoBatchForm.projectName || getProjectNameById(projectsList, photoBatchForm.projectId) || '-',
+              workType: getOptionLabel(workTypeOptions, photoBatchForm.workType),
+              tradeTeam: getOptionLabel(tradeTeamOptions, photoBatchForm.tradeTeam),
+              roomName: getOptionLabel(roomOptions, photoBatchForm.roomId),
+              notes: photoBatchForm.notes,
+              photoCount: photoBatchForm.photos.length,
+              status: photoBatchForm.status,
+              voiceNote: photoBatchForm.voiceNote,
+              updatedAt: Date.now(),
+            }}
+            updatedLabel={localCopy.batchUpdated}
+            statusLabel={formatBatchStatusLabel(photoBatchForm.status, language)}
+            emptyNoteLabel={pickText(t, 'worker_no_data', 'No data yet')}
+            locale={locale}
+            countLabel={localCopy.photoBatchCount}
+            voiceLabel={localCopy.batchVoiceAttachedCount}
+          />
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button onClick={() => submitPhotoBatch('draft')} disabled={busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+              {busyAction === 'photo-draft' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileImage className="h-4 w-4" />}
+              {localCopy.batchDraftAction}
+            </button>
+            <button onClick={() => submitPhotoBatch('submitted')} disabled={busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300">
+              {busyAction === 'photo-submit' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {localCopy.batchSubmitAction}
+            </button>
+          </div>
+        </FormCard>
+
+        <FormCard title={localCopy.batchRecent}>
+          <HistoryList
+            items={latestPhotoReports}
+            emptyLabel={localCopy.batchEmpty}
+            renderItem={(item) => (
+              <PhotoBatchCard
+                item={item}
+                updatedLabel={localCopy.batchUpdated}
+                statusLabel={formatBatchStatusLabel(item.status, language)}
+                emptyNoteLabel={pickText(t, 'worker_no_data', 'No data yet')}
+                locale={locale}
+                countLabel={localCopy.photoBatchCount}
+                voiceLabel={localCopy.batchVoiceAttachedCount}
+              />
+            )}
+          />
+        </FormCard>
+      </SinglePurposeScreen>
+    );
+  };
 
   const renderVoiceScreen = () => (
     <SinglePurposeScreen
@@ -1164,6 +1732,126 @@ function FormCard({ title, children }) {
     <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
       <div className="mb-3 text-base font-semibold text-slate-900">{title}</div>
       {children}
+    </div>
+  );
+}
+
+function SelectorPillGroup({ label, options, value, onChange, emptyLabel, disabled = false }) {
+  return (
+    <div>
+      <div className="mb-2 text-sm font-semibold text-slate-700">{label}</div>
+      {options.length ? (
+        <div className="grid grid-cols-2 gap-2">
+          {options.map((option) => {
+            const active = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                disabled={disabled}
+                onClick={() => onChange(option.value)}
+                className={`min-h-12 rounded-2xl border px-3 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed ${active ? 'border-blue-600 bg-blue-700 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 disabled:bg-slate-100 disabled:text-slate-400'}`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className={`rounded-2xl border px-4 py-3 text-sm ${disabled ? 'border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+          {emptyLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MultiPhotoPicker({
+  photos,
+  onChange,
+  onRemove,
+  label,
+  helperText,
+  actionLabel,
+  retakeLabel,
+  removeLabel,
+  countLabel,
+  loading = false,
+  disabled = false,
+}) {
+  const inputRef = useRef(null);
+
+  return (
+    <div className={`rounded-[1.3rem] border border-dashed p-4 ${disabled ? 'border-slate-200 bg-slate-100' : 'border-slate-300 bg-slate-50'}`}>
+      <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" multiple />
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-slate-800">{label}</div>
+          <div className="mt-1 text-xs text-slate-500">{helperText}</div>
+        </div>
+        <div className={`rounded-full px-3 py-1 text-xs font-semibold ${photos.length ? 'bg-blue-100 text-blue-700' : 'bg-white text-slate-500'}`}>
+          {countLabel}: {photos.length}
+        </div>
+      </div>
+      {photos.length ? (
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {photos.map((photo, index) => (
+            <div key={photo.id} className="overflow-hidden rounded-[1.2rem] border border-slate-200 bg-white">
+              <img src={photo.imageData} alt={`${label} ${index + 1}`} className="h-28 w-full object-cover" />
+              <div className="flex items-center justify-between gap-2 px-3 py-2">
+                <div className="min-w-0 text-xs text-slate-500">#{index + 1}</div>
+                <button type="button" onClick={() => onRemove(photo.id)} className="inline-flex min-h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+                  {removeLabel}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 flex items-center justify-center rounded-[1.2rem] bg-white px-4 py-8 text-slate-400">
+          <Camera className="h-8 w-8" />
+        </div>
+      )}
+      <button
+        type="button"
+        disabled={loading || disabled}
+        onClick={() => inputRef.current?.click()}
+        className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+      >
+        {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : photos.length ? retakeLabel : actionLabel}
+      </button>
+    </div>
+  );
+}
+
+function PhotoBatchCard({ item, updatedLabel, statusLabel, emptyNoteLabel, locale, countLabel, voiceLabel }) {
+  return (
+    <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50 p-3.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-slate-900">{item.batchTitle || item.workType || '-'}</div>
+          <div className="mt-1 text-sm text-slate-600">{item.projectName || '-'} • {item.roomName || '-'}</div>
+          <div className="mt-1 text-xs text-slate-500">{item.tradeTeam || '-'}</div>
+        </div>
+        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getBatchCardTone(item.status)}`}>{statusLabel}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
+        <div className="rounded-xl bg-white px-3 py-2">
+          <div>{item.workType || '-'}</div>
+          <div className="mt-1 font-semibold text-slate-900">{item.photoCount || item.photos?.length || 0} {countLabel}</div>
+        </div>
+        <div className="rounded-xl bg-white px-3 py-2">
+          <div>{updatedLabel}</div>
+          <div className="mt-1 font-semibold text-slate-900">{formatDateTime(item.updatedAt || item.submittedAt, locale)}</div>
+        </div>
+      </div>
+      <div className="mt-2 rounded-xl bg-white px-3 py-2 text-xs text-slate-500">
+        <div>{voiceLabel}</div>
+        <div className="mt-1 font-semibold text-slate-900">{item.voiceNote ? formatDuration(item.voiceNote.durationMs || 0) : '-'}</div>
+      </div>
+      <div className="mt-3 text-sm text-slate-600">{item.notes ? item.notes.slice(0, 96) : emptyNoteLabel}</div>
+      {item.photos?.length ? <img src={item.photos[0].imageData} alt={item.batchTitle || item.workType || 'batch'} className="mt-3 h-28 w-full rounded-2xl object-cover" /> : null}
+      {item.voiceNote?.audioData ? <audio controls src={item.voiceNote.audioData} className="mt-3 w-full" /> : null}
     </div>
   );
 }
