@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { 
@@ -8,7 +8,7 @@ import {
   Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
   LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
   UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
-  Send, Database, Eye, Printer, Percent, Download
+  Send, Database, Eye, Printer, Percent, Download, Home
 } from 'lucide-react';
 
 // ========================================================
@@ -83,12 +83,12 @@ function useAudioRecorder(onAudioReady) {
 // ==========================================
 const translations = {
   LA: {
-    nav_features: 'ຟັງຊັນຫຼັກ', nav_superapp: 'ສ່ວນເສີມພິເສດ', nav_pricing: 'ແພັກເກດລາຄາ', nav_login: 'ເຂົ້າສູ່ລະບົບ',
+    nav_features: 'ຟີເຈີ', nav_superapp: 'ໂຊລູຊັນ', nav_pricing: 'ລາຄາ', nav_login: 'ເຂົ້າສູ່ລະບົບ', nav_signup: 'ສະໝັກໃຊ້ງານ', nav_contractor_portal: 'ຜູ້ຮັບເໝາ',
     lang_name: '🇱🇦 ລາວ',
-    hero_badge: '#1 ແອັບກໍ່ສ້າງໃນລາວ', hero_title1: 'ຈັດການໄຊຕ໌ງານກໍ່ສ້າງງ່າຍໆ', hero_title2: 'ສະຕາຍສະບາຍດີ', hero_desc: 'ແອັບພລິເຄຊັນສຳລັບບໍລິສັດຮັບເໝົາ, ຜູ້ຮັບເໝົາອິດສະຫຼະ, ແລະເຈົ້າຂອງບ້ານ.',
-    hero_btn_try: 'ທົດລອງໃຊ້ຟຣີ', hero_btn_worker: 'ເບິ່ງແອັບຄົນງານ',
-    feat_title: 'ຟັງຊັນຫຼັກທີ່ຕອບໂຈດທຸກຝ່າຍ', feat_subtitle: 'ອອກແບບມາໃຫ້ໃຊ້ງານງ່າຍ ບໍ່ວ່າຈະເປັນຊ່າງໜ້າວຽກ ຫຼື ເຈົ້າຂອງບ້ານ',
-    feat_worker: 'ສຳລັບພະນັກງານ / ຊ່າງ', feat_manager: 'ສຳລັບຜູ້ຈັດການ / ບໍລິສັດ', feat_owner: 'ສຳລັບເຈົ້າຂອງບ້ານ',
+    hero_badge: '#1 ແອັບກໍ່ສ້າງໃນລາວ', hero_title1: 'ຈັດການໄຊຕ໌ງານກໍ່ສ້າງງ່າຍໆ', hero_title2: 'ສະຕາຍສະບາຍດີ', hero_desc: 'ຄຸ້ມວຽກແມ່ນຍຳ, ຈັດຊື້ໄວ, ຂາຍວັດສະດຸງ່າຍ, ເຈົ້າຂອງບ້ານເຫັນທຸກຄວາມຄືບໜ້າໃນແອັບດຽວ',
+    hero_btn_try: 'ທົດລອງໃຊ້ຟຣີ', hero_btn_signup: 'ສະໝັກໃຊ້ງານ', hero_btn_worker: 'ເບິ່ງແອັບຄົນງານ',
+    feat_title: 'ຟັງຊັນຫຼັກທີ່ຕອບໂຈດທຸກຝ່າຍ', feat_subtitle: 'ອອກແບບມາໃຫ້ໃຊ້ງານງ່າຍ ສຳລັບຊ່າງໜ້າວຽກ, ຜູ້ຮັບເໝົາ ແລະ ເຈົ້າຂອງບ້ານ',
+    feat_worker: 'ສຳລັບຊ່າງ / ຄົນງານ', feat_manager: 'ສຳລັບຜູ້ຮັບເໝົາ / ທີມຊ່າງ', feat_owner: 'ສຳລັບເຈົ້າຂອງບ້ານ',
     worker_checkin: 'ກົດເຂົ້າວຽກ (GPS)', worker_checked: 'ລົງເວລາແລ້ວ', worker_photo: 'ຖ່າຍຮູບສົ່ງວຽກ', worker_material: 'ຂໍເບີກເຄື່ອງ', worker_voice: 'ພິມບໍ່ຖະນັດ? ອັດສຽງເລີຍ', worker_sos: 'ແຈ້ງບັນຫາ / ເຄື່ອງຂາດ (SOS)',
     manager_overview: 'ພາບລວມໂຄງການ (Dashboard)', manager_menu_overview: 'ພາບລວມ', manager_menu_projects: 'ຈັດການໄຊຕ໌ງານ', manager_menu_workers: 'ຈັດການພະນັກງານ', manager_menu_docs: 'ເອກະສານ & ເບີກເງິນ', manager_menu_inventory: 'ສາງວັດສະດຸ', manager_logout: 'ອອກຈາກລະບົບ',
     manager_tab_projects_title: 'ລາຍການໄຊຕ໌ງານທັງໝົດ', add_project: '+ ເພີ່ມໄຊຕ໌ງານໃໝ່', status_active: 'ກຳລັງດຳເນີນການ', status_delayed: 'ລ່າຊ້າ', status_completed: 'ສຳເລັດ', search_placeholder: 'ຄົ້ນຫາຊື່ໄຊຕ໌ງານ...',
@@ -140,12 +140,12 @@ const translations = {
     modal_full_name: 'ຊື່ - ນາມສະກຸນ *', category_construction: 'ວັດສະດຸກໍ່ສ້າງ', category_decor: 'ຕົກແຕ່ງ', category_plumbing: 'ປະປາ/ສຸຂາພິບານ', category_electrical: 'ໄຟຟ້າ', category_other: 'ອື່ນໆ', project_risk_alert: 'ມີຄວາມສ່ຽງຕ້ອງຕິດຕາມ',
   },
   TH: {
-    nav_features: 'ฟีเจอร์หลัก', nav_superapp: 'ส่วนเสริมพิเศษ', nav_pricing: 'แพ็กเกจราคา', nav_login: 'เข้าสู่ระบบ',
+    nav_features: 'ฟีเจอร์', nav_superapp: 'โซลูชัน', nav_pricing: 'ราคา', nav_login: 'เข้าสู่ระบบ', nav_signup: 'สมัครใช้งาน', nav_contractor_portal: 'ผู้รับเหมา',
     lang_name: '🇹🇭 ไทย',
-    hero_badge: '#1 Construction App in Laos', hero_title1: 'จัดการไซต์งานก่อสร้างง่ายๆ', hero_title2: 'สไตล์สบายดี', hero_desc: 'แอปพลิเคชันสำหรับบริษัทรับเหมา ผู้รับเหมาอิสระ และเจ้าของบ้าน เชื่อมโยงทุกขั้นตอนตั้งแต่คุมคนงาน เบิกของ ไปจนถึงส่งมอบงาน',
-    hero_btn_try: 'ทดลองใช้งานฟรี', hero_btn_worker: 'ดูแอปสำหรับคนงาน',
-    feat_title: 'ฟังก์ชันหลักตอบโจทย์ทุกฝ่าย', feat_subtitle: 'ออกแบบมาให้ใช้งานง่าย ไม่ว่าจะเป็นช่างหน้างาน ผู้จัดการบริษัท หรือเจ้าของบ้าน',
-    feat_worker: 'สำหรับพนักงาน / ช่าง', feat_manager: 'สำหรับผู้จัดการ / บริษัท', feat_owner: 'สำหรับเจ้าของบ้าน',
+    hero_badge: '#1 Construction App in Laos', hero_title1: 'จัดการไซต์งานก่อสร้างง่ายๆ', hero_title2: 'สไตล์สบายดี', hero_desc: 'คุมงานแม่น จัดซื้อไว ขายวัสดง่าย เจ้าของบ้านเห็นทุกความคืบหน้าในแอปเดียว',
+    hero_btn_try: 'ทดลองใช้งานฟรี', hero_btn_signup: 'สมัครใช้งาน', hero_btn_worker: 'ดูแอปสำหรับคนงาน',
+    feat_title: 'ฟังก์ชันหลักตอบโจทย์ทุกฝ่าย', feat_subtitle: 'ออกแบบมาให้ใช้งานง่ายสำหรับช่างหน้างาน ผู้รับเหมา และเจ้าของบ้าน',
+    feat_worker: 'สำหรับช่าง / คนงาน', feat_manager: 'สำหรับผู้รับเหมา / ทีมช่าง', feat_owner: 'สำหรับเจ้าของบ้าน',
     worker_checkin: 'กดเข้างาน (GPS)', worker_checked: 'ลงเวลาแล้ว', worker_photo: 'ถ่ายรูปส่งงาน', worker_material: 'ขอเบิกของ', worker_voice: 'พิมพ์ไม่ถนัด? อัดเสียงเลย', worker_sos: 'แจ้งปัญหา / ของขาด (SOS)',
     manager_overview: 'ภาพรวมโครงการ (Dashboard)', manager_menu_overview: 'ภาพรวม', manager_menu_projects: 'จัดการไซต์งาน', manager_menu_workers: 'จัดการพนักงาน', manager_menu_docs: 'เอกสาร & เบิกเงิน', manager_menu_inventory: 'คลังวัสดุ', manager_logout: 'ออกจากระบบ',
     manager_tab_projects_title: 'รายการไซต์งานทั้งหมด', add_project: '+ เพิ่มไซต์งานใหม่', status_active: 'กำลังดำเนินการ', status_delayed: 'ล่าช้า', status_completed: 'เสร็จสิ้น', search_placeholder: 'ค้นหาชื่อไซต์งาน...',
@@ -197,12 +197,12 @@ const translations = {
     modal_full_name: 'ชื่อ - นามสกุล *', category_construction: 'วัสดุก่อสร้าง', category_decor: 'วัสดุตกแต่ง', category_plumbing: 'ประปา/สุขาภิบาล', category_electrical: 'ไฟฟ้า', category_other: 'อื่นๆ', project_risk_alert: 'มีความเสี่ยงต้องติดตาม',
   },
   EN: {
-    nav_features: 'Features', nav_superapp: 'Super App', nav_pricing: 'Pricing', nav_login: 'Login',
+    nav_features: 'Features', nav_superapp: 'Solutions', nav_pricing: 'Pricing', nav_login: 'Sign In', nav_signup: 'Sign Up', nav_contractor_portal: 'Contractor',
     lang_name: '🇬🇧 EN',
-    hero_badge: '#1 Construction App', hero_title1: 'Manage Construction Sites Easily', hero_title2: 'The Sabaidee Way', hero_desc: 'The ultimate app for contractors, freelancers, and homeowners.',
-    hero_btn_try: 'Try for Free', hero_btn_worker: 'View Worker App',
-    feat_title: 'Core Features for Everyone', feat_subtitle: 'Designed to be user-friendly for on-site workers, company managers, and homeowners.',
-    feat_worker: 'For Workers', feat_manager: 'For Managers', feat_owner: 'For Homeowners',
+    hero_badge: '#1 Construction App', hero_title1: 'Manage Construction Sites Easily', hero_title2: 'The Sabaidee Way', hero_desc: 'Run projects with precision, buy faster, sell materials easier, and let homeowners see every step of progress in one app.',
+    hero_btn_try: 'Try for Free', hero_btn_signup: 'Sign Up', hero_btn_worker: 'View Worker App',
+    feat_title: 'Core Features for Everyone', feat_subtitle: 'Designed to be easy for on-site workers, contractors, and homeowners.',
+    feat_worker: 'For Workers', feat_manager: 'For Contractors', feat_owner: 'For Homeowners',
     worker_checkin: 'Check In', worker_checked: 'Checked In', worker_photo: 'Submit Photo', worker_material: 'Request Material', worker_voice: 'Voice to Text', worker_sos: 'Report Issue',
     manager_overview: 'Project Overview', manager_menu_overview: 'Overview', manager_menu_projects: 'Manage Sites', manager_menu_workers: 'Manage Workers', manager_menu_docs: 'Docs & Billing', manager_menu_inventory: 'Inventory & BOQ', manager_logout: 'Logout',
     manager_tab_projects_title: 'All Project Sites', add_project: '+ Add New Site', status_active: 'Active', status_delayed: 'Delayed', status_completed: 'Completed', search_placeholder: 'Search site...',
@@ -549,18 +549,18 @@ Object.assign(translations.EN, {
 });
 
 Object.assign(translations.LA, {
-  nav_platform_owner: 'ຜູ້ດູແລແພລດຟອມ',
-  nav_supplier_portal: 'ພອດທັລ supplier',
+  nav_platform_owner: 'ແອດມິນ',
+  nav_supplier_portal: 'ຊັບພະລາຍ',
   admin_access_title: 'ທາງເຂົ້າສຳລັບຜູ້ດູແລແພລດຟອມ',
-  admin_access_desc: 'ແຍກຈາກ dashboard ຂອງຜູ້ໃຊ້ທົ່ວໄປ ເພື່ອກຽມພື້ນຖານສຳລັບການຄວບຄຸມລະບົບ, ລາຍຮັບ ແລະ ການກະທົບຍອດໃນຂັ້ນຕໍ່ໄປ',
+  admin_access_desc: 'ແຍກຈາກ dashboard ຝັ່ງຜູ້ຮັບເໝາ / ຊ່າງ ເພື່ອກຽມພື້ນຖານສຳລັບການຄວບຄຸມລະບົບ, ລາຍຮັບ ແລະ ການກະທົບຍອດໃນຂັ້ນຕໍ່ໄປ',
   admin_access_enter: 'ເຂົ້າ admin dashboard',
   admin_back_home: 'ກັບຄືນໜ້າຫຼັກ',
   supplier_access_title: 'ທາງເຂົ້າສຳລັບ supplier',
-  supplier_access_desc: 'ພື້ນທີ່ນີ້ແຍກຈາກ dashboard ຂອງ user ແລະ admin ເພື່ອກຽມ workflow ຂອງ supplier ໃຫ້ຂະຫຍາຍໄດ້ຢ່າງປອດໄພ.',
+  supplier_access_desc: 'ພື້ນທີ່ນີ້ແຍກຈາກ dashboard ຝັ່ງຜູ້ຮັບເໝາ / ຊ່າງ ແລະ admin ເພື່ອກຽມ workflow ຂອງ supplier ໃຫ້ຂະຫຍາຍໄດ້ຢ່າງປອດໄພ.',
   supplier_access_enter: 'ເຂົ້າ supplier portal',
   supplier_back_home: 'ກັບຄືນໜ້າຫຼັກ',
   supplier_section_ready: 'ສ່ວນນີ້ເປັນ placeholder ສຳລັບ workflow ຂອງ supplier ໃນຂັ້ນຕໍ່ໄປ',
-  supplier_portal_isolated_notice: 'supplier portal ນີ້ຖືກແຍກອອກຈາກ dashboard ຂອງ user ແລະ admin ໂດຍຈົງໃຈ.',
+  supplier_portal_isolated_notice: 'supplier portal ນີ້ຖືກແຍກອອກຈາກ dashboard ຝັ່ງຜູ້ຮັບເໝາ / ຊ່າງ ແລະ admin ໂດຍຈົງໃຈ.',
   supplier_menu_overview: 'ພາບລວມ supplier',
   supplier_menu_products: 'ສິນຄ້າ',
   supplier_menu_orders: 'ອໍເດີ',
@@ -668,7 +668,7 @@ Object.assign(translations.LA, {
   manager_menu_admin_supplier_agreements: 'ຂໍ້ຕົກລົງ supplier',
   manager_menu_admin_commission_billing: 'Commission Billing',
   admin_overview_title: 'ພາບລວມຝັ່ງ admin',
-  admin_overview_desc: 'ພື້ນທີ່ນີ້ເປັນ shell ແຍກສຳລັບ platform owner โดยບໍ່ປະປົນກັບ workflow ຂອງຜູ້ໃຊ້ທົ່ວໄປ',
+  admin_overview_desc: 'ພື້ນທີ່ນີ້ເປັນ shell ແຍກສຳລັບ platform owner ໂດຍບໍ່ປະປົນກັບ workflow ຂອງຝັ່ງຜູ້ຮັບເໝາ / ຊ່າງ',
   admin_category_management_title: 'ຈັດການໝວດ supplier',
   admin_category_management_desc: 'ຈັດການໝວດຜູ້ສະໜອງ ແລະ default commission ລະດັບ category ສຳລັບໃຊ້ຕໍ່ໃນ supplier mapping ແລະ revenue logic',
   admin_supplier_management_desc: 'ຈັດການ supplier ລະດັບ platform, profile, status, category mapping ແລະ commission logic ທີ່ກຽມໄວ້ສຳລັບ workflow ຕໍ່ໄປ',
@@ -706,7 +706,7 @@ Object.assign(translations.LA, {
   admin_supplier_internal_notice: 'ຟິວຂໍ້ມູນພາຍໃນຈະຖືກໃຊ້ຕໍ່ໃນ Platform Revenue ແລະ Settlements',
   admin_supplier_public_section: 'ຂໍ້ມູນທົ່ວໄປຂອງ supplier',
   admin_supplier_internal_section: 'ຂໍ້ມູນພາຍໃນຂອງ platform',
-  admin_supplier_visible_to_user: 'ຜູ້ໃຊ້ທົ່ວໄປເຫັນໄດ້',
+  admin_supplier_visible_to_user: 'ຜູ້ຮັບເໝາ / ຊ່າງເຫັນໄດ້',
   admin_supplier_internal_only: 'ສະແດງສະເພາະ admin',
   admin_supplier_supported_categories: 'ໝວດທີ່ supplier ຮອງຮັບ',
   admin_supplier_category_commission_section: 'ໝວດສິນຄ້າ & commission',
@@ -867,18 +867,18 @@ Object.assign(translations.LA, {
 });
 
 Object.assign(translations.TH, {
-  nav_platform_owner: 'ผู้ดูแลแพลตฟอร์ม',
-  nav_supplier_portal: 'พอร์ทัลซัพพลายเออร์',
+  nav_platform_owner: 'แอดมิน',
+  nav_supplier_portal: 'ซัพพลายเออร์',
   admin_access_title: 'ทางเข้าสำหรับผู้ดูแลแพลตฟอร์ม',
-  admin_access_desc: 'แยกจาก dashboard ผู้ใช้ปกติเพื่อเตรียมโครงสร้างสำหรับการควบคุมระบบ รายได้แพลตฟอร์ม และการกระทบยอดในขั้นถัดไป',
+  admin_access_desc: 'แยกจาก dashboard ฝั่งผู้รับเหมา / ช่างเพื่อเตรียมโครงสร้างสำหรับการควบคุมระบบ รายได้แพลตฟอร์ม และการกระทบยอดในขั้นถัดไป',
   admin_access_enter: 'เข้า admin dashboard',
   admin_back_home: 'กลับหน้าแรก',
   supplier_access_title: 'ทางเข้าสำหรับซัพพลายเออร์',
-  supplier_access_desc: 'พื้นที่นี้แยกจาก dashboard ผู้ใช้ปกติและ admin เพื่อเตรียม workflow ของซัพพลายเออร์ให้ขยายต่อได้อย่างปลอดภัย',
+  supplier_access_desc: 'พื้นที่นี้แยกจาก dashboard ฝั่งผู้รับเหมา / ช่างและ admin เพื่อเตรียม workflow ของซัพพลายเออร์ให้ขยายต่อได้อย่างปลอดภัย',
   supplier_access_enter: 'เข้า supplier portal',
   supplier_back_home: 'กลับหน้าแรก',
   supplier_section_ready: 'ส่วนนี้เป็น placeholder สำหรับ workflow ของซัพพลายเออร์ในขั้นถัดไป',
-  supplier_portal_isolated_notice: 'supplier portal นี้ถูกแยกออกจาก user dashboard และ admin dashboard โดยตั้งใจ',
+  supplier_portal_isolated_notice: 'supplier portal นี้ถูกแยกออกจาก dashboard ฝั่งผู้รับเหมา / ช่าง และ admin dashboard โดยตั้งใจ',
   supplier_menu_overview: 'ภาพรวมซัพพลายเออร์',
   supplier_menu_products: 'สินค้า',
   supplier_menu_orders: 'ออเดอร์',
@@ -986,7 +986,7 @@ Object.assign(translations.TH, {
   manager_menu_admin_supplier_agreements: 'ข้อตกลงซัพพลายเออร์',
   manager_menu_admin_commission_billing: 'Commission Billing',
   admin_overview_title: 'ภาพรวมฝั่ง admin',
-  admin_overview_desc: 'พื้นที่นี้เป็น shell แยกสำหรับ platform owner โดยไม่ปะปนกับ workflow ของผู้ใช้ทั่วไป',
+  admin_overview_desc: 'พื้นที่นี้เป็น shell แยกสำหรับ platform owner โดยไม่ปะปนกับ workflow ของฝั่งผู้รับเหมา / ช่าง',
   admin_category_management_title: 'จัดการหมวดซัพพลายเออร์',
   admin_category_management_desc: 'จัดการหมวดซัพพลายเออร์และ default commission ระดับ category เพื่อใช้ต่อใน supplier mapping และ revenue logic',
   admin_supplier_management_desc: 'จัดการ supplier ระดับ platform, โปรไฟล์, สถานะ, category mapping และ commission logic ที่เตรียมไว้สำหรับ workflow ถัดไป',
@@ -1024,7 +1024,7 @@ Object.assign(translations.TH, {
   admin_supplier_internal_notice: 'ข้อมูลภายในชุดนี้จะถูกนำไปใช้ต่อใน Platform Revenue และ Settlements',
   admin_supplier_public_section: 'ข้อมูลทั่วไปของซัพพลายเออร์',
   admin_supplier_internal_section: 'ข้อมูลภายในของแพลตฟอร์ม',
-  admin_supplier_visible_to_user: 'ผู้ใช้ทั่วไปมองเห็นได้',
+  admin_supplier_visible_to_user: 'ผู้รับเหมา / ช่างมองเห็นได้',
   admin_supplier_internal_only: 'แสดงเฉพาะ admin',
   admin_supplier_supported_categories: 'หมวดที่ซัพพลายเออร์รองรับ',
   admin_supplier_category_commission_section: 'หมวดสินค้าและ commission',
@@ -1185,18 +1185,18 @@ Object.assign(translations.TH, {
 });
 
 Object.assign(translations.EN, {
-  nav_platform_owner: 'Platform Owner',
-  nav_supplier_portal: 'Supplier Portal',
+  nav_platform_owner: 'Admin',
+  nav_supplier_portal: 'Supplier',
   admin_access_title: 'Platform Owner Access',
-  admin_access_desc: 'This entry point is separated from the normal user dashboard so platform admin controls, revenue views, and settlements can expand safely later.',
+  admin_access_desc: 'This entry point is separated from the contractor and worker dashboard so platform admin controls, revenue views, and settlements can expand safely later.',
   admin_access_enter: 'Open Admin Dashboard',
   admin_back_home: 'Back to Home',
   supplier_access_title: 'Supplier Access',
-  supplier_access_desc: 'This area is isolated from both the normal user dashboard and the admin dashboard so supplier workflows can expand safely later.',
+  supplier_access_desc: 'This area is isolated from both the contractor and worker dashboard and the admin dashboard so supplier workflows can expand safely later.',
   supplier_access_enter: 'Open Supplier Portal',
   supplier_back_home: 'Back to Home',
   supplier_section_ready: 'This section is a placeholder for upcoming supplier workflows.',
-  supplier_portal_isolated_notice: 'This supplier portal is intentionally separated from both the user dashboard and the admin dashboard.',
+  supplier_portal_isolated_notice: 'This supplier portal is intentionally separated from both the contractor and worker dashboard and the admin dashboard.',
   supplier_menu_overview: 'Supplier Dashboard',
   supplier_menu_products: 'Products',
   supplier_menu_orders: 'Orders',
@@ -1304,7 +1304,7 @@ Object.assign(translations.EN, {
   manager_menu_admin_supplier_agreements: 'Supplier Agreements',
   manager_menu_admin_commission_billing: 'Commission Billing',
   admin_overview_title: 'Admin Overview',
-  admin_overview_desc: 'This is a separate shell for platform-owner workflows and is intentionally isolated from the normal user dashboard.',
+  admin_overview_desc: 'This is a separate shell for platform-owner workflows and is intentionally isolated from the contractor and worker dashboard.',
   admin_category_management_title: 'Supplier Category Management',
   admin_category_management_desc: 'Manage supplier categories and category-level default commission settings for later supplier mapping and revenue logic.',
   admin_supplier_management_desc: 'Manage platform-level suppliers, profile data, status, category mapping, and commission logic prepared for later workflows.',
@@ -1342,7 +1342,7 @@ Object.assign(translations.EN, {
   admin_supplier_internal_notice: 'These internal fields are prepared for future Platform Revenue and Settlements workflows.',
   admin_supplier_public_section: 'Supplier Public Profile',
   admin_supplier_internal_section: 'Platform Internal Details',
-  admin_supplier_visible_to_user: 'Visible to normal users',
+  admin_supplier_visible_to_user: 'Visible to contractors / workers',
   admin_supplier_internal_only: 'Admin only',
   admin_supplier_supported_categories: 'Supported Categories',
   admin_supplier_category_commission_section: 'Product Categories & Commission',
@@ -1755,21 +1755,32 @@ Object.assign(translations.LA, {
   supplier_orders_empty_hint: 'ອໍເດີຈາກຄຳສັ່ງຊື້ຈະສະແດງທີ່ນີ້ເມື່ອ supplier ຖືກເຊື່ອມກັບລາຍການ.',
   supplier_profile_empty_hint: 'ບັນທຶກຂໍ້ມູນບໍລິສັດ ແລະ ຂໍ້ມູນຕິດຕໍ່ເພື່ອໃຊ້ໃນ portal ແລະ agreement ຕໍ່ໄປ.',
   admin_empty_hint: 'ເພີ່ມຂໍ້ມູນລາຍການທຳອິດເພື່ອເລີ່ມ workflow ສ່ວນນີ້.',
-  admin_overview_desc: 'ໜ້ານີ້ເປັນສູນກາງສຳລັບ workflow ຂອງ platform owner ແລະ ແຍກຈາກ dashboard ຜູ້ໃຊ້ທົ່ວໄປຢ່າງຊັດເຈນ.',
+  admin_overview_desc: 'ໜ້ານີ້ເປັນສູນກາງສຳລັບ workflow ຂອງ platform owner ແລະ ແຍກຈາກ dashboard ຝັ່ງຜູ້ຮັບເໝາ / ຊ່າງຢ່າງຊັດເຈນ.',
   admin_platform_revenue_desc: 'ສະຫຼຸບລາຍໄດ້ແພລດຟອມ, commission ແລະ ລາຍການອ້າງອີງຈາກຂໍ້ມູນ supplier ແລະ order ປັດຈຸບັນ.',
   supplier_dashboard_desc: 'ສະຫຼຸບສະຖານະ supplier, ລາຍການສິນຄ້າ, ອໍເດີ ແລະ ຂໍ້ມູນສຳຄັນທີ່ຕ້ອງຕິດຕາມ.',
   supplier_products_desc: 'ຈັດການລາຍການສິນຄ້າ, ລາຄາ, stock, ແລະ ການນຳເຂົ້າ CSV ຂອງ supplier.',
   supplier_orders_desc: 'ຕິດຕາມ incoming orders, ຢືນຢັນຄຳສັ່ງ, ແລະ ອັບເດດສະຖານະການຈັດສົ່ງ.',
   supplier_profile_desc: 'ຈັດການຂໍ້ມູນບໍລິສັດ, ຜູ້ຕິດຕໍ່, ພື້ນທີ່ບໍລິການ, ແລະ ຂໍ້ມູນ billing ຂອງ supplier.',
   landing_roles_title: 'ເລືອກທາງເຂົ້າຕາມບົດບາດ',
-  landing_roles_desc: 'ເຂົ້າໃຊ້ dashboard ຫຼື portal ຂອງແຕ່ລະບົດບາດໄດ້ທັນທີ.',
-  landing_role_user_title: 'ຜູ້ໃຊ້ທົ່ວໄປ / ບໍລິສັດ',
-  landing_role_user_desc: 'ເຂົ້າ dashboard ສຳລັບໂຄງການ, ຄົນງານ, ເອກະສານ, ຄັງ ແລະ ການຈັດຊື້.',
+  landing_roles_desc: 'ສຳລັບຜູ້ຮັບເໝາ, supplier ແລະ ເຈົ້າຂອງບ້ານ ທີ່ຕ້ອງການເຫັນວຽກ, ສິນຄ້າ ແລະ ຄວາມຄືບໜ້າໃນທີ່ດຽວ.',
+  landing_role_user_title: 'ຜູ້ຮັບເໝາ / ຊ່າງ',
+  landing_role_user_desc: 'ເຂົ້າ dashboard ສຳລັບຜູ້ຮັບເໝາ ແລະ ທີມຊ່າງ ເພື່ອຄຸ້ມຄອງໂຄງການ, ຄົນງານ, ເອກະສານ, ຄັງ ແລະ ການຈັດຊື້.',
   landing_role_admin_desc: 'ເຂົ້າສ່ວນ platform owner ສຳລັບ supplier, revenue, billing ແລະ settlements.',
   landing_role_supplier_desc: 'ເຂົ້າ supplier portal ສຳລັບສິນຄ້າ, ອໍເດີ ແລະ profile ຂອງ supplier.',
   landing_role_enter: 'ເຂົ້າໃຊ້',
+  pricing_cta_get_started: 'ເລີ່ມໃຊ້ງານ',
+  pricing_cta_choose_plan: 'ເລືອກແຜນນີ້',
+  pricing_cta_view_details: 'ເບິ່ງລາຍລະອຽດ',
+  pricing_badge_recommended: 'ແນະນຳ',
+  pricing_modules_title: 'ໂມດູນຫຼັກ',
+  admin_pricing_localized_content: 'ຂໍ້ມູນ package ແຍກຕາມພາສາ',
+  admin_pricing_localized_hint: 'ກຳນົດຊື່, ຄຳອະທິບາຍ ແລະ ໂມດູນຂອງແພັກເກດໃຫ້ຄົບທັງ 3 ພາສາ',
+  admin_pricing_locale_la: 'ລາວ',
+  admin_pricing_locale_th: 'ໄທ',
+  admin_pricing_locale_en: 'ອັງກິດ',
+  admin_pricing_features_hint: 'ໃສ່ 1 ໂມດູນຕໍ່ 1 ແຖວ',
   auth_login_title: 'ເຂົ້າໃຊ້ຕາມບົດບາດ',
-  auth_login_desc: 'ເລືອກບົດບາດ ແລະ ໃສ່ຂໍ້ມູນສຳລັບເຂົ້າ dashboard ຫຼື portal ທີ່ຖືກຕ້ອງ.',
+  auth_login_desc: 'ເລືອກບົດບາດ ແລະ ໃສ່ຂໍ້ມູນເພື່ອເຂົ້າ dashboard ຫຼື portal ຂອງຜູ້ຮັບເໝາ, ຊ່າງ, ເຈົ້າຂອງບ້ານ, supplier ຫຼື admin ໃຫ້ຖືກຕ້ອງ.',
   auth_role_label: 'ບົດບາດ',
   auth_email_label: 'ອີເມວ',
   auth_password_label: 'ລະຫັດຜ່ານ',
@@ -1796,21 +1807,32 @@ Object.assign(translations.TH, {
   supplier_orders_empty_hint: 'ออเดอร์จากคำสั่งซื้อจะปรากฏที่นี่เมื่อซัพพลายเออร์ถูกเชื่อมกับรายการที่เกี่ยวข้อง',
   supplier_profile_empty_hint: 'บันทึกข้อมูลบริษัทและช่องทางติดต่อเพื่อใช้ในพอร์ทัลและข้อตกลงในขั้นถัดไป',
   admin_empty_hint: 'เพิ่มข้อมูลรายการแรกเพื่อเริ่ม workflow ของส่วนนี้',
-  admin_overview_desc: 'หน้านี้เป็นศูนย์กลางของ workflow ฝั่ง platform owner และแยกจาก dashboard ผู้ใช้ทั่วไปอย่างชัดเจน',
+  admin_overview_desc: 'หน้านี้เป็นศูนย์กลางของ workflow ฝั่ง platform owner และแยกจาก dashboard ฝั่งผู้รับเหมา / ช่างอย่างชัดเจน',
   admin_platform_revenue_desc: 'สรุปรายได้แพลตฟอร์ม, commission และรายการอ้างอิงจากข้อมูล supplier และ order ปัจจุบัน',
   supplier_dashboard_desc: 'สรุปสถานะซัพพลายเออร์ รายการสินค้า ออเดอร์ และข้อมูลสำคัญที่ต้องติดตาม',
   supplier_products_desc: 'จัดการรายการสินค้า ราคา สต็อก และการนำเข้า CSV ของซัพพลายเออร์',
   supplier_orders_desc: 'ติดตาม incoming orders ยืนยันคำสั่งซื้อ และอัปเดตสถานะการจัดส่ง',
   supplier_profile_desc: 'จัดการข้อมูลบริษัท ผู้ติดต่อ พื้นที่ให้บริการ และข้อมูล billing ของซัพพลายเออร์',
   landing_roles_title: 'เลือกทางเข้าตามบทบาท',
-  landing_roles_desc: 'เข้าสู่ dashboard หรือ portal ของแต่ละบทบาทได้ทันทีจากหน้าเดียว',
-  landing_role_user_title: 'ผู้ใช้ทั่วไป / บริษัท',
-  landing_role_user_desc: 'เข้าสู่ dashboard สำหรับโครงการ คนงาน เอกสาร คลังวัสดุ และการจัดซื้อ',
+  landing_roles_desc: 'สำหรับผู้รับเหมา ซัพพลายเออร์ และเจ้าของบ้านที่ต้องการเห็นงาน สินค้า และความคืบหน้าในที่เดียว',
+  landing_role_user_title: 'ผู้รับเหมา / ช่าง',
+  landing_role_user_desc: 'เข้าสู่ dashboard สำหรับผู้รับเหมาและทีมช่าง เพื่อจัดการโครงการ คนงาน เอกสาร คลังวัสดุ และการจัดซื้อ',
   landing_role_admin_desc: 'เข้าสู่ส่วน platform owner สำหรับ supplier, revenue, billing และ settlements',
   landing_role_supplier_desc: 'เข้าสู่ supplier portal สำหรับสินค้า ออเดอร์ และโปรไฟล์ซัพพลายเออร์',
   landing_role_enter: 'เข้าสู่ระบบ',
+  pricing_cta_get_started: 'เริ่มใช้งาน',
+  pricing_cta_choose_plan: 'เลือกแผนนี้',
+  pricing_cta_view_details: 'ดูรายละเอียด',
+  pricing_badge_recommended: 'แนะนำ',
+  pricing_modules_title: 'โมดูลหลัก',
+  admin_pricing_localized_content: 'ข้อมูลแพ็กเกจแยกตามภาษา',
+  admin_pricing_localized_hint: 'กำหนดชื่อ คำอธิบาย และโมดูลของแพ็กเกจให้ครบทั้ง 3 ภาษา',
+  admin_pricing_locale_la: 'ลาว',
+  admin_pricing_locale_th: 'ไทย',
+  admin_pricing_locale_en: 'อังกฤษ',
+  admin_pricing_features_hint: 'ใส่ 1 โมดูลต่อ 1 บรรทัด',
   auth_login_title: 'เข้าสู่ระบบตามบทบาท',
-  auth_login_desc: 'เลือกบทบาทและใส่ข้อมูลเพื่อเข้าสู่ dashboard หรือ portal ที่ถูกต้อง',
+  auth_login_desc: 'เลือกบทบาทและใส่ข้อมูลเพื่อเข้าสู่ dashboard หรือ portal ของผู้รับเหมา ช่าง เจ้าของบ้าน ซัพพลายเออร์ หรือแอดมินให้ถูกต้อง',
   auth_role_label: 'บทบาท',
   auth_email_label: 'อีเมล',
   auth_password_label: 'รหัสผ่าน',
@@ -1837,21 +1859,32 @@ Object.assign(translations.EN, {
   supplier_orders_empty_hint: 'Incoming orders will appear here when purchase orders are linked to this supplier.',
   supplier_profile_empty_hint: 'Save the company and contact details here for later portal and agreement use.',
   admin_empty_hint: 'Add the first record to start this workflow.',
-  admin_overview_desc: 'This page is the central workspace for platform-owner workflows and remains clearly separated from the normal user dashboard.',
+  admin_overview_desc: 'This page is the central workspace for platform-owner workflows and remains clearly separated from the contractor and worker dashboard.',
   admin_platform_revenue_desc: 'Review platform revenue, commission totals, and supporting records from the current supplier and order data.',
   supplier_dashboard_desc: 'Review supplier status, product activity, incoming orders, and key information that needs attention.',
   supplier_products_desc: 'Manage supplier products, pricing, stock, and CSV imports from one place.',
   supplier_orders_desc: 'Track incoming orders, confirm requests, and update fulfillment status.',
   supplier_profile_desc: 'Manage company details, contact channels, service area, and billing information for the supplier profile.',
   landing_roles_title: 'Choose Your Entry Point',
-  landing_roles_desc: 'Open the right dashboard or portal for each role from one place.',
-  landing_role_user_title: 'Normal User / Company',
-  landing_role_user_desc: 'Open the main dashboard for projects, workers, documents, inventory, and procurement.',
+  landing_roles_desc: 'Built for contractors, suppliers, and homeowners who want projects, products, and progress in one place.',
+  landing_role_user_title: 'Contractor / Worker',
+  landing_role_user_desc: 'Open the main dashboard for contractors and work crews to manage projects, workers, documents, inventory, and procurement.',
   landing_role_admin_desc: 'Open the platform-owner workspace for suppliers, revenue, billing, and settlements.',
   landing_role_supplier_desc: 'Open the supplier portal for products, orders, and supplier profile management.',
   landing_role_enter: 'Open',
+  pricing_cta_get_started: 'Get Started',
+  pricing_cta_choose_plan: 'Choose Plan',
+  pricing_cta_view_details: 'View Details',
+  pricing_badge_recommended: 'Recommended',
+  pricing_modules_title: 'Core Modules',
+  admin_pricing_localized_content: 'Localized Package Content',
+  admin_pricing_localized_hint: 'Set the package name, description, and modules for all three languages.',
+  admin_pricing_locale_la: 'Lao',
+  admin_pricing_locale_th: 'Thai',
+  admin_pricing_locale_en: 'English',
+  admin_pricing_features_hint: 'Enter one module per line',
   auth_login_title: 'Role-Based Sign In',
-  auth_login_desc: 'Choose a role and enter the matching credentials for the correct dashboard or portal.',
+  auth_login_desc: 'Choose a role and enter the matching credentials for the correct contractor, worker, homeowner, supplier, or admin dashboard or portal.',
   auth_role_label: 'Role',
   auth_email_label: 'Email',
   auth_password_label: 'Password',
@@ -1863,6 +1896,237 @@ Object.assign(translations.EN, {
   auth_invalid_credentials: 'The email or password does not match the selected role.',
   auth_guard_message: 'This account cannot open that dashboard. Sign in with the correct role first.',
   auth_logged_in_as: 'Signed in as',
+});
+
+Object.assign(translations.LA, {
+  nav_owner_portal: 'ເຈົ້າບ້ານ',
+  landing_role_owner_desc: 'ເຂົ້າ owner portal ທີ່ແຍກສຳລັບຕິດຕາມຄວາມຄືບໜ້າ, ເອກະສານ, ການອະນຸມັດ ແລະ ຂໍ້ຄວາມ.',
+  owner_access_title: 'ທາງເຂົ້າສຳລັບເຈົ້າຂອງບ້ານ',
+  owner_access_desc: 'ພື້ນທີ່ນີ້ແຍກອອກຈາກ dashboard ຝັ່ງຜູ້ຮັບເໝາ / ຊ່າງ, supplier portal ແລະ admin dashboard ເພື່ອກຽມ owner workflow ໃຫ້ຂະຫຍາຍໄດ້ຢ່າງປອດໄພ.',
+  owner_access_enter: 'ເຂົ້າ owner dashboard',
+  owner_back_home: 'ກັບຄືນໜ້າຫຼັກ',
+  owner_dashboard_title: 'Owner Dashboard',
+  owner_dashboard_desc: 'shell ແຍກສຳລັບ homeowner ເພື່ອຕິດຕາມໂຄງການ, ງົບປະມານ, ເອກະສານ, ການອະນຸມັດ, ຂໍ້ຄວາມ ແລະ profile.',
+  owner_portal_isolated_notice: 'owner portal ນີ້ຖືກແຍກອອກຈາກ user, supplier ແລະ admin ໂດຍຈົງໃຈ.',
+  owner_section_ready: 'ສ່ວນນີ້ເປັນ placeholder shell ທີ່ພ້ອມຕໍ່ຍອດ business logic ໃນຂັ້ນຕໍ່ໄປ',
+  owner_menu_overview: 'Dashboard',
+  owner_menu_project_progress: 'Project Progress',
+  owner_menu_budget_payments: 'Budget & Payments',
+  owner_menu_documents: 'Documents',
+  owner_menu_approvals: 'Approvals',
+  owner_menu_messages: 'Messages',
+  owner_menu_profile: 'Profile',
+  owner_section_dashboard_desc: 'ສະຫຼຸບ owner-only KPIs, project health ແລະ next actions.',
+  owner_section_project_progress_desc: 'ພື້ນທີ່ສຳລັບ timeline, milestone, ຮູບອັບເດດ ແລະ site progress.',
+  owner_section_budget_payments_desc: 'ພື້ນທີ່ສຳລັບສະຫຼຸບງົບ, progress billing ແລະ payment tracking.',
+  owner_section_documents_desc: 'ພື້ນທີ່ສຳລັບເອກະສານ owner-only ເຊັ່ນ quotation, invoice, agreement ແລະ attachments.',
+  owner_section_approvals_desc: 'ພື້ນທີ່ສຳລັບການອະນຸມັດແບບ, change request ແລະ payment approvals.',
+  owner_section_messages_desc: 'ພື້ນທີ່ສຳລັບ messaging ລະຫວ່າງ homeowner ແລະ project team.',
+  owner_section_profile_desc: 'ພື້ນທີ່ສຳລັບຂໍ້ມູນ homeowner profile, contact preference ແລະ notification setup.',
+  owner_metric_project_health: 'ສຸຂະພາບໂຄງການ',
+  owner_metric_documents: 'ເອກະສານ',
+  owner_metric_pending_approvals: 'ລາຍການລໍຖ້າອະນຸມັດ',
+  owner_metric_messages: 'ຂໍ້ຄວາມ',
+  owner_metric_budget_snapshot: 'ພາບລວມງົບປະມານ',
+  owner_metric_primary_project: 'ໂຄງການຫຼັກ',
+  owner_metric_no_project: 'ຍັງບໍ່ມີໂຄງການ',
+  owner_overview_next_actions: 'Owner sections ທີ່ກຽມໄວ້',
+  owner_overview_foundation_note: 'foundation ນີ້ແຍກ route, navigation ແລະ shell ຂອງ owner ອອກຈາກ role ອື່ນແລ້ວ',
+  owner_overview_summary_title: 'ສະຫຼຸບສຳລັບເຈົ້າຂອງບ້ານ',
+  owner_overview_summary_desc: 'ເບິ່ງສະຖານະໂຄງການ, ກຳນົດເວລາ, ຜູ້ປະສານງານ ແລະ ອັບເດດຫຼ້າສຸດໃນຫນ້າດຽວ.',
+  owner_progress_section_title: 'ຄວາມຄືບໜ້າໂຄງການ',
+  owner_progress_section_desc: 'ສະແດງຄວາມຄືບໜ້າ, milestone, ກຳນົດການ ແລະ ອັບເດດຫຼ້າສຸດໃນມຸມມອງທີ່ອ່ານງ່າຍ.',
+  owner_project_overview_card: 'ພາບລວມໂຄງການ',
+  owner_project_location: 'ສະຖານທີ່ໂຄງການ',
+  owner_project_timeline: 'ກຳນົດເວລາ',
+  owner_project_main_contact: 'ຜູ້ປະສານງານຫຼັກ',
+  owner_project_recent_updates: 'ອັບເດດຫຼ້າສຸດ',
+  owner_project_updates_empty: 'ຍັງບໍ່ມີອັບເດດຫຼ້າສຸດສຳລັບໂຄງການນີ້',
+  owner_project_dates_missing: 'ຍັງບໍ່ລະບຸວັນເລີ່ມ/ສິ້ນສຸດ',
+  owner_project_contact_missing: 'ຍັງບໍ່ມີຂໍ້ມູນຜູ້ປະສານງານຫຼັກ',
+  owner_project_select_label: 'ເລືອກໂຄງການ',
+  owner_project_count: 'ຈຳນວນໂຄງການ',
+  owner_project_stage_summary: 'Milestone ປັດຈຸບັນ',
+  owner_project_report_update: 'ລາຍງານຈາກໜ້າວຽກ',
+  owner_project_message_update: 'ຂໍ້ຄວາມຈາກທີມງານ',
+  owner_project_doc_update: 'ເອກະສານອັບເດດ',
+  owner_project_last_updated: 'ອັບເດດຫຼ້າສຸດ',
+  owner_budget_summary_title: 'ສະຫຼຸບງົບ ແລະ ການຈ່າຍເງິນ',
+  owner_budget_summary_desc: 'ສະແດງຍອດສຳຄັນຈາກ quotation, agreement ແລະ billing records ໃນມຸມມອງທີ່ເຂົ້າໃຈງ່າຍ.',
+  owner_budget_quoted_amount: 'ຍອດສະເໜີລາຄາ',
+  owner_budget_agreed_amount: 'ຍອດຕົກລົງ',
+  owner_budget_billed_amount: 'ຍອດວາງບິນ',
+  owner_budget_paid_amount: 'ຍອດທີ່ຈ່າຍແລ້ວ',
+  owner_budget_pending_amount: 'ຍອດລໍຖ້າອະນຸມັດ',
+  owner_budget_outstanding_amount: 'ຍອດຄົງຄ້າງ',
+  owner_budget_recent_records: 'ລາຍການການເງິນຫຼ້າສຸດ',
+  owner_budget_no_records: 'ຍັງບໍ່ມີລາຍການການເງິນສຳລັບໂຄງການນີ້',
+  owner_budget_project_value_fallback: 'ຖ້າຍັງບໍ່ມີ agreement ລະບົບຈະໃຊ້ມູນຄ່າໂຄງການເປັນຄ່າອ້າງອີງ',
+  owner_progress_all_projects: 'ທຸກໂຄງການ',
+  owner_progress_selected_project: 'ໂຄງການທີ່ເລືອກ',
+  owner_stage_planning: 'ວາງແຜນ & ກຽມເລີ່ມງານ',
+  owner_stage_foundation: 'ວຽກຖານຮາກ & ໂຄງສ້າງເລີ່ມຕົ້ນ',
+  owner_stage_structure: 'ວຽກໂຄງສ້າງຫຼັກ',
+  owner_stage_systems: 'ວຽກລະບົບ & ຕິດຕັ້ງ',
+  owner_stage_finishing: 'ວຽກຕົບແຕ່ງ',
+  owner_stage_handover: 'ກວດຮັບ & ສົ່ງມອບ',
+  owner_placeholder_card_1: 'UI shell ນີ້ພ້ອມຮັບ business logic, permissions ແລະ API integration ໃນຂັ້ນຕໍ່ໄປ',
+  owner_placeholder_card_2: 'navigation, mobile layout ແລະ translation key ຖືກຕຽມໄວ້ສຳລັບ owner-only workflow',
+  owner_placeholder_card_3: 'ຂໍ້ມູນ sample ດ້ານລຸ່ມແມ່ນ summary ຈາກ state ປະຈຸບັນເທົ່ານັ້ນ ຍັງບໍ່ໄດ້ຜູກ business rule',
+});
+
+Object.assign(translations.TH, {
+  nav_owner_portal: 'เจ้าของบ้าน',
+  landing_role_owner_desc: 'เข้าสู่ owner portal ที่แยกเฉพาะสำหรับติดตามความคืบหน้า เอกสาร การอนุมัติ และข้อความ',
+  owner_access_title: 'ทางเข้าสำหรับเจ้าของบ้าน',
+  owner_access_desc: 'พื้นที่นี้แยกออกจาก dashboard ฝั่งผู้รับเหมา / ช่าง, supplier portal และ admin dashboard เพื่อเตรียม owner workflow ให้ขยายต่อได้อย่างปลอดภัย',
+  owner_access_enter: 'เข้า owner dashboard',
+  owner_back_home: 'กลับหน้าแรก',
+  owner_dashboard_title: 'Owner Dashboard',
+  owner_dashboard_desc: 'shell แยกสำหรับ homeowner เพื่อติดตามโครงการ งบประมาณ เอกสาร การอนุมัติ ข้อความ และโปรไฟล์',
+  owner_portal_isolated_notice: 'owner portal นี้ถูกแยกจาก user, supplier และ admin อย่างชัดเจน',
+  owner_section_ready: 'ส่วนนี้เป็น placeholder shell ที่พร้อมต่อยอด business logic ในขั้นถัดไป',
+  owner_menu_overview: 'Dashboard',
+  owner_menu_project_progress: 'Project Progress',
+  owner_menu_budget_payments: 'Budget & Payments',
+  owner_menu_documents: 'Documents',
+  owner_menu_approvals: 'Approvals',
+  owner_menu_messages: 'Messages',
+  owner_menu_profile: 'Profile',
+  owner_section_dashboard_desc: 'สรุป owner-only KPIs, project health และ next actions',
+  owner_section_project_progress_desc: 'พื้นที่สำหรับ timeline, milestone, รูปอัปเดต และความคืบหน้าหน้างาน',
+  owner_section_budget_payments_desc: 'พื้นที่สำหรับสรุปงบ, progress billing และการติดตามการชำระเงิน',
+  owner_section_documents_desc: 'พื้นที่สำหรับเอกสาร owner-only เช่น quotation, invoice, agreement และไฟล์แนบ',
+  owner_section_approvals_desc: 'พื้นที่สำหรับการอนุมัติแบบ, change request และการอนุมัติงวดชำระ',
+  owner_section_messages_desc: 'พื้นที่สำหรับ messaging ระหว่าง homeowner กับทีมโครงการ',
+  owner_section_profile_desc: 'พื้นที่สำหรับข้อมูล homeowner profile, ช่องทางติดต่อ และการตั้งค่าการแจ้งเตือน',
+  owner_metric_project_health: 'สถานะโครงการ',
+  owner_metric_documents: 'เอกสาร',
+  owner_metric_pending_approvals: 'รออนุมัติ',
+  owner_metric_messages: 'ข้อความ',
+  owner_metric_budget_snapshot: 'ภาพรวมงบประมาณ',
+  owner_metric_primary_project: 'โครงการหลัก',
+  owner_metric_no_project: 'ยังไม่มีโครงการ',
+  owner_overview_next_actions: 'ส่วน owner ที่เตรียมไว้',
+  owner_overview_foundation_note: 'foundation นี้แยก route, navigation และ shell ของ owner ออกจาก role อื่นแล้ว',
+  owner_overview_summary_title: 'ภาพรวมสำหรับเจ้าของบ้าน',
+  owner_overview_summary_desc: 'ดูสถานะโครงการ กำหนดเวลา ผู้ประสานงาน และอัปเดตล่าสุดได้ในหน้าเดียว',
+  owner_progress_section_title: 'ความคืบหน้าโครงการ',
+  owner_progress_section_desc: 'แสดงความคืบหน้า milestone กำหนดการ และอัปเดตล่าสุดในมุมมองที่อ่านง่าย',
+  owner_project_overview_card: 'ภาพรวมโครงการ',
+  owner_project_location: 'สถานที่โครงการ',
+  owner_project_timeline: 'กำหนดเวลา',
+  owner_project_main_contact: 'ผู้ประสานงานหลัก',
+  owner_project_recent_updates: 'อัปเดตล่าสุด',
+  owner_project_updates_empty: 'ยังไม่มีอัปเดตล่าสุดสำหรับโครงการนี้',
+  owner_project_dates_missing: 'ยังไม่ได้ระบุวันเริ่ม/วันสิ้นสุด',
+  owner_project_contact_missing: 'ยังไม่มีข้อมูลผู้ประสานงานหลัก',
+  owner_project_select_label: 'เลือกโครงการ',
+  owner_project_count: 'จำนวนโครงการ',
+  owner_project_stage_summary: 'Milestone ปัจจุบัน',
+  owner_project_report_update: 'รายงานจากหน้างาน',
+  owner_project_message_update: 'ข้อความจากทีมงาน',
+  owner_project_doc_update: 'เอกสารอัปเดต',
+  owner_project_last_updated: 'อัปเดตล่าสุด',
+  owner_budget_summary_title: 'สรุปงบและการชำระเงิน',
+  owner_budget_summary_desc: 'แสดงยอดสำคัญจาก quotation, agreement และ billing records ในมุมมองที่เข้าใจง่าย',
+  owner_budget_quoted_amount: 'ยอดใบเสนอราคา',
+  owner_budget_agreed_amount: 'ยอดตกลง',
+  owner_budget_billed_amount: 'ยอดวางบิล',
+  owner_budget_paid_amount: 'ยอดที่ชำระแล้ว',
+  owner_budget_pending_amount: 'ยอดรออนุมัติ',
+  owner_budget_outstanding_amount: 'ยอดคงค้าง',
+  owner_budget_recent_records: 'รายการการเงินล่าสุด',
+  owner_budget_no_records: 'ยังไม่มีรายการการเงินสำหรับโครงการนี้',
+  owner_budget_project_value_fallback: 'หากยังไม่มี agreement ระบบจะใช้มูลค่าโครงการเป็นค่าอ้างอิง',
+  owner_progress_all_projects: 'ทุกโครงการ',
+  owner_progress_selected_project: 'โครงการที่เลือก',
+  owner_stage_planning: 'วางแผนและเตรียมเริ่มงาน',
+  owner_stage_foundation: 'งานฐานรากและโครงสร้างเริ่มต้น',
+  owner_stage_structure: 'งานโครงสร้างหลัก',
+  owner_stage_systems: 'งานระบบและติดตั้ง',
+  owner_stage_finishing: 'งานตกแต่ง',
+  owner_stage_handover: 'ตรวจรับและส่งมอบ',
+  owner_placeholder_card_1: 'UI shell นี้พร้อมรองรับ business logic, permissions และ API integration ในขั้นถัดไป',
+  owner_placeholder_card_2: 'navigation, mobile layout และ translation key ถูกเตรียมไว้สำหรับ owner-only workflow แล้ว',
+  owner_placeholder_card_3: 'ข้อมูลตัวอย่างด้านล่างเป็นเพียง summary จาก state ปัจจุบัน ยังไม่ได้ผูก business rule',
+});
+
+Object.assign(translations.EN, {
+  nav_owner_portal: 'Homeowner',
+  landing_role_owner_desc: 'Open a separate owner portal for project progress, documents, approvals, and messages.',
+  owner_access_title: 'Homeowner Access',
+  owner_access_desc: 'This area is separated from the contractor and worker dashboard, supplier portal, and admin dashboard so the owner workflow can grow safely.',
+  owner_access_enter: 'Enter Owner Dashboard',
+  owner_back_home: 'Back to Home',
+  owner_dashboard_title: 'Owner Dashboard',
+  owner_dashboard_desc: 'A separate homeowner shell for project tracking, budget, documents, approvals, messages, and profile.',
+  owner_portal_isolated_notice: 'This owner portal is intentionally isolated from user, supplier, and admin areas.',
+  owner_section_ready: 'This is a safe placeholder shell ready for business logic in a later phase.',
+  owner_menu_overview: 'Dashboard',
+  owner_menu_project_progress: 'Project Progress',
+  owner_menu_budget_payments: 'Budget & Payments',
+  owner_menu_documents: 'Documents',
+  owner_menu_approvals: 'Approvals',
+  owner_menu_messages: 'Messages',
+  owner_menu_profile: 'Profile',
+  owner_section_dashboard_desc: 'Review owner-only KPIs, project health, and next actions.',
+  owner_section_project_progress_desc: 'A space for timeline, milestones, progress photos, and site updates.',
+  owner_section_budget_payments_desc: 'A space for budget summary, progress billing, and payment tracking.',
+  owner_section_documents_desc: 'A space for owner-only documents such as quotations, invoices, agreements, and attachments.',
+  owner_section_approvals_desc: 'A space for drawing approvals, change requests, and payment approvals.',
+  owner_section_messages_desc: 'A space for messaging between the homeowner and project team.',
+  owner_section_profile_desc: 'A space for homeowner profile, contact preferences, and notification settings.',
+  owner_metric_project_health: 'Project Health',
+  owner_metric_documents: 'Documents',
+  owner_metric_pending_approvals: 'Pending Approvals',
+  owner_metric_messages: 'Messages',
+  owner_metric_budget_snapshot: 'Budget Snapshot',
+  owner_metric_primary_project: 'Primary Project',
+  owner_metric_no_project: 'No project yet',
+  owner_overview_next_actions: 'Prepared Owner Sections',
+  owner_overview_foundation_note: 'This foundation now separates owner routes, navigation, and shells from the other roles.',
+  owner_overview_summary_title: 'Homeowner Overview',
+  owner_overview_summary_desc: 'See project status, dates, main contact, and recent updates in one place.',
+  owner_progress_section_title: 'Project Progress',
+  owner_progress_section_desc: 'Show progress, milestones, schedule, and recent updates in a clear owner-friendly view.',
+  owner_project_overview_card: 'Project Overview',
+  owner_project_location: 'Project Location',
+  owner_project_timeline: 'Timeline',
+  owner_project_main_contact: 'Main Contact',
+  owner_project_recent_updates: 'Recent Updates',
+  owner_project_updates_empty: 'No recent updates are available for this project yet.',
+  owner_project_dates_missing: 'Start and end dates are not set yet.',
+  owner_project_contact_missing: 'Main contact details are not available yet.',
+  owner_project_select_label: 'Select Project',
+  owner_project_count: 'Projects',
+  owner_project_stage_summary: 'Current Milestone',
+  owner_project_report_update: 'Site report',
+  owner_project_message_update: 'Team message',
+  owner_project_doc_update: 'Document update',
+  owner_project_last_updated: 'Last Updated',
+  owner_budget_summary_title: 'Budget and Payments Summary',
+  owner_budget_summary_desc: 'Show key amounts from quotations, agreements, and billing records in a simple homeowner view.',
+  owner_budget_quoted_amount: 'Quoted Amount',
+  owner_budget_agreed_amount: 'Agreed Amount',
+  owner_budget_billed_amount: 'Billed Amount',
+  owner_budget_paid_amount: 'Paid Amount',
+  owner_budget_pending_amount: 'Pending Amount',
+  owner_budget_outstanding_amount: 'Outstanding Amount',
+  owner_budget_recent_records: 'Recent Billing Records',
+  owner_budget_no_records: 'No billing or payment records are available for this project yet.',
+  owner_budget_project_value_fallback: 'If no agreement amount exists yet, the project value is used as the reference amount.',
+  owner_progress_all_projects: 'All Projects',
+  owner_progress_selected_project: 'Selected Project',
+  owner_stage_planning: 'Planning and kickoff',
+  owner_stage_foundation: 'Foundation and early structure',
+  owner_stage_structure: 'Main structural work',
+  owner_stage_systems: 'Systems and installation',
+  owner_stage_finishing: 'Finishing work',
+  owner_stage_handover: 'Inspection and handover',
+  owner_placeholder_card_1: 'This UI shell is ready for later business logic, permissions, and API integration.',
+  owner_placeholder_card_2: 'Navigation, mobile layout, and translation keys are prepared for owner-only workflows.',
+  owner_placeholder_card_3: 'The sample data below is only a summary from the current state and is not wired to business rules yet.',
 });
 
 Object.assign(translations.LA, {
@@ -2022,24 +2286,28 @@ const AUTH_SESSION_STORAGE_KEY = 'buildsabaidee_auth_session';
 
 const DASHBOARD_ROLE_MAP = {
   manager: 'user',
+  owner_dashboard: 'owner',
   supplier_dashboard: 'supplier',
   platform_owner_dashboard: 'admin',
 };
 
 const VIEW_ROLE_MAP = {
   ...DASHBOARD_ROLE_MAP,
+  owner_access: 'owner',
   supplier_access: 'supplier',
   platform_owner_access: 'admin',
 };
 
 const ROLE_HOME_VIEW = {
   user: 'manager',
+  owner: 'owner_dashboard',
   supplier: 'supplier_dashboard',
   admin: 'platform_owner_dashboard',
 };
 
 const ROLE_ACCESS_VIEW = {
   user: 'role_login',
+  owner: 'owner_access',
   supplier: 'supplier_access',
   admin: 'platform_owner_access',
 };
@@ -2049,6 +2317,11 @@ const DEMO_AUTH_ACCOUNTS = {
     email: 'user@buildsabaidee.app',
     password: 'demo123',
     displayName: 'Contractor Demo',
+  },
+  owner: {
+    email: 'owner@buildsabaidee.app',
+    password: 'demo123',
+    displayName: 'Homeowner Demo',
   },
   supplier: {
     email: 'supplier@buildsabaidee.app',
@@ -2103,6 +2376,11 @@ function createPricingPackageEntry(overrides = {}) {
     status: 'enabled',
     isRecommended: false,
     features: [],
+    localizedContent: {
+      LA: { name: '', description: '', features: [] },
+      TH: { name: '', description: '', features: [] },
+      EN: { name: '', description: '', features: [] },
+    },
     displayOrder: Date.now(),
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -2110,62 +2388,158 @@ function createPricingPackageEntry(overrides = {}) {
   };
 }
 
+function normalizePricingPackageLocalizedContent(content, fallbackEntry = {}) {
+  const base = createPricingPackageEntry().localizedContent;
+  const fallback = {
+    LA: {
+      name: fallbackEntry?.name || '',
+      description: fallbackEntry?.description || '',
+      features: Array.isArray(fallbackEntry?.features) ? fallbackEntry.features : [],
+    },
+    TH: {
+      name: fallbackEntry?.name || '',
+      description: fallbackEntry?.description || '',
+      features: Array.isArray(fallbackEntry?.features) ? fallbackEntry.features : [],
+    },
+    EN: {
+      name: fallbackEntry?.name || '',
+      description: fallbackEntry?.description || '',
+      features: Array.isArray(fallbackEntry?.features) ? fallbackEntry.features : [],
+    },
+  };
+
+  return ['LA', 'TH', 'EN'].reduce((acc, languageKey) => {
+    const source = content?.[languageKey] || {};
+    acc[languageKey] = {
+      name: String(source.name || fallback[languageKey].name || base[languageKey].name).trim(),
+      description: String(source.description || fallback[languageKey].description || base[languageKey].description).trim(),
+      features: Array.isArray(source.features)
+        ? source.features.map((feature) => String(feature || '').trim()).filter(Boolean)
+        : fallback[languageKey].features.map((feature) => String(feature || '').trim()).filter(Boolean),
+    };
+    return acc;
+  }, {});
+}
+
 function createDefaultPricingPackages() {
   return [
     createPricingPackageEntry({
       code: 'BASIC',
-      name: 'Basic',
-      description: 'Starter package for small contractor teams.',
+      name: 'Basic Plan',
+      description: 'Starter plan for small contractor and worker teams.',
       price: 299000,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
       features: ['GPS attendance', 'Task updates', 'Document access'],
+      localizedContent: {
+        LA: {
+          name: 'ແຜນ Basic',
+          description: 'ແຜນເລີ່ມຕົ້ນສຳລັບຜູ້ຮັບເໝາ ແລະ ທີມຊ່າງຂະໜາດນ້ອຍ',
+          features: ['GPS ເຊັກອິນ', 'ອັບເດດວຽກປະຈຳວັນ', 'ເຂົ້າເບິ່ງເອກະສານ'],
+        },
+        TH: {
+          name: 'แผน Basic',
+          description: 'แผนเริ่มต้นสำหรับผู้รับเหมาและทีมช่างขนาดเล็ก',
+          features: ['ลงเวลา GPS', 'อัปเดตงานประจำวัน', 'เข้าถึงเอกสารโครงการ'],
+        },
+        EN: {
+          name: 'Basic Plan',
+          description: 'Starter plan for small contractor and worker teams.',
+          features: ['GPS attendance', 'Daily task updates', 'Project document access'],
+        },
+      },
       displayOrder: 1,
     }),
     createPricingPackageEntry({
       code: 'PRO',
-      name: 'Pro',
-      description: 'Operational package for growing site and project teams.',
+      name: 'Pro Plan',
+      description: 'Growth plan for active contractor teams managing multiple site workflows.',
       price: 699000,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: true,
       features: ['Everything in Basic', 'Procurement workflow', 'Inventory control', 'Supplier coordination'],
+      localizedContent: {
+        LA: {
+          name: 'ແຜນ Pro',
+          description: 'ແຜນສຳລັບຜູ້ຮັບເໝາທີ່ຄຸ້ມຫຼາຍໄຊຕ໌ ແລະ workflow ຫນ້າວຽກທີ່ເຕີບໂຕ',
+          features: ['ຄົບທຸກຢ່າງໃນ Basic', 'workflow ຈັດຊື້', 'ຄວບຄຸມ stock', 'ປະສານງານ supplier'],
+        },
+        TH: {
+          name: 'แผน Pro',
+          description: 'แผนสำหรับผู้รับเหมาที่ดูแลหลายไซต์และ workflow หน้างานที่ซับซ้อนขึ้น',
+          features: ['ครบทุกอย่างใน Basic', 'workflow จัดซื้อ', 'ควบคุมสต็อก', 'ประสานงานซัพพลายเออร์'],
+        },
+        EN: {
+          name: 'Pro Plan',
+          description: 'Growth plan for active contractor teams managing multiple site workflows.',
+          features: ['Everything in Basic', 'Procurement workflow', 'Inventory control', 'Supplier coordination'],
+        },
+      },
       displayOrder: 2,
     }),
     createPricingPackageEntry({
       code: 'ENTERPRISE',
       name: 'Enterprise',
-      description: 'Advanced package for multi-project operations and platform control.',
+      description: 'Advanced plan for multi-project operations, finance controls, and admin visibility.',
       price: 1499000,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
       features: ['Everything in Pro', 'Admin billing flow', 'Settlement tracking', 'Priority support'],
+      localizedContent: {
+        LA: {
+          name: 'ແຜນ Enterprise',
+          description: 'ແຜນຂັ້ນສູງສຳລັບຫຼາຍໂຄງການ, ການເງິນ ແລະ ການຄວບຄຸມຂອງ admin',
+          features: ['ຄົບທຸກຢ່າງໃນ Pro', 'admin billing flow', 'ຕິດຕາມ settlement', 'priority support'],
+        },
+        TH: {
+          name: 'แผน Enterprise',
+          description: 'แผนขั้นสูงสำหรับหลายโครงการ งานการเงิน และการมองเห็นฝั่งแอดมิน',
+          features: ['ครบทุกอย่างใน Pro', 'admin billing flow', 'ติดตาม settlement', 'priority support'],
+        },
+        EN: {
+          name: 'Enterprise Plan',
+          description: 'Advanced plan for multi-project operations, finance controls, and admin visibility.',
+          features: ['Everything in Pro', 'Admin billing flow', 'Settlement tracking', 'Priority support'],
+        },
+      },
       displayOrder: 3,
     }),
   ];
 }
 
+function getDefaultPricingPackageTemplate(code) {
+  return createDefaultPricingPackages().find((entry) => String(entry.code || '').toUpperCase() === String(code || '').toUpperCase()) || null;
+}
+
 function normalizePricingPackageEntry(entry) {
   const base = createPricingPackageEntry();
+  const defaultTemplate = getDefaultPricingPackageTemplate(entry?.code);
   return {
     ...base,
+    ...(defaultTemplate || {}),
     ...(entry || {}),
-    code: String(entry?.code || base.code).trim().toUpperCase(),
-    name: String(entry?.name || '').trim(),
-    description: entry?.description || '',
+    code: String(entry?.code || defaultTemplate?.code || base.code).trim().toUpperCase(),
+    name: String(entry?.name || defaultTemplate?.name || '').trim(),
+    description: entry?.description || defaultTemplate?.description || '',
     price: Math.max(Number(entry?.price || 0), 0),
     billingPeriod: ['monthly', 'quarterly', 'yearly', 'custom'].includes(entry?.billingPeriod) ? entry.billingPeriod : base.billingPeriod,
     status: entry?.status === 'disabled' ? 'disabled' : 'enabled',
     isRecommended: Boolean(entry?.isRecommended),
     features: Array.isArray(entry?.features)
       ? entry.features.map((feature) => String(feature || '').trim()).filter(Boolean)
-      : [],
-    displayOrder: Number(entry?.displayOrder || base.displayOrder),
-    createdAt: Number(entry?.createdAt || base.createdAt),
-    updatedAt: Number(entry?.updatedAt || base.updatedAt),
+      : Array.isArray(defaultTemplate?.features)
+        ? defaultTemplate.features.map((feature) => String(feature || '').trim()).filter(Boolean)
+        : [],
+    localizedContent: normalizePricingPackageLocalizedContent(entry?.localizedContent || defaultTemplate?.localizedContent, {
+      ...(defaultTemplate || {}),
+      ...(entry || {}),
+    }),
+    displayOrder: Number(entry?.displayOrder || defaultTemplate?.displayOrder || base.displayOrder),
+    createdAt: Number(entry?.createdAt || defaultTemplate?.createdAt || base.createdAt),
+    updatedAt: Number(entry?.updatedAt || defaultTemplate?.updatedAt || base.updatedAt),
   };
 }
 
@@ -2186,6 +2560,26 @@ function normalizePricingPackages(entries) {
       }
       return entry;
     });
+}
+
+function getLocalizedPricingPackageContent(entry, language = 'EN') {
+  const normalizedEntry = normalizePricingPackageEntry(entry);
+  const languageKey = ['LA', 'TH', 'EN'].includes(language) ? language : 'EN';
+  const localized = normalizedEntry.localizedContent?.[languageKey] || {};
+  const englishFallback = normalizedEntry.localizedContent?.EN || {};
+  const resolvedName = localized.name || englishFallback.name || normalizedEntry.name || normalizedEntry.code || '-';
+  const resolvedDescription = localized.description || englishFallback.description || normalizedEntry.description || '-';
+  const resolvedFeatures = Array.isArray(localized.features) && localized.features.length > 0
+    ? localized.features
+    : Array.isArray(englishFallback.features) && englishFallback.features.length > 0
+      ? englishFallback.features
+      : normalizedEntry.features;
+
+  return {
+    name: resolvedName,
+    description: resolvedDescription,
+    features: resolvedFeatures,
+  };
 }
 
 function normalizeAdminPlatformSettings(settings) {
@@ -3504,6 +3898,30 @@ function formatMoneyByLanguage(value, language) {
   return `${formatConvertedNumberByLanguage(value, language)} ${CURRENCY_TEXT[language] || 'USD'}`;
 }
 
+function formatDateByLanguage(value, language) {
+  if (!value) return '-';
+
+  const normalizedValue = typeof value === 'number'
+    ? value
+    : /^\d+$/.test(String(value || '').trim())
+      ? Number(value)
+      : String(value || '').trim();
+
+  const parsedDate = typeof normalizedValue === 'number'
+    ? new Date(normalizedValue)
+    : /^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)
+      ? new Date(`${normalizedValue}T00:00:00`)
+      : new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) return String(value);
+
+  return new Intl.DateTimeFormat(NUMBER_LOCALE[language] || 'en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsedDate);
+}
+
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 
 function getWeatherConditionKey(code) {
@@ -3844,7 +4262,10 @@ export default function BuildSabaideeApp() {
 
   const navigateTo = (target) => {
     const normalizedTarget = typeof target === 'string' ? { view: target } : (target || {});
-    const nextView = normalizedTarget.view || 'landing';
+    const requestedView = normalizedTarget.view || 'landing';
+    const nextView = requestedView === 'owner'
+      ? (authSession?.role === 'owner' ? 'owner_dashboard' : 'owner_access')
+      : requestedView;
     const requestedRole = normalizedTarget.role || VIEW_ROLE_MAP[nextView] || 'user';
 
     if (nextView === 'logout') {
@@ -3917,7 +4338,15 @@ export default function BuildSabaideeApp() {
         </div>
       )}
       
-      {currentView === 'landing' && <LandingPage onNavigate={navigateTo} t={t} toggleLanguage={toggleLanguage} language={language} />}
+      {currentView === 'landing' && (
+        <LandingPage
+          onNavigate={navigateTo}
+          t={t}
+          toggleLanguage={toggleLanguage}
+          language={language}
+          pricingPackages={pricingPackages}
+        />
+      )}
       {currentView === 'role_login' && (
         <RoleLoginPage
           onNavigate={navigateTo}
@@ -3957,6 +4386,9 @@ export default function BuildSabaideeApp() {
       {currentView === 'platform_owner_access' && (
         <PlatformOwnerAccess onNavigate={navigateTo} t={t} authSession={authSession} />
       )}
+      {currentView === 'owner_access' && (
+        <OwnerAccess onNavigate={navigateTo} t={t} authSession={authSession} />
+      )}
       {currentView === 'platform_owner_dashboard' && (
         <ManagerDashboard
           onNavigate={navigateTo} t={t} language={language}
@@ -3995,8 +4427,17 @@ export default function BuildSabaideeApp() {
           setSupplierProducts={setSupplierProducts}
         />
       )}
-      {currentView === 'owner' && (
-         <OwnerPortal onNavigate={navigateTo} t={t} globalChats={globalChats} docsList={docsList} language={language} />
+      {(currentView === 'owner_dashboard' || currentView === 'owner') && (
+        <OwnerDashboardPortal
+          onNavigate={navigateTo}
+          t={t}
+          language={language}
+          authSession={authSession}
+          projectsList={projectsList}
+          workersList={workersList}
+          docsList={docsList}
+          globalChats={globalChats}
+        />
       )}
     </div>
   );
@@ -4005,8 +4446,41 @@ export default function BuildSabaideeApp() {
 // ==========================================
 // 1. LANDING PAGE COMPONENT
 // ==========================================
-function LandingPage({ onNavigate, t, toggleLanguage, language }) {
+function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const openSignupPlaceholder = () => {
+    setIsMobileMenuOpen(false);
+    if (typeof document !== 'undefined') {
+      const pricingSection = document.getElementById('pricing');
+      if (pricingSection) {
+        pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+    onNavigate({ view: 'role_login', role: 'user' });
+  };
+  const landingNavLinks = [
+    { key: 'features', href: '#features', label: t('nav_features') },
+    { key: 'superapp', href: '#superapp', label: t('nav_superapp') },
+    { key: 'pricing', href: '#pricing', label: t('nav_pricing') },
+  ];
+  const landingPortalLinks = [
+    {
+      key: 'contractor',
+      label: t('nav_contractor_portal'),
+      onClick: () => onNavigate({ view: 'role_login', role: 'user' }),
+    },
+    {
+      key: 'owner',
+      label: t('nav_owner_portal'),
+      onClick: () => onNavigate('owner_access'),
+    },
+    {
+      key: 'supplier',
+      label: t('nav_supplier_portal'),
+      onClick: () => onNavigate({ view: 'role_login', role: 'supplier' }),
+    },
+  ];
   const roleEntryCards = [
     {
       key: 'user',
@@ -4019,14 +4493,14 @@ function LandingPage({ onNavigate, t, toggleLanguage, language }) {
       buttonClass: 'bg-blue-600 hover:bg-blue-700 text-white',
     },
     {
-      key: 'admin',
-      title: t('nav_platform_owner'),
-      desc: t('landing_role_admin_desc'),
+      key: 'owner',
+      title: t('nav_owner_portal'),
+      desc: t('landing_role_owner_desc'),
       cta: t('landing_role_enter'),
-      onClick: () => onNavigate({ view: 'role_login', role: 'admin' }),
-      icon: Database,
-      tone: 'bg-slate-100 text-slate-700 border-slate-200',
-      buttonClass: 'bg-slate-900 hover:bg-slate-800 text-white',
+      onClick: () => onNavigate('owner_access'),
+      icon: Home,
+      tone: 'bg-amber-50 text-amber-700 border-amber-200',
+      buttonClass: 'bg-amber-500 hover:bg-amber-600 text-white',
     },
     {
       key: 'supplier',
@@ -4039,60 +4513,161 @@ function LandingPage({ onNavigate, t, toggleLanguage, language }) {
       buttonClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
     },
   ];
+  const landingPricingPackages = useMemo(() => {
+    const normalized = normalizePricingPackages(pricingPackages);
+    const enabledPackages = normalized.filter((entry) => entry.status === 'enabled');
+    return (enabledPackages.length > 0 ? enabledPackages : normalized).slice(0, 3);
+  }, [pricingPackages]);
+  const desktopNavLinkClass = 'relative inline-flex items-center py-2 text-sm font-medium text-slate-600 transition hover:text-blue-700';
+  const desktopActionLinkClass = 'inline-flex items-center py-2 text-sm font-medium text-slate-700 transition hover:text-blue-700';
+  const pricingCardToneMap = {
+    0: {
+      border: 'border-slate-200',
+      title: 'text-slate-900',
+      price: 'text-slate-900',
+      button: 'border border-slate-300 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700',
+      icon: 'text-sky-600',
+      accent: 'bg-sky-50 text-sky-700',
+      badge: null,
+      card: 'bg-white shadow-sm hover:shadow-md',
+    },
+    1: {
+      border: 'border-2 border-blue-600',
+      title: 'text-blue-900',
+      price: 'text-blue-900',
+      button: 'bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700',
+      icon: 'text-blue-600',
+      accent: 'bg-blue-50 text-blue-700',
+      badge: t('pricing_badge_recommended'),
+      card: 'bg-white shadow-lg md:-translate-y-2',
+    },
+    2: {
+      border: 'border-slate-200',
+      title: 'text-slate-900',
+      price: 'text-slate-900',
+      button: 'border border-slate-300 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700',
+      icon: 'text-emerald-600',
+      accent: 'bg-emerald-50 text-emerald-700',
+      badge: null,
+      card: 'bg-white shadow-sm hover:shadow-md',
+    },
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
-      <nav className="bg-white shadow-sm sticky top-0 z-50">
+      <nav className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 shadow-sm backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => onNavigate('landing')}>
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <HardHat className="text-white h-6 w-6" />
+          <div className="flex min-h-[4.5rem] items-center justify-between gap-3 py-2">
+            <div className="flex min-w-0 items-center gap-3 cursor-pointer" onClick={() => onNavigate('landing')}>
+              <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-2.5 shadow-lg shadow-blue-200">
+                <HardHat className="h-5 w-5 text-white sm:h-6 sm:w-6" />
               </div>
-              <span className="font-bold text-xl text-blue-900">BuildSabaidee</span>
+              <div className="min-w-0">
+                <div className="truncate text-lg font-bold tracking-tight text-blue-950 sm:text-xl">BuildSabaidee</div>
+                <div className="hidden text-xs font-medium text-slate-500 lg:block">{t('hero_badge')}</div>
+              </div>
             </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-slate-600 hover:text-blue-600 font-medium">{t('nav_features')}</a>
-              <a href="#superapp" className="text-slate-600 hover:text-blue-600 font-medium">{t('nav_superapp')}</a>
-              <a href="#pricing" className="text-slate-600 hover:text-blue-600 font-medium">{t('nav_pricing')}</a>
-              <button onClick={() => onNavigate({ view: 'role_login', role: 'supplier' })} className="text-slate-600 hover:text-blue-600 font-medium">
-                {t('nav_supplier_portal')}
-              </button>
-              <button onClick={() => onNavigate({ view: 'role_login', role: 'admin' })} className="text-slate-600 hover:text-blue-600 font-medium">
-                {t('nav_platform_owner')}
-              </button>
-              <div onClick={toggleLanguage} className="flex items-center space-x-1 border border-slate-200 rounded-full px-4 py-1.5 cursor-pointer hover:bg-slate-50 transition shadow-sm">
-                <Globe className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-bold text-slate-700">{t('lang_name')}</span>
+            <div className="hidden xl:flex flex-1 items-center justify-end gap-8">
+              <div className="flex items-center gap-6">
+                {landingNavLinks.map((item) => (
+                  <a
+                    key={item.key}
+                    href={item.href}
+                    className={desktopNavLinkClass}
+                  >
+                    <span>{item.label}</span>
+                  </a>
+                ))}
+                {landingPortalLinks.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={item.onClick}
+                    className={desktopActionLinkClass}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
-              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="bg-blue-600 text-white px-5 py-2 rounded-full font-medium hover:bg-blue-700 transition">
+              <div className="flex items-center gap-5">
+                <div onClick={toggleLanguage} className="inline-flex cursor-pointer items-center gap-2 py-2 text-sm font-medium text-slate-700 transition hover:text-blue-700">
+                  <Globe className="h-4 w-4 text-blue-500" />
+                  <span>{t('lang_name')}</span>
+                </div>
+                <button onClick={openSignupPlaceholder} className="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
+                  {t('nav_signup')}
+                </button>
+                <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                  {t('nav_login')}
+                </button>
+              </div>
+            </div>
+            <div className="hidden md:flex xl:hidden items-center gap-3">
+              <div onClick={toggleLanguage} className="inline-flex cursor-pointer items-center gap-2 py-2 text-sm font-medium text-slate-700 transition hover:text-blue-700">
+                <Globe className="h-4 w-4 text-blue-500" />
+                <span>{t('lang_name').split(' ')[0]}</span>
+              </div>
+              <button onClick={openSignupPlaceholder} className="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
+                {t('nav_signup')}
+              </button>
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
                 {t('nav_login')}
               </button>
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="inline-flex items-center justify-center rounded-full border border-slate-300 p-2 text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
-            <div className="md:hidden flex items-center space-x-4">
-              <div onClick={toggleLanguage} className="flex items-center space-x-1 border rounded-full px-3 py-1 cursor-pointer">
+            <div className="flex md:hidden items-center gap-2">
+              <div onClick={toggleLanguage} className="inline-flex cursor-pointer items-center gap-1 py-2 text-sm font-medium text-slate-700 transition hover:text-blue-700">
                 <Globe className="h-4 w-4 text-blue-500" />
-                <span className="text-xs font-bold">{t('lang_name').split(' ')[0]}</span>
+                <span className="text-xs font-bold">{language}</span>
               </div>
-              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-600">
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="inline-flex items-center justify-center rounded-full border border-slate-300 p-2 text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
             </div>
           </div>
         </div>
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-white border-t p-4 space-y-4">
-            <a href="#features" className="block text-slate-600 font-medium">{t('nav_features')}</a>
-            <a href="#pricing" className="block text-slate-600 font-medium">{t('nav_pricing')}</a>
-            <button onClick={() => onNavigate({ view: 'role_login', role: 'supplier' })} className="w-full border border-slate-300 bg-white text-slate-700 px-5 py-2 rounded-lg font-medium">
-              {t('nav_supplier_portal')}
-            </button>
-            <button onClick={() => onNavigate({ view: 'role_login', role: 'admin' })} className="w-full border border-slate-300 bg-white text-slate-700 px-5 py-2 rounded-lg font-medium">
-              {t('nav_platform_owner')}
-            </button>
-            <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="w-full bg-blue-600 text-white px-5 py-2 rounded-lg font-medium">
-              {t('nav_login')}
-            </button>
+          <div className="border-t border-slate-200 bg-white/95 px-4 pb-5 pt-4 shadow-lg backdrop-blur md:px-6 xl:hidden">
+            <div className="mx-auto max-w-7xl space-y-4">
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[...landingNavLinks, ...landingPortalLinks].map((item) => (
+                  item.href ? (
+                  <a
+                    key={item.key}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    {item.label}
+                  </a>
+                  ) : (
+                  <button
+                    key={item.key}
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      item.onClick();
+                    }}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-slate-50 hover:text-blue-700"
+                  >
+                    {item.label}
+                  </button>
+                  )
+                ))}
+              </div>
+              <button onClick={() => {
+                setIsMobileMenuOpen(false);
+                openSignupPlaceholder();
+              }} className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
+                {t('nav_signup')}
+              </button>
+              <button onClick={() => {
+                setIsMobileMenuOpen(false);
+                onNavigate({ view: 'role_login', role: 'user' });
+              }} className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                {t('nav_login')}
+              </button>
+            </div>
           </div>
         )}
       </nav>
@@ -4107,15 +4682,18 @@ function LandingPage({ onNavigate, t, toggleLanguage, language }) {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
               {t('hero_title1')} <span className="text-orange-400">{t('hero_title2')}</span>
             </h1>
-            <p className="text-lg text-slate-300 mb-8 max-w-xl">
+            <p className="max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
               {t('hero_desc')}
             </p>
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="bg-orange-500 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-orange-600 transition flex items-center justify-center">
-                {t('hero_btn_try')} <ChevronRight className="ml-2 h-5 w-5" />
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <button onClick={openSignupPlaceholder} className="inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600">
+                {t('hero_btn_signup')} <ChevronRight className="ml-2 h-4 w-4" />
               </button>
-              <button onClick={() => onNavigate('worker')} className="bg-white/10 text-white border border-white/30 px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition flex items-center justify-center">
-                <Smartphone className="mr-2 h-5 w-5" /> {t('hero_btn_worker')}
+              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/8 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/14">
+                {t('nav_login')}
+              </button>
+              <button onClick={() => onNavigate('worker')} className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/25 hover:text-white">
+                <Smartphone className="mr-2 h-4 w-4" /> {t('hero_btn_worker')}
               </button>
             </div>
           </div>
@@ -4154,9 +4732,14 @@ function LandingPage({ onNavigate, t, toggleLanguage, language }) {
               {roleEntryCards.map((card) => {
                 const Icon = card.icon;
                 return (
-                  <div key={card.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                    <div className={`inline-flex rounded-2xl border px-3 py-3 ${card.tone}`}>
-                      <Icon className="h-6 w-6" />
+                  <div key={card.key} className="rounded-[1.75rem] border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className={`inline-flex rounded-2xl border px-3 py-3 ${card.tone}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        {card.title}
+                      </span>
                     </div>
                     <h3 className="mt-4 text-lg font-bold text-slate-900">{card.title}</h3>
                     <p className="mt-2 min-h-[3rem] text-sm leading-6 text-slate-600">{card.desc}</p>
@@ -4210,7 +4793,7 @@ function LandingPage({ onNavigate, t, toggleLanguage, language }) {
                 <FeatureItem icon={<FileText />} text={t('feat_manager_item4')} />
               </ul>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition cursor-pointer group" onClick={() => onNavigate('owner')}>
+            <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-xl transition cursor-pointer group" onClick={() => onNavigate('owner_access')}>
               <div className="bg-orange-100 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-500 transition">
                 <Smartphone className="h-8 w-8 text-orange-600 group-hover:text-white" />
               </div>
@@ -4248,44 +4831,69 @@ function LandingPage({ onNavigate, t, toggleLanguage, language }) {
             <h2 className="text-3xl font-bold text-slate-900 mb-4">{t('pricing_title')}</h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t('pricing_subtitle')}</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-lg transition bg-white relative">
-              <h3 className="text-xl font-bold text-slate-900">Basic Plan</h3>
-              <p className="text-slate-500 text-sm mt-2">{t('pricing_basic_desc')}</p>
-              <div className="my-6"><span className="text-4xl font-bold text-slate-900">{formatConvertedNumberByLanguage(5000, language)}</span><span className="text-slate-500">{PRICE_PER_PERSON_MONTH[language] || PRICE_PER_PERSON_MONTH.EN}</span></div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item1')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item2')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item3')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_basic_item4')}</li>
-              </ul>
-              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="w-full py-3 rounded-xl border-2 border-blue-600 text-blue-600 font-bold hover:bg-blue-50 transition">{t('pricing_start_cta')}</button>
-            </div>
-            <div className="border-2 border-blue-600 rounded-3xl p-8 shadow-xl bg-white relative transform md:-translate-y-4">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-bold">{t('pricing_popular')}</div>
-              <h3 className="text-xl font-bold text-blue-900">Pro Plan</h3>
-              <p className="text-slate-500 text-sm mt-2">{t('pricing_pro_desc')}</p>
-              <div className="my-6"><span className="text-4xl font-bold text-blue-900">{formatConvertedNumberByLanguage(10000, language)}</span><span className="text-slate-500">{PRICE_PER_PERSON_MONTH[language] || PRICE_PER_PERSON_MONTH.EN}</span></div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item1')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item2')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item3')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item4')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-blue-600 mr-2" /> {t('pricing_pro_item5')}</li>
-              </ul>
-              <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">{t('pricing_trial_cta')}</button>
-            </div>
-            <div className="border border-slate-200 rounded-3xl p-8 shadow-sm hover:shadow-lg transition bg-white">
-              <h3 className="text-xl font-bold text-slate-900">Owner / Client</h3>
-              <p className="text-slate-500 text-sm mt-2">{t('pricing_owner_desc')}</p>
-              <div className="my-6"><span className="text-4xl font-bold text-green-600">{FREE_PLAN_LABEL[language] || FREE_PLAN_LABEL.EN}</span><span className="text-slate-500">{INCLUDED_IN_PLAN_LABEL[language] || INCLUDED_IN_PLAN_LABEL.EN}</span></div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item1')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item2')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item3')}</li>
-                <li className="flex items-center text-sm text-slate-600"><Check className="h-5 w-5 text-green-500 mr-2" /> {t('pricing_owner_item4')}</li>
-              </ul>
-              <button onClick={() => onNavigate('owner')} className="w-full py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition">{t('pricing_owner_cta')}</button>
+          <div className="grid max-w-5xl gap-5 mx-auto md:grid-cols-2 xl:grid-cols-3">
+            {landingPricingPackages.map((entry, index) => {
+              const localizedPackage = getLocalizedPricingPackageContent(entry, language);
+              const tone = entry.isRecommended
+                ? pricingCardToneMap[1]
+                : pricingCardToneMap[index] || pricingCardToneMap[2];
+              const featureList = Array.isArray(localizedPackage.features) && localizedPackage.features.length > 0
+                ? localizedPackage.features.slice(0, 4)
+                : ['-'];
+              const ctaLabel = entry.isRecommended
+                ? t('pricing_cta_choose_plan')
+                : index === 0
+                  ? t('pricing_cta_get_started')
+                  : t('pricing_cta_view_details');
+              return (
+                <div key={entry.id} className={`relative flex h-full flex-col overflow-hidden rounded-[1.5rem] p-5 transition ${tone.card} ${tone.border}`}>
+                  {entry.isRecommended && (
+                    <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-blue-200">
+                      {tone.badge}
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone.accent}`}>{entry.code || '-'}</div>
+                      <h3 className={`mt-3 text-xl font-bold ${tone.title}`}>{localizedPackage.name}</h3>
+                      <p className="mt-2 min-h-[2.5rem] text-sm leading-6 text-slate-500">{localizedPackage.description || '-'}</p>
+                    </div>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {t(`admin_pricing_billing_period_${entry.billingPeriod}`)}
+                    </span>
+                  </div>
+                  <div className="my-5 rounded-2xl bg-slate-50/80 p-4">
+                    <div className={`text-3xl font-bold ${tone.price}`}>{formatMoneyByLanguage(entry.price || 0, language)}</div>
+                    <div className="mt-1 text-xs font-medium text-slate-500">
+                      {t(`admin_pricing_billing_period_${entry.billingPeriod}`)} {t('admin_pricing_price_suffix')}
+                    </div>
+                  </div>
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_modules_title')}</div>
+                  <ul className="space-y-2">
+                    {featureList.map((feature, featureIndex) => (
+                      <li key={`${entry.id}-feature-${featureIndex}`} className="flex items-start rounded-xl bg-white/70 px-3 py-2.5 text-sm text-slate-600">
+                        <Check className={`mr-2 mt-0.5 h-4 w-4 ${tone.icon}`} />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className={`mt-auto w-full rounded-2xl py-3 text-sm font-semibold transition ${tone.button}`}>
+                    {ctaLabel}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mx-auto mt-8 max-w-6xl rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-3xl">
+                <h3 className="text-xl font-bold text-emerald-900">{t('nav_owner_portal')}</h3>
+                <p className="mt-2 text-sm text-emerald-800">{t('pricing_owner_desc')}</p>
+                <div className="mt-4 text-sm font-medium text-emerald-700">{FREE_PLAN_LABEL[language] || FREE_PLAN_LABEL.EN}{INCLUDED_IN_PLAN_LABEL[language] || INCLUDED_IN_PLAN_LABEL.EN}</div>
+              </div>
+              <button onClick={() => onNavigate('owner_access')} className="w-full py-3 rounded-xl border border-emerald-300 bg-white px-6 font-bold text-emerald-800 transition hover:bg-emerald-100 lg:w-auto">
+                {t('pricing_owner_cta')}
+              </button>
             </div>
           </div>
         </div>
@@ -6849,13 +7457,47 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   const updatePricingPackageField = (field, value) => {
     setPricingPackageFormData((prev) => ({ ...prev, [field]: value }));
   };
+  const updatePricingPackageLocalizedField = (languageKey, field, value) => {
+    setPricingPackageFormData((prev) => {
+      const nextLocalized = normalizePricingPackageLocalizedContent(prev.localizedContent, prev);
+      nextLocalized[languageKey] = {
+        ...nextLocalized[languageKey],
+        [field]: field === 'features'
+          ? value.split('\n').map((item) => item.trim()).filter(Boolean)
+          : value,
+      };
+      return {
+        ...prev,
+        localizedContent: nextLocalized,
+      };
+    });
+  };
   const handleSavePricingPackage = () => {
-    const normalizedEntry = normalizePricingPackageEntry({
+    const draftEntry = normalizePricingPackageEntry({
       ...pricingPackageFormData,
-      code: pricingPackageFormData.code || pricingPackageFormData.name,
+      code: pricingPackageFormData.code
+        || pricingPackageFormData.name
+        || pricingPackageFormData.localizedContent?.EN?.name
+        || pricingPackageFormData.localizedContent?.TH?.name
+        || pricingPackageFormData.localizedContent?.LA?.name,
       updatedAt: Date.now(),
     });
-    if (!normalizedEntry.name) return;
+    const localizedContent = normalizePricingPackageLocalizedContent(draftEntry.localizedContent, draftEntry);
+    const fallbackName = localizedContent.EN.name || localizedContent.TH.name || localizedContent.LA.name || draftEntry.name;
+    const fallbackDescription = localizedContent.EN.description || localizedContent.TH.description || localizedContent.LA.description || draftEntry.description;
+    const fallbackFeatures = localizedContent.EN.features.length > 0
+      ? localizedContent.EN.features
+      : localizedContent.TH.features.length > 0
+        ? localizedContent.TH.features
+        : localizedContent.LA.features;
+    const normalizedEntry = normalizePricingPackageEntry({
+      ...draftEntry,
+      name: fallbackName,
+      description: fallbackDescription,
+      features: fallbackFeatures,
+      localizedContent,
+    });
+    if (!fallbackName) return;
 
     setPricingPackages((prev) => {
       const next = editingPricingPackageId
@@ -6941,7 +7583,14 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   const availableActiveSupplierCategories = supplierCategories.filter((category) => category.status !== 'inactive');
   const normalizedPricingPackageForm = normalizePricingPackageEntry(pricingPackageFormData);
   const filteredPricingPackages = pricingPackages.filter((entry) => {
-    const matchesSearch = !pricingSearchQuery || [entry.code, entry.name, entry.description, ...(entry.features || [])]
+    const localizedContent = normalizePricingPackageLocalizedContent(entry.localizedContent, entry);
+    const matchesSearch = !pricingSearchQuery || [
+      entry.code,
+      entry.name,
+      entry.description,
+      ...(entry.features || []),
+      ...Object.values(localizedContent).flatMap((item) => [item.name, item.description, ...(item.features || [])]),
+    ]
       .join(' ')
       .toLowerCase()
       .includes(pricingSearchQuery.toLowerCase());
@@ -11416,7 +12065,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <StatCard title={t('admin_pricing_total_packages')} value={pricingPackages.length} icon={<Package />} color="text-slate-700" bg="bg-slate-200" />
                 <StatCard title={t('admin_pricing_active_packages')} value={activePricingPackageCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
-                <StatCard title={t('admin_pricing_recommended_package')} value={recommendedPricingPackage?.name || '-'} icon={<Percent />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('admin_pricing_recommended_package')} value={recommendedPricingPackage ? getLocalizedPricingPackageContent(recommendedPricingPackage, language).name : '-'} icon={<Percent />} color="text-amber-600" bg="bg-amber-100" />
                 <StatCard title={t('admin_pricing_monthly_revenue_hint')} value={recommendedPricingPackage ? formatMoneyByLanguage(recommendedPricingPackage.price || 0, language) : '-'} icon={<DollarSign />} color="text-blue-600" bg="bg-blue-100" />
               </div>
 
@@ -11452,23 +12101,25 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
 
               {filteredPricingPackages.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  {filteredPricingPackages.map((entry) => (
+                  {filteredPricingPackages.map((entry) => {
+                    const localizedPackage = getLocalizedPricingPackageContent(entry, language);
+                    return (
                     <div key={entry.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="text-lg font-semibold text-slate-900">{entry.name || entry.code}</h4>
+                            <h4 className="text-lg font-semibold text-slate-900">{localizedPackage.name || entry.code}</h4>
                             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${entry.status === 'enabled' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700'}`}>
                               {t(entry.status === 'enabled' ? 'admin_pricing_status_enabled' : 'admin_pricing_status_disabled')}
                             </span>
                             {entry.isRecommended && (
                               <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                                {t('admin_pricing_popular')}
+                                {t('pricing_badge_recommended')}
                               </span>
                             )}
                           </div>
                           <div className="mt-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{entry.code || '-'}</div>
-                          <p className="mt-3 text-sm leading-6 text-slate-600">{entry.description || '-'}</p>
+                          <p className="mt-3 text-sm leading-6 text-slate-600">{localizedPackage.description || '-'}</p>
                         </div>
                         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
                           <div className="text-lg font-bold text-slate-900">{formatMoneyByLanguage(entry.price || 0, language)}</div>
@@ -11483,7 +12134,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('admin_pricing_feature_count')}</div>
-                          <div className="mt-1 text-sm font-medium text-slate-800">{formatNumberByLanguage(entry.features.length, language)}</div>
+                          <div className="mt-1 text-sm font-medium text-slate-800">{formatNumberByLanguage(localizedPackage.features.length, language)}</div>
                         </div>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                           <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('label_status')}</div>
@@ -11493,9 +12144,9 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
 
                       <div className="mt-5">
                         <div className="mb-2 text-sm font-semibold text-slate-800">{t('admin_pricing_features')}</div>
-                        {entry.features.length > 0 ? (
+                        {localizedPackage.features.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
-                            {entry.features.map((feature, index) => (
+                            {localizedPackage.features.map((feature, index) => (
                               <span key={`${entry.id}-feature-${index}`} className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
                                 {feature}
                               </span>
@@ -11520,7 +12171,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                         </button>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
@@ -11690,14 +12341,6 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                     <input type="text" value={normalizedPricingPackageForm.code} onChange={(e) => updatePricingPackageField('code', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_name')}</label>
-                    <input type="text" value={normalizedPricingPackageForm.name} onChange={(e) => updatePricingPackageField('name', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_description')}</label>
-                    <textarea value={normalizedPricingPackageForm.description} onChange={(e) => updatePricingPackageField('description', e.target.value)} className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-                  </div>
-                  <div>
                     <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_price')}</label>
                     <input type="number" min="0" value={normalizedPricingPackageForm.price} onChange={(e) => updatePricingPackageField('price', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                   </div>
@@ -11721,15 +12364,51 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                     <input id="pricing-package-recommended" type="checkbox" checked={normalizedPricingPackageForm.isRecommended} onChange={(e) => updatePricingPackageField('isRecommended', e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
                     <label htmlFor="pricing-package-recommended" className="text-sm font-medium text-slate-700">{t('admin_pricing_popular')}</label>
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_features')}</label>
-                    <textarea
-                      value={normalizedPricingPackageForm.features.join('\n')}
-                      onChange={(e) => updatePricingPackageField('features', e.target.value.split('\n').map((item) => item.trim()).filter(Boolean))}
-                      className="min-h-36 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    />
-                    <p className="mt-2 text-xs text-slate-500">{t('admin_pricing_features_hint')}</p>
-                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 p-5">
+                <div>
+                  <h4 className="font-semibold text-slate-800">{t('admin_pricing_localized_content')}</h4>
+                  <p className="mt-1 text-sm text-slate-500">{t('admin_pricing_localized_hint')}</p>
+                </div>
+                <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                  {[
+                    { key: 'TH', label: t('admin_pricing_locale_th') },
+                    { key: 'LA', label: t('admin_pricing_locale_la') },
+                    { key: 'EN', label: t('admin_pricing_locale_en') },
+                  ].map((localeItem) => (
+                    <div key={localeItem.key} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                      <div className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+                        {localeItem.label}
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_name')}</label>
+                        <input
+                          type="text"
+                          value={normalizedPricingPackageForm.localizedContent?.[localeItem.key]?.name || ''}
+                          onChange={(e) => updatePricingPackageLocalizedField(localeItem.key, 'name', e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_package_description')}</label>
+                        <textarea
+                          value={normalizedPricingPackageForm.localizedContent?.[localeItem.key]?.description || ''}
+                          onChange={(e) => updatePricingPackageLocalizedField(localeItem.key, 'description', e.target.value)}
+                          className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_pricing_features')}</label>
+                        <textarea
+                          value={(normalizedPricingPackageForm.localizedContent?.[localeItem.key]?.features || []).join('\n')}
+                          onChange={(e) => updatePricingPackageLocalizedField(localeItem.key, 'features', e.target.value)}
+                          className="min-h-32 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                        <p className="mt-2 text-xs text-slate-500">{t('admin_pricing_features_hint')}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -12793,6 +13472,7 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
 
   const roleOptions = [
     { key: 'user', title: t('landing_role_user_title'), desc: t('landing_role_user_desc'), icon: Building },
+    { key: 'owner', title: t('nav_owner_portal'), desc: t('landing_role_owner_desc'), icon: Home },
     { key: 'supplier', title: t('nav_supplier_portal'), desc: t('landing_role_supplier_desc'), icon: Package },
     { key: 'admin', title: t('nav_platform_owner'), desc: t('landing_role_admin_desc'), icon: Database },
   ];
@@ -13020,6 +13700,721 @@ function SupplierAccess({ onNavigate, t, authSession }) {
               </div>
             );
           })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OwnerAccess({ onNavigate, t, authSession }) {
+  const accessCards = [
+    { key: 'owner_menu_overview', descKey: 'owner_section_dashboard_desc', icon: BarChart3 },
+    { key: 'owner_menu_project_progress', descKey: 'owner_section_project_progress_desc', icon: CheckCircle },
+    { key: 'owner_menu_budget_payments', descKey: 'owner_section_budget_payments_desc', icon: DollarSign },
+    { key: 'owner_menu_documents', descKey: 'owner_section_documents_desc', icon: FileText },
+    { key: 'owner_menu_approvals', descKey: 'owner_section_approvals_desc', icon: Check },
+    { key: 'owner_menu_messages', descKey: 'owner_section_messages_desc', icon: MessageSquare },
+    { key: 'owner_menu_profile', descKey: 'owner_section_profile_desc', icon: Users },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button onClick={() => onNavigate('landing')} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            {t('owner_back_home')}
+          </button>
+          <button onClick={() => onNavigate(authSession?.role === 'owner' ? 'owner_dashboard' : { view: 'role_login', role: 'owner' })} className="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600">
+            {authSession?.role === 'owner' ? t('auth_continue') : t('owner_access_enter')}
+          </button>
+        </div>
+
+        <div className="rounded-3xl bg-gradient-to-br from-amber-500 via-orange-500 to-slate-900 p-6 text-white shadow-xl sm:p-8">
+          <div className="max-w-3xl space-y-4">
+            <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-100">
+              {t('nav_owner_portal')}
+            </span>
+            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('owner_access_title')}</h1>
+            <p className="text-sm text-orange-50 sm:text-base">{t('owner_access_desc')}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {accessCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl bg-amber-50 p-3 text-amber-700">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-slate-900">{t(card.key)}</h2>
+                    <p className="text-sm leading-6 text-slate-600">{t(card.descKey)}</p>
+                    <p className="text-xs font-medium text-amber-700">{t('open_section_hint')}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsList, workersList, docsList, globalChats }) {
+  const [activeTab, setActiveTab] = useState('owner_overview');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const normalizedProjects = useMemo(() => (
+    (Array.isArray(projectsList) ? projectsList : [])
+      .map((project) => normalizeProjectEntry(project))
+      .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+  ), [projectsList]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+
+  useEffect(() => {
+    if (!normalizedProjects.length) {
+      setSelectedProjectId((currentId) => (currentId === '' ? currentId : ''));
+      return;
+    }
+
+    const hasSelectedProject = normalizedProjects.some((project) => String(project.id) === String(selectedProjectId));
+    if (!hasSelectedProject) {
+      const fallbackProjectId = String(normalizedProjects[0].id || '');
+      setSelectedProjectId((currentId) => (String(currentId || '') === fallbackProjectId ? currentId : fallbackProjectId));
+    }
+  }, [normalizedProjects, selectedProjectId]);
+
+  const navItems = [
+    { tab: 'owner_overview', labelKey: 'owner_menu_overview', icon: BarChart3 },
+    { tab: 'owner_project_progress', labelKey: 'owner_menu_project_progress', icon: CheckCircle },
+    { tab: 'owner_budget_payments', labelKey: 'owner_menu_budget_payments', icon: DollarSign },
+    { tab: 'owner_documents', labelKey: 'owner_menu_documents', icon: FileText },
+    { tab: 'owner_approvals', labelKey: 'owner_menu_approvals', icon: Check },
+    { tab: 'owner_messages', labelKey: 'owner_menu_messages', icon: MessageSquare },
+    { tab: 'owner_profile', labelKey: 'owner_menu_profile', icon: Users },
+  ];
+
+  const sectionConfig = {
+    owner_overview: { title: t('owner_dashboard_title'), desc: t('owner_overview_summary_desc'), accent: 'from-amber-500 to-orange-500', icon: BarChart3 },
+    owner_project_progress: { title: t('owner_progress_section_title'), desc: t('owner_progress_section_desc'), accent: 'from-sky-500 to-cyan-500', icon: CheckCircle },
+    owner_budget_payments: { title: t('owner_menu_budget_payments'), desc: t('owner_section_budget_payments_desc'), accent: 'from-emerald-500 to-teal-500', icon: DollarSign },
+    owner_documents: { title: t('owner_menu_documents'), desc: t('owner_section_documents_desc'), accent: 'from-violet-500 to-indigo-500', icon: FileText },
+    owner_approvals: { title: t('owner_menu_approvals'), desc: t('owner_section_approvals_desc'), accent: 'from-rose-500 to-pink-500', icon: Check },
+    owner_messages: { title: t('owner_menu_messages'), desc: t('owner_section_messages_desc'), accent: 'from-blue-600 to-indigo-600', icon: MessageSquare },
+    owner_profile: { title: t('owner_menu_profile'), desc: t('owner_section_profile_desc'), accent: 'from-slate-700 to-slate-900', icon: Users },
+  };
+
+  const activeSection = sectionConfig[activeTab] || sectionConfig.owner_overview;
+  const ActiveIcon = activeSection.icon;
+  const selectedProject = normalizedProjects.find((project) => String(project.id) === String(selectedProjectId)) || normalizedProjects[0] || null;
+  const primaryProject = selectedProject || null;
+  const progressValue = Number(primaryProject?.progress) || 0;
+  const documentsCount = Array.isArray(docsList) ? docsList.length : 0;
+  const pendingApprovals = (Array.isArray(docsList) ? docsList : []).filter((item) => item?.status === 'pending').length;
+  const budgetSnapshot = (Array.isArray(docsList) ? docsList : []).reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+  const projectCount = normalizedProjects.length;
+  const activeProjectsCount = normalizedProjects.filter((project) => project.status === 'active').length;
+  const delayedProjectsCount = normalizedProjects.filter((project) => project.status === 'delayed').length;
+  const completedProjectsCount = normalizedProjects.filter((project) => project.status === 'completed').length;
+
+  const getProjectStageLabel = (progress) => {
+    const safeProgress = Number(progress) || 0;
+    if (safeProgress >= 100) return t('owner_stage_handover');
+    if (safeProgress >= 81) return t('owner_stage_finishing');
+    if (safeProgress >= 61) return t('owner_stage_systems');
+    if (safeProgress >= 31) return t('owner_stage_structure');
+    if (safeProgress >= 11) return t('owner_stage_foundation');
+    return t('owner_stage_planning');
+  };
+
+  const getStatusBadgeClass = (status) => {
+    if (status === 'completed') return 'bg-slate-100 text-slate-700';
+    if (status === 'delayed') return 'bg-rose-100 text-rose-700';
+    return 'bg-emerald-100 text-emerald-700';
+  };
+
+  const fallbackContactFromWorkers = selectedProject
+    ? (Array.isArray(workersList) ? workersList : [])
+      .map((worker) => normalizeWorkerEntry(worker))
+      .filter((worker) => String(worker.assignedSiteId || '') === String(selectedProject.id))
+      .find((worker) => ['project_manager', 'site_manager', 'project_engineer', 'site_engineer', 'supervisor', 'foreman'].includes(worker.role))
+    : null;
+
+  const mainContact = selectedProject ? {
+    name: selectedProject.supervisor?.name || fallbackContactFromWorkers?.name || '',
+    position: selectedProject.supervisor?.position || (fallbackContactFromWorkers ? getConstructionRoleLabel(fallbackContactFromWorkers.role, language) : ''),
+    phone: selectedProject.supervisor?.phone || fallbackContactFromWorkers?.phone || '',
+    email: selectedProject.supervisor?.email || fallbackContactFromWorkers?.email || '',
+    otherContact: selectedProject.supervisor?.otherContact || fallbackContactFromWorkers?.otherContact || '',
+  } : null;
+
+  const selectedProjectDocs = selectedProject
+    ? (Array.isArray(docsList) ? docsList : []).filter((item) => String(item?.projectId || '') === String(selectedProject.id))
+    : [];
+  const selectedProjectChats = selectedProject
+    ? (Array.isArray(globalChats) ? globalChats : []).filter((item) => String(item?.projectId || '') === String(selectedProject.id))
+    : [];
+
+  const recentUpdates = [
+    ...selectedProjectDocs
+      .filter((item) => ['report', 'invoice', 'agreement', 'quotation'].includes(item?.type))
+      .map((item) => ({
+        id: `doc-${item.id}`,
+        title: item.title || t('owner_project_doc_update'),
+        summary: item.submittedBy || item.customerName || t(`doc_type_${item.type || 'report'}`),
+        dateValue: item.createdAt || item.date || '',
+        sourceLabel: item.type === 'report' ? t('owner_project_report_update') : t('owner_project_doc_update'),
+      })),
+    ...selectedProjectChats
+      .filter((item) => item?.senderRole !== 'owner')
+      .map((item) => ({
+        id: `chat-${item.id}`,
+        title: item.sender || t('owner_project_message_update'),
+        summary: item.text || t('voice_message_label'),
+        dateValue: item.createdAt || '',
+        sourceLabel: t('owner_project_message_update'),
+      })),
+  ].sort((a, b) => Number(b.dateValue || 0) - Number(a.dateValue || 0)).slice(0, 4);
+
+  const billingRelatedDocs = selectedProject
+    ? selectedProjectDocs.filter((item) => ['quotation', 'agreement', 'invoice', 'billing'].includes(item?.type))
+    : [];
+  const quotationRecords = billingRelatedDocs.filter((item) => item?.type === 'quotation');
+  const agreementRecords = billingRelatedDocs.filter((item) => item?.type === 'agreement');
+  const invoiceRecords = billingRelatedDocs.filter((item) => ['invoice', 'billing'].includes(item?.type));
+  const latestQuotationAmount = quotationRecords.length > 0 ? Number(quotationRecords[0]?.amount || 0) : 0;
+  const latestAgreementAmount = agreementRecords.length > 0 ? Number(agreementRecords[0]?.amount || 0) : 0;
+  const agreedAmount = latestAgreementAmount || Number(selectedProject?.projectValue || 0) || latestQuotationAmount;
+  const billedAmount = invoiceRecords.reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+  const paidAmount = invoiceRecords
+    .filter((item) => item?.status === 'approved')
+    .reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+  const pendingAmount = invoiceRecords
+    .filter((item) => item?.status === 'pending')
+    .reduce((sum, item) => sum + (Number(item?.amount) || 0), 0);
+  const outstandingAmount = Math.max(billedAmount - paidAmount, 0);
+  const recentBillingRecords = [...billingRelatedDocs]
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+    .slice(0, 5);
+
+  const placeholderPanel = (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-amber-100 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
+        {t('owner_section_ready')}
+      </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {[t('owner_placeholder_card_1'), t('owner_placeholder_card_2'), t('owner_placeholder_card_3')].map((copy, index) => (
+          <div key={`${activeTab}-${index}`} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="text-sm font-semibold text-slate-900">{activeSection.title}</div>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{copy}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_metric_primary_project')}</div>
+          <div className="mt-3 text-lg font-bold text-slate-900">{primaryProject?.name || t('owner_metric_no_project')}</div>
+          <div className="mt-2 text-sm text-slate-500">{formatNumberByLanguage(progressValue, language)}%</div>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_metric_budget_snapshot')}</div>
+          <div className="mt-3 text-lg font-bold text-slate-900">{formatMoneyByLanguage(budgetSnapshot, language)}</div>
+          <div className="mt-2 text-sm text-slate-500">{t('owner_metric_documents')}: {formatNumberByLanguage(documentsCount, language)}</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const overviewPanel = (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard title={t('owner_metric_project_health')} value={`${formatNumberByLanguage(progressValue, language)}%`} icon={<CheckCircle />} color="text-amber-700" bg="bg-amber-100" />
+        <StatCard title={t('owner_project_count')} value={formatNumberByLanguage(projectCount, language)} icon={<Building />} color="text-sky-700" bg="bg-sky-100" />
+        <StatCard title={t('owner_metric_pending_approvals')} value={formatNumberByLanguage(pendingApprovals, language)} icon={<Check />} color="text-rose-700" bg="bg-rose-100" />
+        <StatCard title={t('owner_metric_budget_snapshot')} value={formatMoneyByLanguage(budgetSnapshot, language)} icon={<DollarSign />} color="text-emerald-700" bg="bg-emerald-100" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr,0.8fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_overview_summary_title')}</div>
+                <h3 className="mt-2 text-xl font-bold text-slate-900">{primaryProject?.name || t('owner_metric_no_project')}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{t('owner_overview_summary_desc')}</p>
+              </div>
+              {primaryProject && (
+                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(primaryProject.status)}`}>
+                  {t(`status_${primaryProject.status}`)}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_stage_summary')}</div>
+                <div className="mt-2 text-lg font-semibold text-slate-900">{getProjectStageLabel(primaryProject?.progress)}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_timeline')}</div>
+                <div className="mt-2 text-sm font-medium text-slate-800">
+                  {primaryProject?.startDate || primaryProject?.endDate
+                    ? `${formatDateByLanguage(primaryProject?.startDate, language)} - ${formatDateByLanguage(primaryProject?.endDate, language)}`
+                    : t('owner_project_dates_missing')}
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                <span>{t('label_progress')}</span>
+                <span>{formatNumberByLanguage(progressValue, language)}%</span>
+              </div>
+              <div className="mt-2 h-3 rounded-full bg-slate-100">
+                <div className="h-3 rounded-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: `${Math.min(progressValue, 100)}%` }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_progress_all_projects')}</div>
+          <div className="mt-4 grid grid-cols-1 gap-3">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-sm font-medium text-slate-500">{t('status_active')}</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">{formatNumberByLanguage(activeProjectsCount, language)}</div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-sm font-medium text-slate-500">{t('status_delayed')}</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">{formatNumberByLanguage(delayedProjectsCount, language)}</div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-sm font-medium text-slate-500">{t('status_completed')}</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">{formatNumberByLanguage(completedProjectsCount, language)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-slate-900">{t('owner_project_main_contact')}</h3>
+            <Users className="h-5 w-5 text-amber-600" />
+          </div>
+          {mainContact?.name ? (
+            <div className="mt-4 space-y-3 text-sm text-slate-600">
+              <div>
+                <div className="text-lg font-semibold text-slate-900">{mainContact.name}</div>
+                <div className="mt-1">{mainContact.position || '-'}</div>
+              </div>
+              <div>{mainContact.phone || mainContact.email || '-'}</div>
+              <div>{mainContact.otherContact || '-'}</div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_project_contact_missing')}</div>
+          )}
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-slate-900">{t('owner_project_recent_updates')}</h3>
+            <Clock className="h-5 w-5 text-amber-600" />
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentUpdates.length > 0 ? recentUpdates.map((item) => (
+              <div key={item.id} className="rounded-2xl bg-slate-50 px-4 py-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">{item.title}</div>
+                    <div className="mt-1 text-xs uppercase tracking-wide text-amber-700">{item.sourceLabel}</div>
+                  </div>
+                  <div className="text-xs text-slate-500">{formatDateByLanguage(item.dateValue, language)}</div>
+                </div>
+                <div className="mt-2 text-sm text-slate-600">{item.summary || '-'}</div>
+              </div>
+            )) : (
+              <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_project_updates_empty')}</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h3 className="text-lg font-bold text-slate-900">{t('owner_overview_next_actions')}</h3>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {navItems.slice(1).map((item) => {
+            const Icon = item.icon;
+            return (
+              <button key={item.tab} onClick={() => setActiveTab(item.tab)} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-amber-300 hover:bg-amber-50">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-2xl bg-white p-3 text-amber-700 shadow-sm">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900">{t(item.labelKey)}</div>
+                    <div className="mt-1 text-sm leading-6 text-slate-600">{t(`${item.tab.replace('owner_', 'owner_section_')}_desc`)}</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  const progressPanel = selectedProject ? (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr,1.1fr]">
+          <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">{t('owner_project_select_label')}</label>
+              <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-amber-400">
+                {normalizedProjects.map((project) => (
+                  <option key={project.id} value={project.id}>{project.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              {normalizedProjects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => setSelectedProjectId(project.id)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${String(project.id) === String(selectedProjectId) ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-slate-900">{project.name}</div>
+                      <div className="mt-1 text-sm text-slate-500">{project.location || '-'}</div>
+                    </div>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(project.status)}`}>
+                      {t(`status_${project.status}`)}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
+                    <span>{getProjectStageLabel(project.progress)}</span>
+                    <span>{formatNumberByLanguage(project.progress || 0, language)}%</span>
+                  </div>
+                  <div className="mt-2 h-2 rounded-full bg-white">
+                    <div className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: `${Math.min(Number(project.progress || 0), 100)}%` }}></div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-3xl bg-slate-50 p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_progress_selected_project')}</div>
+                  <h3 className="mt-2 text-2xl font-bold text-slate-900">{selectedProject.name}</h3>
+                  <div className="mt-2 text-sm text-slate-500">{selectedProject.location || '-'}</div>
+                </div>
+                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(selectedProject.status)}`}>
+                  {t(`status_${selectedProject.status}`)}
+                </span>
+              </div>
+              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_stage_summary')}</div>
+                  <div className="mt-2 text-lg font-semibold text-slate-900">{getProjectStageLabel(selectedProject.progress)}</div>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_timeline')}</div>
+                  <div className="mt-2 text-sm font-medium text-slate-800">
+                    {selectedProject.startDate || selectedProject.endDate
+                      ? `${formatDateByLanguage(selectedProject.startDate, language)} - ${formatDateByLanguage(selectedProject.endDate, language)}`
+                      : t('owner_project_dates_missing')}
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_main_contact')}</div>
+                  <div className="mt-2 text-sm font-medium text-slate-800">{mainContact?.name || t('owner_project_contact_missing')}</div>
+                  <div className="mt-1 text-xs text-slate-500">{mainContact?.position || mainContact?.phone || '-'}</div>
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_last_updated')}</div>
+                  <div className="mt-2 text-sm font-medium text-slate-800">{formatDateByLanguage(recentUpdates[0]?.dateValue || selectedProject.createdAt || '', language)}</div>
+                </div>
+              </div>
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                  <span>{t('label_progress')}</span>
+                  <span>{formatNumberByLanguage(selectedProject.progress || 0, language)}%</span>
+                </div>
+                <div className="mt-2 h-4 rounded-full bg-white">
+                  <div className="h-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: `${Math.min(Number(selectedProject.progress || 0), 100)}%` }}></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h4 className="text-base font-semibold text-slate-900">{t('owner_project_overview_card')}</h4>
+                <div className="mt-4 space-y-3 text-sm">
+                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_location')}</div><div className="mt-1 font-medium text-slate-800">{selectedProject.location || '-'}</div></div>
+                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_start_date')}</div><div className="mt-1 font-medium text-slate-800">{selectedProject.startDate ? formatDateByLanguage(selectedProject.startDate, language) : '-'}</div></div>
+                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_end_date')}</div><div className="mt-1 font-medium text-slate-800">{selectedProject.endDate ? formatDateByLanguage(selectedProject.endDate, language) : '-'}</div></div>
+                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_last_updated')}</div><div className="mt-1 font-medium text-slate-800">{formatDateByLanguage(recentUpdates[0]?.dateValue || selectedProject.createdAt || '', language)}</div></div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h4 className="text-base font-semibold text-slate-900">{t('owner_project_main_contact')}</h4>
+                {mainContact?.name ? (
+                  <div className="mt-4 space-y-3 text-sm">
+                    <div className="font-semibold text-slate-900">{mainContact.name}</div>
+                    <div className="text-slate-600">{mainContact.position || '-'}</div>
+                    <div className="text-slate-600">{mainContact.phone || '-'}</div>
+                    <div className="text-slate-600">{mainContact.email || mainContact.otherContact || '-'}</div>
+                  </div>
+                ) : (
+                  <div className="mt-4 text-sm text-slate-500">{t('owner_project_contact_missing')}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h4 className="text-base font-semibold text-slate-900">{t('owner_project_recent_updates')}</h4>
+              <div className="mt-4 space-y-3">
+                {recentUpdates.length > 0 ? recentUpdates.map((item) => (
+                  <div key={item.id} className="rounded-2xl bg-slate-50 px-4 py-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="font-medium text-slate-900">{item.title}</div>
+                        <div className="mt-1 text-xs uppercase tracking-wide text-amber-700">{item.sourceLabel}</div>
+                      </div>
+                      <div className="text-xs text-slate-500">{formatDateByLanguage(item.dateValue, language)}</div>
+                    </div>
+                    <div className="mt-2 text-sm text-slate-600">{item.summary || '-'}</div>
+                  </div>
+                )) : (
+                  <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_project_updates_empty')}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
+      {t('owner_metric_no_project')}
+    </div>
+  );
+
+  const budgetPanel = selectedProject ? (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_budget_summary_title')}</div>
+            <h3 className="mt-2 text-xl font-bold text-slate-900">{selectedProject.name}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t('owner_budget_summary_desc')}</p>
+          </div>
+          <div className="w-full max-w-sm">
+            <label className="mb-2 block text-sm font-medium text-slate-700">{t('owner_project_select_label')}</label>
+            <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-amber-400">
+              {normalizedProjects.map((project) => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <StatCard title={t('owner_budget_quoted_amount')} value={formatMoneyByLanguage(latestQuotationAmount, language)} icon={<Receipt />} color="text-sky-700" bg="bg-sky-100" />
+        <StatCard title={t('owner_budget_agreed_amount')} value={formatMoneyByLanguage(agreedAmount, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+        <StatCard title={t('owner_budget_billed_amount')} value={formatMoneyByLanguage(billedAmount, language)} icon={<FileText />} color="text-violet-700" bg="bg-violet-100" />
+        <StatCard title={t('owner_budget_paid_amount')} value={formatMoneyByLanguage(paidAmount, language)} icon={<DollarSign />} color="text-green-700" bg="bg-green-100" />
+        <StatCard title={t('owner_budget_pending_amount')} value={formatMoneyByLanguage(pendingAmount, language)} icon={<Clock />} color="text-amber-700" bg="bg-amber-100" />
+        <StatCard title={t('owner_budget_outstanding_amount')} value={formatMoneyByLanguage(outstandingAmount, language)} icon={<AlertCircle />} color="text-rose-700" bg="bg-rose-100" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.9fr,1.1fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 className="text-base font-semibold text-slate-900">{t('owner_project_overview_card')}</h4>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_location')}</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{selectedProject.location || '-'}</div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_timeline')}</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">
+                {selectedProject.startDate || selectedProject.endDate
+                  ? `${formatDateByLanguage(selectedProject.startDate, language)} - ${formatDateByLanguage(selectedProject.endDate, language)}`
+                  : t('owner_project_dates_missing')}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_stage_summary')}</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{getProjectStageLabel(selectedProject.progress)}</div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_main_contact')}</div>
+              <div className="mt-2 text-sm font-medium text-slate-800">{mainContact?.name || t('owner_project_contact_missing')}</div>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-slate-500">{t('owner_budget_project_value_fallback')}</p>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 className="text-base font-semibold text-slate-900">{t('owner_budget_recent_records')}</h4>
+          <div className="mt-4 space-y-3">
+            {recentBillingRecords.length > 0 ? recentBillingRecords.map((record) => (
+              <div key={record.id} className="rounded-2xl bg-slate-50 px-4 py-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="font-medium text-slate-900">{record.title || '-'}</div>
+                    <div className="mt-1 text-xs uppercase tracking-wide text-slate-500">{t(`doc_type_${record.type === 'billing' ? 'invoice' : record.type}`)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-slate-900">{Number(record.amount) > 0 ? formatMoneyByLanguage(record.amount, language) : '-'}</div>
+                    <div className="mt-1 text-xs text-slate-500">{formatDateByLanguage(record.createdAt || record.date || '', language)}</div>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-sm text-slate-600">{record.customerName || record.submittedBy || '-'}</div>
+                  <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    record.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : record.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {record.status === 'approved' ? t('doc_status_approved') : record.status === 'pending' ? t('doc_status_pending') : t('docs_billing_status_draft')}
+                  </span>
+                </div>
+              </div>
+            )) : (
+              <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_budget_no_records')}</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
+      {t('owner_metric_no_project')}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-100">
+      <div className="flex min-h-screen">
+        <aside className="hidden w-72 flex-col border-r border-slate-200 bg-slate-950 text-slate-100 lg:flex">
+          <div className="border-b border-slate-800 px-6 py-6">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-amber-500 p-3">
+                <Home className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200">{t('nav_owner_portal')}</div>
+                <div className="text-lg font-semibold text-white">BuildSabaidee</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 space-y-2 px-4 py-6">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.tab;
+              return (
+                <button key={item.tab} onClick={() => setActiveTab(item.tab)} className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${isActive ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/30' : 'text-slate-300 hover:bg-slate-900 hover:text-white'}`}>
+                  <span className="flex items-center gap-3">
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium">{t(item.labelKey)}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
+          <div className="border-t border-slate-800 p-4">
+            <button onClick={() => onNavigate({ view: 'logout', role: 'owner', redirectTo: 'owner_access' })} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-slate-300 transition hover:bg-slate-900 hover:text-white">
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">{t('owner_access_title')}</span>
+            </button>
+          </div>
+        </aside>
+
+        <div className="flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+            <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsSidebarOpen(true)} className="inline-flex rounded-xl border border-slate-200 p-2 text-slate-600 lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </button>
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-600">{t('nav_owner_portal')}</div>
+                  <h1 className="text-xl font-bold text-slate-900">{activeSection.title}</h1>
+                </div>
+              </div>
+              <button onClick={() => onNavigate({ view: 'logout', role: 'owner', redirectTo: 'owner_access' })} className="hidden rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:inline-flex">
+                {authSession?.displayName || t('owner_back_home')}
+              </button>
+            </div>
+            <div className="overflow-x-auto px-4 pb-4 sm:px-6 lg:hidden">
+              <div className="flex gap-2">
+                {navItems.map((item) => {
+                  const isActive = activeTab === item.tab;
+                  return (
+                    <button key={item.tab} onClick={() => setActiveTab(item.tab)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                      {t(item.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </header>
+
+          {isSidebarOpen && (
+            <div className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" onClick={() => setIsSidebarOpen(false)}>
+              <div className="h-full w-72 bg-slate-950 p-4 text-slate-100 shadow-xl" onClick={(event) => event.stopPropagation()}>
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-200">{t('nav_owner_portal')}</div>
+                  <button onClick={() => setIsSidebarOpen(false)} className="rounded-xl border border-slate-800 p-2 text-slate-300">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.tab;
+                    return (
+                      <button key={item.tab} onClick={() => { setActiveTab(item.tab); setIsSidebarOpen(false); }} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition ${isActive ? 'bg-amber-500 text-white' : 'text-slate-300 hover:bg-slate-900 hover:text-white'}`}>
+                        <Icon className="h-5 w-5" />
+                        <span className="font-medium">{t(item.labelKey)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <main className="flex-1 px-4 py-6 sm:px-6">
+            <div className={`rounded-3xl bg-gradient-to-br ${activeSection.accent} p-6 text-white shadow-xl`}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="max-w-3xl space-y-3">
+                  <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
+                    {t('nav_owner_portal')}
+                  </span>
+                  <h2 className="text-2xl font-bold sm:text-3xl">{activeSection.title}</h2>
+                  <p className="text-sm leading-6 text-white/90 sm:text-base">{activeSection.desc}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-white/80">{t('owner_portal_isolated_notice')}</p>
+                </div>
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+                  <ActiveIcon className="h-7 w-7" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              {activeTab === 'owner_overview' ? overviewPanel : activeTab === 'owner_project_progress' ? progressPanel : activeTab === 'owner_budget_payments' ? budgetPanel : placeholderPanel}
+            </div>
+          </main>
         </div>
       </div>
     </div>
