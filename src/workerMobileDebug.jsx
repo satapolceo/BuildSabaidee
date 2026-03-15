@@ -1,19 +1,28 @@
 import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  AlertTriangle,
+  Banknote,
   Camera,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   Clock3,
   Home,
   Mic,
+  Package,
   Smartphone,
   UserCircle2,
 } from 'lucide-react';
 import './index.css';
 import {
   SCREEN_HOME,
+  SCREEN_ISSUE,
+  SCREEN_MILESTONE,
+  SCREEN_PAYMENT,
   SCREEN_PHOTO,
+  SCREEN_REQUEST,
+  SCREEN_DELIVERY,
   SCREEN_VOICE,
   TAB_HOME,
   createWorkerActionButtons,
@@ -37,6 +46,11 @@ const debugTranslations = {
     today_batch_count: 'Today batch count',
     today_photo_count: 'Today photo count',
     today_voice_count: 'Today voice count',
+    today_issue_count: 'Today issue count',
+    today_delivery_count: 'Today delivery count',
+    today_equipment_count: 'Today equipment count',
+    today_payment_count: 'Today payment count',
+    today_milestone_count: 'Today milestone count',
     debug_title: 'Worker Mobile Debug',
     debug_desc: 'This page loads the shared mobile menu and verifies localized Photo Submission controls.',
     task_category: 'Task Category',
@@ -46,9 +60,21 @@ const debugTranslations = {
     add_task_category: 'Add your own task category',
     add_zone_area: 'Add your own zone / area',
     add_option: 'Add option',
+    update_option: 'Update selected',
     custom_placeholder: 'Type a new option',
+    editable_helper: 'Pick from the list or type a new value to add/update it instantly.',
     photo_playground: 'Photo Submission Playground',
     photo_playground_desc: 'Localized dropdowns without autocomplete. Add custom options when needed.',
+    request_playground: 'Real Job Headings Playground',
+    request_playground_desc: 'Simulate the four quick job headings after Check-in / Check-out and verify shared logic.',
+    payment_playground: 'Request Payment',
+    payment_amount: 'Amount',
+    payment_note: 'Payment note',
+    submit_payment: 'Submit payment request',
+    milestone_playground: 'Submit Work by Milestone',
+    milestone_progress: 'Progress (%)',
+    milestone_note: 'Milestone note',
+    submit_milestone: 'Submit milestone',
     quick_actions: 'Quick Actions Stub',
     quick_actions_desc: 'Edit the controls to test mobile button gating logic',
     debug_state: 'Debug state',
@@ -61,6 +87,10 @@ const debugTranslations = {
     editable_state: 'Photo submission editable state',
     quick_output: 'Quick action gate output',
     current_language: 'Language',
+    request_mode: 'Current request mode',
+    interaction_status: 'Interaction status',
+    status_ready: 'Ready',
+    status_form_incomplete: 'Form incomplete',
     simulator_summary: 'Simulator Summary',
     simulator_ready: 'Interactive mobile simulator is working',
     ux_logic_summary: 'UX / Logic Summary',
@@ -83,6 +113,11 @@ const debugTranslations = {
     today_batch_count: 'จำนวน batch วันนี้',
     today_photo_count: 'จำนวน Photo วันนี้',
     today_voice_count: 'จำนวน Voice วันนี้',
+    today_issue_count: 'จำนวนแจ้งปัญหาวันนี้',
+    today_delivery_count: 'จำนวนส่งสินค้าเข้าไซต์วันนี้',
+    today_equipment_count: 'จำนวนขออุปกรณ์วันนี้',
+    today_payment_count: 'จำนวนขอเบิกเงินวันนี้',
+    today_milestone_count: 'จำนวนส่งงวดงานวันนี้',
     debug_title: 'Worker Mobile Debug',
     debug_desc: 'หน้านี้โหลด mobile menu ร่วมและตรวจฟอร์ม Photo Submission ตามภาษาที่เลือก',
     task_category: 'หมวดงาน',
@@ -92,9 +127,21 @@ const debugTranslations = {
     add_task_category: 'เพิ่มหมวดงานเอง',
     add_zone_area: 'เพิ่มพื้นที่เอง',
     add_option: 'เพิ่มรายการ',
+    update_option: 'อัปเดตรายการที่เลือก',
     custom_placeholder: 'พิมพ์รายการใหม่',
+    editable_helper: 'เลือกจากรายการ หรือพิมพ์ค่าใหม่เพื่อเพิ่ม/แก้ได้ทันที',
     photo_playground: 'พื้นที่ทดสอบ Photo Submission',
     photo_playground_desc: 'ใช้ dropdown ตามภาษา ไม่มี autocomplete และเพิ่มรายการเองได้',
+    request_playground: 'พื้นที่ทดสอบหัวงานจริง',
+    request_playground_desc: 'จำลองปุ่มด่วน 4 หัวงานหลัง Check-in / Check-out และตรวจ shared logic',
+    payment_playground: 'ขอเบิกเงิน',
+    payment_amount: 'จำนวนเงิน',
+    payment_note: 'หมายเหตุเบิกเงิน',
+    submit_payment: 'ส่งคำขอเบิกเงิน',
+    milestone_playground: 'ส่งงานงวดงาน',
+    milestone_progress: 'ความคืบหน้า (%)',
+    milestone_note: 'หมายเหตุงวดงาน',
+    submit_milestone: 'ส่งงวดงาน',
     quick_actions: 'ปุ่มด่วนจำลอง',
     quick_actions_desc: 'ปรับสถานะเพื่อทดสอบ shared logic ของปุ่มมือถือ',
     debug_state: 'สถานะปัจจุบัน',
@@ -107,6 +154,10 @@ const debugTranslations = {
     editable_state: 'สถานะฟอร์มหมวดงาน / พื้นที่',
     quick_output: 'ผลลัพธ์ quick action',
     current_language: 'ภาษา',
+    request_mode: 'โหมดคำขอปัจจุบัน',
+    interaction_status: 'สถานะการทดสอบ',
+    status_ready: 'พร้อมทดสอบ',
+    status_form_incomplete: 'ฟอร์มยังไม่ครบ',
     simulator_summary: 'สรุป Simulator',
     simulator_ready: 'mobile simulator แบบโต้ตอบทำงานแล้ว',
     ux_logic_summary: 'สรุป UX / Logic',
@@ -129,6 +180,11 @@ const debugTranslations = {
     today_batch_count: 'ຈຳນວນ batch ມື້ນີ້',
     today_photo_count: 'ຈຳນວນ Photo ມື້ນີ້',
     today_voice_count: 'ຈຳນວນ Voice ມື້ນີ້',
+    today_issue_count: 'ຈຳນວນແຈ້ງບັນຫາມື້ນີ້',
+    today_delivery_count: 'ຈຳນວນສົ່ງສິນຄ້າເຂົ້າໄຊມື້ນີ້',
+    today_equipment_count: 'ຈຳນວນຂໍອຸປະກອນມື້ນີ້',
+    today_payment_count: 'ຈຳນວນຂໍເບີກເງິນມື້ນີ້',
+    today_milestone_count: 'ຈຳນວນສົ່ງງວດງານມື້ນີ້',
     debug_title: 'Worker Mobile Debug',
     debug_desc: 'ໜ້ານີ້ໂຫຼດ mobile menu ຮ່ວມ ແລະ ກວດຟອມ Photo Submission ຕາມພາສາທີ່ເລືອກ',
     task_category: 'ໝວດວຽກ',
@@ -138,9 +194,21 @@ const debugTranslations = {
     add_task_category: 'ເພີ່ມໝວດວຽກເອງ',
     add_zone_area: 'ເພີ່ມພື້ນທີ່ເອງ',
     add_option: 'ເພີ່ມລາຍການ',
+    update_option: 'ອັບເດດລາຍການທີ່ເລືອກ',
     custom_placeholder: 'ພິມລາຍການໃໝ່',
+    editable_helper: 'ເລືອກຈາກລາຍການ ຫຼື ພິມຄ່າໃໝ່ເພື່ອເພີ່ມ/ແກ້ໄຂໄດ້ທັນທີ',
     photo_playground: 'ພື້ນທີ່ທົດລອງ Photo Submission',
     photo_playground_desc: 'ໃຊ້ dropdown ຕາມພາສາ ບໍ່ມີ autocomplete ແລະ ເພີ່ມລາຍການເອງໄດ້',
+    request_playground: 'ພື້ນທີ່ທົດລອງຫົວວຽກຈິງ',
+    request_playground_desc: 'ຈຳລອງປຸ່ມດ່ວນ 4 ຫົວວຽກຫຼັງ Check-in / Check-out ແລະ ກວດ shared logic',
+    payment_playground: 'ຂໍເບີກເງິນ',
+    payment_amount: 'ຈຳນວນເງິນ',
+    payment_note: 'ໝາຍເຫດຂໍເບີກເງິນ',
+    submit_payment: 'ສົ່ງຄຳຂໍເບີກເງິນ',
+    milestone_playground: 'ສົ່ງວຽກຕາມງວດ',
+    milestone_progress: 'ຄວາມຄືບໜ້າ (%)',
+    milestone_note: 'ໝາຍເຫດງວດງານ',
+    submit_milestone: 'ສົ່ງງວດງານ',
     quick_actions: 'ປຸ່ມດ່ວນຈຳລອງ',
     quick_actions_desc: 'ປັບສະຖານະເພື່ອທົດສອບ shared logic ຂອງປຸ່ມມືຖື',
     debug_state: 'ສະຖານະປັດຈຸບັນ',
@@ -153,6 +221,10 @@ const debugTranslations = {
     editable_state: 'ສະຖານະຟອມໝວດວຽກ / ພື້ນທີ່',
     quick_output: 'ຜົນ quick action',
     current_language: 'ພາສາ',
+    request_mode: 'ໂໝດຄຳຂໍປັດຈຸບັນ',
+    interaction_status: 'ສະຖານະການທົດສອບ',
+    status_ready: 'ພ້ອມທົດສອບ',
+    status_form_incomplete: 'ຟອມຍັງບໍ່ຄົບ',
     simulator_summary: 'ສະຫຼຸບ Simulator',
     simulator_ready: 'mobile simulator ແບບໂຕ້ຕອບໃຊ້ງານໄດ້ແລ້ວ',
     ux_logic_summary: 'ສະຫຼຸບ UX / Logic',
@@ -228,7 +300,7 @@ function QuickActionButton({ label, helper, icon: Icon, disabled, active, onClic
   );
 }
 
-function DropdownCreateField({ label, value, onSelect, options, selectPlaceholder, createLabel, createValue, onCreateValueChange, onCreate, createPlaceholder, actionLabel, accent = 'blue' }) {
+function DropdownCreateField({ label, value, onSelect, options, selectPlaceholder, createLabel, createValue, onCreateValueChange, onCreate, onUpdate, createPlaceholder, actionLabel, updateLabel, helperText = '', accent = 'blue' }) {
   const toneClasses = accent === 'emerald'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
     : 'border-blue-200 bg-blue-50 text-blue-700';
@@ -246,6 +318,7 @@ function DropdownCreateField({ label, value, onSelect, options, selectPlaceholde
           <option key={option} value={option} />
         ))}
       </select>
+      {helperText ? <div className="mt-2 text-xs text-slate-500">{helperText}</div> : null}
       <div className="mt-3 rounded-[1.3rem] border border-slate-200 bg-slate-50 p-3">
         <div className="text-sm font-semibold text-slate-700">{createLabel}</div>
         <div className="mt-3 flex flex-col gap-3">
@@ -255,13 +328,23 @@ function DropdownCreateField({ label, value, onSelect, options, selectPlaceholde
             placeholder={createPlaceholder}
             className="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none focus:border-blue-500"
           />
-          <button
-            type="button"
-            onClick={onCreate}
-            className={`min-h-12 rounded-2xl border px-5 py-3 text-sm font-semibold touch-manipulation ${toneClasses}`}
-          >
-            {actionLabel}
-          </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onCreate}
+              className={`min-h-12 rounded-2xl border px-5 py-3 text-sm font-semibold touch-manipulation ${toneClasses}`}
+            >
+              {actionLabel}
+            </button>
+            <button
+              type="button"
+              onClick={onUpdate}
+              disabled={!value}
+              className="min-h-12 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 touch-manipulation disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              {updateLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -278,9 +361,20 @@ function WorkerMobileDebugApp() {
   const [todayBatchCount, setTodayBatchCount] = useState(0);
   const [todayPhotoCount, setTodayPhotoCount] = useState(0);
   const [todayVoiceCount, setTodayVoiceCount] = useState(0);
+  const [todayIssueCount, setTodayIssueCount] = useState(0);
+  const [todayDeliveryCount, setTodayDeliveryCount] = useState(0);
+  const [todayEquipmentCount, setTodayEquipmentCount] = useState(0);
+  const [todayPaymentCount, setTodayPaymentCount] = useState(0);
+  const [todayMilestoneCount, setTodayMilestoneCount] = useState(0);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
+  const [requestMode, setRequestMode] = useState('equipment');
   const [taskCategory, setTaskCategory] = useState('');
   const [areaZone, setAreaZone] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [milestoneProgress, setMilestoneProgress] = useState('');
+  const [milestoneNote, setMilestoneNote] = useState('');
+  const [simulatorStatus, setSimulatorStatus] = useState(debugTranslations.TH.status_ready);
   const [customTaskCategories, setCustomTaskCategories] = useState([]);
   const [customAreaZones, setCustomAreaZones] = useState([]);
   const [newTaskCategory, setNewTaskCategory] = useState('');
@@ -289,17 +383,28 @@ function WorkerMobileDebugApp() {
   const t = (key) => debugTranslations[language]?.[key] || debugTranslations.EN[key] || key;
 
   const localCopy = useMemo(() => ({
-    ready: 'Ready',
-    active: 'Active',
-    disabled: 'Disabled',
-    done: 'Done',
-    recording: 'Recording...',
+    ready: language === 'TH' ? 'พร้อมใช้งาน' : language === 'LA' ? 'ພ້ອມໃຊ້ງານ' : 'Ready',
+    active: language === 'TH' ? 'กำลังใช้งาน' : language === 'LA' ? 'ກຳລັງໃຊ້ງານ' : 'Active',
+    disabled: language === 'TH' ? 'ยังใช้ไม่ได้' : language === 'LA' ? 'ຍັງໃຊ້ບໍ່ໄດ້' : 'Disabled',
+    done: language === 'TH' ? 'เสร็จแล้ว' : language === 'LA' ? 'ສຳເລັດແລ້ວ' : 'Done',
+    recording: language === 'TH' ? 'กำลังบันทึก...' : language === 'LA' ? 'ກຳລັງບັນທຶກ...' : 'Recording...',
     voiceTitle: 'Voice',
     openPhoto: 'Open photo',
     openVoice: 'Open voice',
     batchProjectDataLoading: 'Loading project data...',
     batchFilterRoom: language === 'TH' ? 'เลือกพื้นที่ก่อนใช้งาน' : language === 'LA' ? 'ເລືອກພື້ນທີ່ກ່ອນໃຊ້ງານ' : 'Select area first',
     photoBatchCount: language === 'TH' ? 'ชุด/รูป' : language === 'LA' ? 'ຊຸດ/ຮູບ' : 'batches/photos',
+    quickSubmitTitle: language === 'TH' ? 'อัปเดตส่งงาน' : language === 'LA' ? 'ອັບເດດສົ່ງງານ' : 'Update Submission',
+    quickIssueTitle: language === 'TH' ? 'แจ้งปัญหาของขาด' : language === 'LA' ? 'ແຈ້ງບັນຫາຂອງຂາດ' : 'Report Issue / Shortage',
+    quickDeliveryTitle: language === 'TH' ? 'ส่งสินค้าเข้าไซต์งาน' : language === 'LA' ? 'ສົ່ງສິນຄ້າເຂົ້າໄຊງານ' : 'Send Goods To Site',
+    quickEquipmentTitle: language === 'TH' ? 'ขอเบิกอุปกรณ์ / เครื่องมือ' : language === 'LA' ? 'ຂໍເບີກອຸປະກອນ / ເຄື່ອງມື' : 'Request Equipment / Tools',
+    quickPaymentTitle: language === 'TH' ? 'ขอเบิกเงิน' : language === 'LA' ? 'ຂໍເບີກເງິນ' : 'Request Payment',
+    quickMilestoneTitle: language === 'TH' ? 'ส่งงานงวดงาน' : language === 'LA' ? 'ສົ່ງວຽກຕາມງວດ' : 'Submit Work by Milestone',
+    quickIssueHelper: language === 'TH' ? 'แจ้งของขาดหรือปัญหาหน้างานทันที' : language === 'LA' ? 'ແຈ້ງຂອງຂາດ ຫຼື ບັນຫາໜ້າງານໄດ້ທັນທີ' : 'Report shortages or site issues right away',
+    quickDeliveryHelper: language === 'TH' ? 'บันทึกรับสินค้าหรือของเข้าไซต์งาน' : language === 'LA' ? 'ບັນທຶກການຮັບສິນຄ້າເຂົ້າໄຊງານ' : 'Log goods moving into the site',
+    quickEquipmentHelper: language === 'TH' ? 'ขอเบิกอุปกรณ์หรือเครื่องมือสำหรับงาน' : language === 'LA' ? 'ຂໍເບີກອຸປະກອນ ຫຼື ເຄື່ອງມືສຳລັບວຽກ' : 'Request equipment or tools for work',
+    quickPaymentHelper: language === 'TH' ? 'ส่งคำขอเบิกเงินตามหมวดงานและพื้นที่' : language === 'LA' ? 'ສົ່ງຄຳຂໍເບີກເງິນຕາມໝວດວຽກ ແລະ ພື້ນທີ່' : 'Submit a payment request by task category and zone',
+    quickMilestoneHelper: language === 'TH' ? 'ส่งความคืบหน้างวดงานพร้อมรูปและหมายเหตุ' : language === 'LA' ? 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດພ້ອມຮູບ ແລະ ໝາຍເຫດ' : 'Submit milestone progress with photos and notes',
   }), [language]);
 
   const canUseWorkActions = isCheckedIn && !isCheckedOut;
@@ -339,38 +444,84 @@ function WorkerMobileDebugApp() {
       todayBatchCount,
       todayPhotoCount,
       todayVoiceCount,
+      todayIssueCount,
+      todayDeliveryCount,
+      todayEquipmentCount,
+      todayPaymentCount,
+      todayMilestoneCount,
       activeScreen,
       isRecordingVoice,
       isVoiceProcessing: false,
       busyAction: '',
       screenPhoto: SCREEN_PHOTO,
       screenVoice: SCREEN_VOICE,
+      screenIssue: SCREEN_ISSUE,
+      screenDelivery: SCREEN_DELIVERY,
+      screenRequest: SCREEN_REQUEST,
+      screenPayment: SCREEN_PAYMENT,
+      screenMilestone: SCREEN_MILESTONE,
       roomName: areaZone,
     },
     handlers: {
       onCheckIn: () => {
         setIsCheckedIn(true);
         setIsCheckedOut(false);
+      setSimulatorStatus(`Check-in ${localCopy.active}`);
       },
-      onCheckOut: () => setIsCheckedOut(true),
+      onCheckOut: () => {
+        setIsCheckedOut(true);
+        setSimulatorStatus(`Check-out ${localCopy.active}`);
+      },
       onPhoto: () => {
         setActiveScreen(SCREEN_PHOTO);
         setActiveTab(TAB_HOME);
         if (!todayBatchCount) setTodayBatchCount(1);
         if (!todayPhotoCount) setTodayPhotoCount(3);
+        setSimulatorStatus(`${localCopy.quickSubmitTitle} active`);
       },
-      onVoice: () => {
-        setActiveScreen(SCREEN_VOICE);
+      onIssue: () => {
+        setActiveScreen(SCREEN_ISSUE);
         setActiveTab(TAB_HOME);
-        setIsRecordingVoice((current) => !current);
-        if (!todayVoiceCount) setTodayVoiceCount(1);
+        setRequestMode('issue');
+        setTodayIssueCount((current) => current || 1);
+        setSimulatorStatus(`${localCopy.quickIssueTitle} active`);
+      },
+      onDelivery: () => {
+        setActiveScreen(SCREEN_DELIVERY);
+        setActiveTab(TAB_HOME);
+        setRequestMode('delivery');
+        setTodayDeliveryCount((current) => current || 1);
+        setSimulatorStatus(`${localCopy.quickDeliveryTitle} active`);
+      },
+      onEquipment: () => {
+        setActiveScreen(SCREEN_REQUEST);
+        setActiveTab(TAB_HOME);
+        setRequestMode('equipment');
+        setTodayEquipmentCount((current) => current || 1);
+        setSimulatorStatus(`${localCopy.quickEquipmentTitle} active`);
+      },
+      onPayment: () => {
+        setActiveScreen(SCREEN_PAYMENT);
+        setActiveTab(TAB_HOME);
+        setRequestMode('payment');
+        setSimulatorStatus(`${localCopy.quickPaymentTitle} active`);
+      },
+      onMilestone: () => {
+        setActiveScreen(SCREEN_MILESTONE);
+        setActiveTab(TAB_HOME);
+        setRequestMode('milestone');
+        setSimulatorStatus(`${localCopy.quickMilestoneTitle} active`);
       },
     },
     icons: {
       checkin: CheckCircle2,
       checkout: Clock3,
       photo: Camera,
-      voice: Mic,
+      issue: AlertTriangle,
+      delivery: Package,
+      equipment: ClipboardList,
+      payment: Banknote,
+      milestone: ClipboardCheck,
     },
   });
 
@@ -379,7 +530,7 @@ function WorkerMobileDebugApp() {
   const labelsLoaded = navItems.every((item) => Boolean(item.label));
   const reportOk = footerMatchesNav && labelsLoaded;
   const simulatorChecks = [
-    { label: t('buttons_ok'), ok: actionButtons.length === 4 },
+    { label: t('buttons_ok'), ok: actionButtons.length === 8 },
     { label: t('dropdowns_ok'), ok: taskCategoryOptions.length > 0 && areaZoneOptions.length > 0 },
     { label: t('inputs_ok'), ok: typeof newTaskCategory === 'string' && typeof newAreaZone === 'string' },
     { label: t('language_ok'), ok: ['TH', 'LA', 'EN'].includes(language) },
@@ -397,12 +548,54 @@ function WorkerMobileDebugApp() {
     setTaskCategory(nextValue);
     setNewTaskCategory('');
   };
+  const updateTaskCategory = () => {
+    const nextValue = newTaskCategory.trim();
+    if (!nextValue || !taskCategory) return;
+    setCustomTaskCategories((current) => {
+      const filtered = current.filter((option) => option !== taskCategory);
+      return Array.from(new Set([...filtered, nextValue]));
+    });
+    setTaskCategory(nextValue);
+    setNewTaskCategory('');
+  };
   const addArea = () => {
     const nextValue = newAreaZone.trim();
     if (!nextValue) return;
     setCustomAreaZones((current) => Array.from(new Set([...current, nextValue])));
     setAreaZone(nextValue);
     setNewAreaZone('');
+  };
+  const updateArea = () => {
+    const nextValue = newAreaZone.trim();
+    if (!nextValue || !areaZone) return;
+    setCustomAreaZones((current) => {
+      const filtered = current.filter((option) => option !== areaZone);
+      return Array.from(new Set([...filtered, nextValue]));
+    });
+    setAreaZone(nextValue);
+    setNewAreaZone('');
+  };
+  const submitPayment = () => {
+    if (!paymentAmount || !taskCategory || !areaZone) {
+      setSimulatorStatus(t('status_form_incomplete'));
+      return;
+    }
+    setTodayPaymentCount((current) => current + 1);
+    setActiveScreen(SCREEN_PAYMENT);
+    setRequestMode('payment');
+    setSimulatorStatus(`${localCopy.quickPaymentTitle}: ${paymentAmount} • ${taskCategory} • ${areaZone}`);
+  };
+  const submitMilestone = () => {
+    if (!milestoneProgress || !taskCategory || !areaZone) {
+      setSimulatorStatus(t('status_form_incomplete'));
+      return;
+    }
+    setTodayMilestoneCount((current) => current + 1);
+    setActiveScreen(SCREEN_MILESTONE);
+    setRequestMode('milestone');
+    setTodayPhotoCount((current) => current || 2);
+    setTodayBatchCount((current) => current || 1);
+    setSimulatorStatus(`${localCopy.quickMilestoneTitle}: ${milestoneProgress}% • ${taskCategory} • ${areaZone}`);
   };
 
   return (
@@ -444,6 +637,11 @@ function WorkerMobileDebugApp() {
               <ControlNumber label={t('today_batch_count')} value={todayBatchCount} onChange={setTodayBatchCount} />
               <ControlNumber label={t('today_photo_count')} value={todayPhotoCount} onChange={setTodayPhotoCount} />
               <ControlNumber label={t('today_voice_count')} value={todayVoiceCount} onChange={setTodayVoiceCount} />
+              <ControlNumber label={t('today_issue_count')} value={todayIssueCount} onChange={setTodayIssueCount} />
+              <ControlNumber label={t('today_delivery_count')} value={todayDeliveryCount} onChange={setTodayDeliveryCount} />
+              <ControlNumber label={t('today_equipment_count')} value={todayEquipmentCount} onChange={setTodayEquipmentCount} />
+              <ControlNumber label={t('today_payment_count')} value={todayPaymentCount} onChange={setTodayPaymentCount} />
+              <ControlNumber label={t('today_milestone_count')} value={todayMilestoneCount} onChange={setTodayMilestoneCount} />
             </div>
           </section>
 
@@ -480,8 +678,11 @@ function WorkerMobileDebugApp() {
                       createValue={newTaskCategory}
                       onCreateValueChange={setNewTaskCategory}
                       onCreate={addTaskCategory}
+                      onUpdate={updateTaskCategory}
                       createPlaceholder={t('custom_placeholder')}
                       actionLabel={t('add_option')}
+                      updateLabel={t('update_option')}
+                      helperText={t('editable_helper')}
                     />
                     <DropdownCreateField
                       label={t('zone_area')}
@@ -493,10 +694,68 @@ function WorkerMobileDebugApp() {
                       createValue={newAreaZone}
                       onCreateValueChange={setNewAreaZone}
                       onCreate={addArea}
+                      onUpdate={updateArea}
                       createPlaceholder={t('custom_placeholder')}
                       actionLabel={t('add_option')}
+                      updateLabel={t('update_option')}
+                      helperText={t('editable_helper')}
                       accent="emerald"
                     />
+                  </div>
+                </section>
+
+                <section className="mt-4 rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <div className="text-sm font-semibold text-slate-900">{t('request_playground')}</div>
+                  <div className="mt-1 text-xs text-slate-500">{t('request_playground_desc')}</div>
+                  <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {t('request_mode')}: {requestMode}
+                  </div>
+                </section>
+
+                <section className="mt-4 rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <div className="text-sm font-semibold text-slate-900">{t('payment_playground')}</div>
+                  <div className="mt-3 space-y-3">
+                    <input
+                      type="number"
+                      min="0"
+                      value={paymentAmount}
+                      onChange={(event) => setPaymentAmount(event.target.value)}
+                      placeholder={t('payment_amount')}
+                      className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+                    />
+                    <input
+                      value={paymentNote}
+                      onChange={(event) => setPaymentNote(event.target.value)}
+                      placeholder={t('payment_note')}
+                      className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+                    />
+                    <button type="button" onClick={submitPayment} className="min-h-12 w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white touch-manipulation">
+                      {t('submit_payment')}
+                    </button>
+                  </div>
+                </section>
+
+                <section className="mt-4 rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <div className="text-sm font-semibold text-slate-900">{t('milestone_playground')}</div>
+                  <div className="mt-3 space-y-3">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={milestoneProgress}
+                      onChange={(event) => setMilestoneProgress(event.target.value)}
+                      placeholder={t('milestone_progress')}
+                      className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+                    />
+                    <input
+                      value={milestoneNote}
+                      onChange={(event) => setMilestoneNote(event.target.value)}
+                      placeholder={t('milestone_note')}
+                      className="min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base"
+                    />
+                    <button type="button" onClick={submitMilestone} className="min-h-12 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white touch-manipulation">
+                      {t('submit_milestone')}
+                    </button>
                   </div>
                 </section>
 
@@ -514,6 +773,9 @@ function WorkerMobileDebugApp() {
                   <div className="text-sm font-semibold text-slate-900">{t('debug_state')}</div>
                   <div className="mt-2 text-sm text-slate-600">activeTab: {activeTab}</div>
                   <div className="mt-1 text-sm text-slate-600">activeScreen: {activeScreen}</div>
+                  <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {t('interaction_status')}: {simulatorStatus}
+                  </div>
                 </section>
               </div>
 

@@ -11,6 +11,9 @@ export const SCREEN_PHOTO = 'photo';
 export const SCREEN_VOICE = 'voice';
 export const SCREEN_REQUEST = 'request';
 export const SCREEN_ISSUE = 'issue';
+export const SCREEN_DELIVERY = 'delivery';
+export const SCREEN_PAYMENT = 'payment';
+export const SCREEN_MILESTONE = 'milestone';
 
 export const workerNavItemDefs = [
   { id: TAB_HOME, labelKey: 'worker_nav_home', fallback: 'Home', icon: 'home' },
@@ -96,7 +99,11 @@ export function createWorkerActionButtons({
   } = state;
 
   const photoHistoryHighlight = canOpenWorkerTools && todayPhotoCount > 0;
-  const voiceHistoryHighlight = canOpenWorkerTools && todayVoiceCount > 0;
+  const issueHistoryHighlight = canUseWorkActions && Boolean(state.todayIssueCount);
+  const deliveryHistoryHighlight = canUseWorkActions && Boolean(state.todayDeliveryCount);
+  const equipmentHistoryHighlight = canUseWorkActions && Boolean(state.todayEquipmentCount);
+  const paymentHistoryHighlight = canUseWorkActions && Boolean(state.todayPaymentCount);
+  const milestoneHistoryHighlight = canUseWorkActions && Boolean(state.todayMilestoneCount);
 
   return [
     {
@@ -122,8 +129,8 @@ export function createWorkerActionButtons({
       onClick: handlers.onCheckOut,
     },
     {
-      id: 'photo',
-      label: 'Photo',
+      id: 'submit',
+      label: localCopy.quickSubmitTitle,
       helper: todayPhotoCount > 0
         ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}`
         : !canUseWorkActions
@@ -141,25 +148,81 @@ export function createWorkerActionButtons({
       onClick: handlers.onPhoto,
     },
     {
-      id: 'voice',
-      label: 'Voice',
-      helper: isRecordingVoice
-        ? localCopy.recording
-        : todayVoiceCount > 0
-          ? `${todayVoiceCount} ${localCopy.done}`
-          : !canUseWorkActions
-            ? localCopy.disabled
-            : isProjectBatchOptionsLoading
-              ? localCopy.batchProjectDataLoading
-              : hasBatchRoomSelection
-                ? `${localCopy.active} • ${roomName}`
-                : localCopy.batchFilterRoom,
-      icon: icons.voice,
+      id: 'issue',
+      label: localCopy.quickIssueTitle,
+      helper: state.todayIssueCount
+        ? `${state.todayIssueCount} ${localCopy.done}`
+        : !canUseWorkActions
+          ? localCopy.disabled
+          : localCopy.quickIssueHelper,
+      icon: icons.issue,
       tone: 'amber',
+      disabled: !canUseWorkActions,
+      loading: busyAction === 'issue-submit',
+      active: activeScreen === state.screenIssue || issueHistoryHighlight,
+      onClick: handlers.onIssue,
+    },
+    {
+      id: 'delivery',
+      label: localCopy.quickDeliveryTitle,
+      helper: state.todayDeliveryCount
+        ? `${state.todayDeliveryCount} ${localCopy.done}`
+        : !canUseWorkActions
+          ? localCopy.disabled
+          : localCopy.quickDeliveryHelper,
+      icon: icons.delivery,
+      tone: 'blue',
+      disabled: !canUseWorkActions,
+      loading: busyAction === 'delivery-submit',
+      active: activeScreen === state.screenDelivery || deliveryHistoryHighlight,
+      onClick: handlers.onDelivery,
+    },
+    {
+      id: 'equipment',
+      label: localCopy.quickEquipmentTitle,
+      helper: state.todayEquipmentCount
+        ? `${state.todayEquipmentCount} ${localCopy.done}`
+        : !canUseWorkActions
+          ? localCopy.disabled
+          : localCopy.quickEquipmentHelper,
+      icon: icons.equipment,
+      tone: 'amber',
+      disabled: !canUseWorkActions,
+      loading: busyAction === 'equipment-submit',
+      active: activeScreen === state.screenRequest || equipmentHistoryHighlight,
+      onClick: handlers.onEquipment,
+    },
+    {
+      id: 'payment',
+      label: localCopy.quickPaymentTitle,
+      helper: state.todayPaymentCount
+        ? `${state.todayPaymentCount} ${localCopy.done}`
+        : !canUseWorkActions
+          ? localCopy.disabled
+          : localCopy.quickPaymentHelper,
+      icon: icons.payment,
+      tone: 'emerald',
+      disabled: !canUseWorkActions,
+      loading: busyAction === 'payment-submit',
+      active: activeScreen === state.screenPayment || paymentHistoryHighlight,
+      onClick: handlers.onPayment,
+    },
+    {
+      id: 'milestone',
+      label: localCopy.quickMilestoneTitle,
+      helper: state.todayMilestoneCount
+        ? `${state.todayMilestoneCount} ${localCopy.done}`
+        : !canOpenWorkerTools
+          ? hasBatchRoomSelection
+            ? localCopy.disabled
+            : localCopy.batchFilterRoom
+          : localCopy.quickMilestoneHelper,
+      icon: icons.milestone,
+      tone: 'slate',
       disabled: !canOpenWorkerTools,
-      loading: Boolean(state.isVoiceProcessing),
-      active: activeScreen === screenVoice || isRecordingVoice || voiceHistoryHighlight,
-      onClick: handlers.onVoice,
+      loading: busyAction === 'milestone-submit' || busyAction === 'milestone-upload',
+      active: activeScreen === state.screenMilestone || milestoneHistoryHighlight,
+      onClick: handlers.onMilestone,
     },
   ];
 }

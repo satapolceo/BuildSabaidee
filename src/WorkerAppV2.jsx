@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
+  Banknote,
   Camera,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   Clock3,
   FileImage,
@@ -24,6 +26,8 @@ import {
   createAttendanceRecord,
   createIssueReport,
   createMaterialRequest,
+  createMilestoneSubmission,
+  createPaymentRequest,
   createPhotoSubmissionBatch,
   createVoiceNoteRecord,
   getTodayAttendance,
@@ -47,6 +51,9 @@ import {
   SCREEN_VOICE,
   SCREEN_REQUEST,
   SCREEN_ISSUE,
+  SCREEN_DELIVERY,
+  SCREEN_PAYMENT,
+  SCREEN_MILESTONE,
   createWorkerNavItems,
   createWorkerActionButtons,
   getLocalizedConstructionTaskCategoryOptions,
@@ -69,7 +76,9 @@ const defaultPhotoBatch = {
   status: 'draft',
 };
 const defaultIssueForm = { category: 'safety', urgency: 'high', detail: '', imageData: '', imageStats: null, originalName: '' };
-const defaultRequestForm = { itemName: '', quantity: '1', unit: 'piece', note: '', imageData: '', imageStats: null, originalName: '' };
+const defaultRequestForm = { itemName: '', quantity: '1', unit: 'piece', note: '', taskCategory: '', areaZone: '', imageData: '', imageStats: null, originalName: '' };
+const defaultPaymentForm = { amount: '', taskCategory: '', areaZone: '', note: '' };
+const defaultMilestoneForm = { taskCategory: '', areaZone: '', progress: '', note: '', photos: [] };
 
 const PROJECT_BATCH_LIBRARY = {
   default: {
@@ -330,6 +339,46 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         customInputPlaceholder: 'พิมพ์แล้วเพิ่มเข้ารายการ',
         photoFlowHelper: 'โฟลว์มือถือแบบย่อ: เลือกหมวดงาน, พื้นที่, แนบรูป, ส่งงาน',
         projectAutoSelected: 'เลือกโครงการจากไซต์ที่รับผิดชอบให้อัตโนมัติ เพื่อลดขั้นตอนบนมือถือ',
+        quickSubmitTitle: 'อัปเดตส่งงาน',
+        quickIssueTitle: 'แจ้งปัญหาของขาด',
+        quickDeliveryTitle: 'ส่งสินค้าเข้าไซต์งาน',
+        quickEquipmentTitle: 'ขอเบิกอุปกรณ์ / เครื่องมือ',
+        quickPaymentTitle: 'ขอเบิกเงิน',
+        quickMilestoneTitle: 'ส่งงานงวดงาน',
+        quickIssueHelper: 'แจ้งของขาดหรือปัญหาหน้างานทันที',
+        quickDeliveryHelper: 'บันทึกรับสินค้าหรือของเข้าไซต์งาน',
+        quickEquipmentHelper: 'ขอเบิกอุปกรณ์หรือเครื่องมือสำหรับงาน',
+        quickPaymentHelper: 'ส่งคำขอเบิกเงินตามหมวดงานและพื้นที่',
+        quickMilestoneHelper: 'ส่งความคืบหน้างวดงานพร้อมรูปและหมายเหตุ',
+        editableUpdateAction: 'อัปเดตรายการที่เลือก',
+        editableSelectedHelper: 'เลือกจากรายการ หรือพิมพ์ค่าใหม่เพื่อเพิ่ม/แก้ได้ทันที',
+        requestItemPlaceholder: 'รายการหลัก',
+        requestQuantityPlaceholder: 'จำนวน',
+        requestUnitPlaceholder: 'หน่วย',
+        requestNotePlaceholder: 'รายละเอียดเพิ่มเติม',
+        requestPhotoHelper: 'แนบรูปประกอบได้เมื่อจำเป็น',
+        requestSubmitAction: 'ส่งรายการ',
+        requestRecentTitle: 'รายการล่าสุด',
+        requestDeliveryScreenTitle: 'ส่งสินค้าเข้าไซต์งาน',
+        requestDeliveryScreenDesc: 'บันทึกของเข้าไซต์พร้อมหมวดงานและพื้นที่จริง',
+        requestEquipmentScreenTitle: 'ขอเบิกอุปกรณ์ / เครื่องมือ',
+        requestEquipmentScreenDesc: 'ส่งคำขออุปกรณ์พร้อมหมวดงานและพื้นที่ใช้งาน',
+        paymentScreenTitle: 'ขอเบิกเงิน',
+        paymentScreenDesc: 'กรอกจำนวน หมวดงาน และพื้นที่ เพื่อส่งคำขอเบิกเงิน',
+        paymentAmountLabel: 'จำนวนเงิน',
+        paymentAmountPlaceholder: 'กรอกจำนวนเงิน',
+        paymentSubmitAction: 'ส่งคำขอเบิกเงิน',
+        paymentRecentTitle: 'ประวัติขอเบิกเงิน',
+        paymentSaved: 'ส่งคำขอเบิกเงินแล้ว',
+        milestoneScreenTitle: 'ส่งงานงวดงาน',
+        milestoneScreenDesc: 'อัปเดตความคืบหน้า พร้อมรูป และหมายเหตุของงวดงาน',
+        milestoneProgressLabel: 'ความคืบหน้า (%)',
+        milestoneProgressPlaceholder: 'เช่น 45',
+        milestoneSubmitAction: 'ส่งงวดงาน',
+        milestoneRecentTitle: 'ประวัติส่งงวดงาน',
+        milestoneSaved: 'ส่งงวดงานแล้ว',
+        requestSavedDelivery: 'บันทึกรับสินค้าเข้าไซต์แล้ว',
+        requestSavedEquipment: 'ส่งคำขออุปกรณ์ / เครื่องมือแล้ว',
       }
     : language === 'LA'
       ? {
@@ -416,6 +465,46 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           customInputPlaceholder: 'ພິມແລ້ວເພີ່ມເຂົ້າລາຍການ',
           photoFlowHelper: 'ໂຟລວ໌ມືຖືແບບຍໍ້: ເລືອກໝວດວຽກ, ພື້ນທີ່, ແນບຮູບ, ສົ່ງງານ',
           projectAutoSelected: 'ເລືອກໂຄງການໃຫ້ອັດຕະໂນມັດຈາກໄຊທ໌ທີ່ຮັບຜິດຊອບ ເພື່ອຫຼຸດຂັ້ນຕອນໃນມືຖື',
+          quickSubmitTitle: 'ອັບເດດສົ່ງງານ',
+          quickIssueTitle: 'ແຈ້ງບັນຫາຂອງຂາດ',
+          quickDeliveryTitle: 'ສົ່ງສິນຄ້າເຂົ້າໄຊງານ',
+          quickEquipmentTitle: 'ຂໍເບີກອຸປະກອນ / ເຄື່ອງມື',
+          quickPaymentTitle: 'ຂໍເບີກເງິນ',
+          quickMilestoneTitle: 'ສົ່ງວຽກຕາມງວດ',
+          quickIssueHelper: 'ແຈ້ງຂອງຂາດ ຫຼື ບັນຫາໜ້າງານໄດ້ທັນທີ',
+          quickDeliveryHelper: 'ບັນທຶກການຮັບສິນຄ້າເຂົ້າໄຊງານ',
+          quickEquipmentHelper: 'ຂໍເບີກອຸປະກອນ ຫຼື ເຄື່ອງມືສຳລັບວຽກ',
+          quickPaymentHelper: 'ສົ່ງຄຳຂໍເບີກເງິນຕາມໝວດວຽກ ແລະ ພື້ນທີ່',
+          quickMilestoneHelper: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດພ້ອມຮູບ ແລະ ໝາຍເຫດ',
+          editableUpdateAction: 'ອັບເດດລາຍການທີ່ເລືອກ',
+          editableSelectedHelper: 'ເລືອກຈາກລາຍການ ຫຼື ພິມຄ່າໃໝ່ເພື່ອເພີ່ມ/ແກ້ໄຂໄດ້ທັນທີ',
+          requestItemPlaceholder: 'ລາຍການຫຼັກ',
+          requestQuantityPlaceholder: 'ຈຳນວນ',
+          requestUnitPlaceholder: 'ໜ່ວຍ',
+          requestNotePlaceholder: 'ລາຍລະອຽດເພີ່ມ',
+          requestPhotoHelper: 'ສາມາດແນບຮູບເພີ່ມເມື່ອຈຳເປັນ',
+          requestSubmitAction: 'ສົ່ງລາຍການ',
+          requestRecentTitle: 'ລາຍການຫຼ້າສຸດ',
+          requestDeliveryScreenTitle: 'ສົ່ງສິນຄ້າເຂົ້າໄຊງານ',
+          requestDeliveryScreenDesc: 'ບັນທຶກຂອງເຂົ້າໄຊພ້ອມໝວດວຽກ ແລະ ພື້ນທີ່ຈິງ',
+          requestEquipmentScreenTitle: 'ຂໍເບີກອຸປະກອນ / ເຄື່ອງມື',
+          requestEquipmentScreenDesc: 'ສົ່ງຄຳຂໍອຸປະກອນພ້ອມໝວດວຽກ ແລະ ພື້ນທີ່ໃຊ້ງານ',
+          paymentScreenTitle: 'ຂໍເບີກເງິນ',
+          paymentScreenDesc: 'ກອກຈຳນວນ ໝວດວຽກ ແລະ ພື້ນທີ່ ເພື່ອສົ່ງຄຳຂໍເບີກເງິນ',
+          paymentAmountLabel: 'ຈຳນວນເງິນ',
+          paymentAmountPlaceholder: 'ກອກຈຳນວນເງິນ',
+          paymentSubmitAction: 'ສົ່ງຄຳຂໍເບີກເງິນ',
+          paymentRecentTitle: 'ປະຫວັດຂໍເບີກເງິນ',
+          paymentSaved: 'ສົ່ງຄຳຂໍເບີກເງິນແລ້ວ',
+          milestoneScreenTitle: 'ສົ່ງວຽກຕາມງວດ',
+          milestoneScreenDesc: 'ອັບເດດຄວາມຄືບໜ້າພ້ອມຮູບ ແລະ ໝາຍເຫດຂອງງວດງານ',
+          milestoneProgressLabel: 'ຄວາມຄືບໜ້າ (%)',
+          milestoneProgressPlaceholder: 'ຕົວຢ່າງ 45',
+          milestoneSubmitAction: 'ສົ່ງງວດງານ',
+          milestoneRecentTitle: 'ປະຫວັດສົ່ງງວດງານ',
+          milestoneSaved: 'ສົ່ງງວດງານແລ້ວ',
+          requestSavedDelivery: 'ບັນທຶກສິນຄ້າເຂົ້າໄຊແລ້ວ',
+          requestSavedEquipment: 'ສົ່ງຄຳຂໍອຸປະກອນ / ເຄື່ອງມືແລ້ວ',
         }
       : {
           todayStatusLabel: 'Today status',
@@ -501,6 +590,46 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           customInputPlaceholder: 'Type a new option',
           photoFlowHelper: 'Simplified mobile flow: choose task category, area, attach photos, submit',
           projectAutoSelected: 'The assigned project is selected automatically to reduce mobile steps',
+          quickSubmitTitle: 'Update Submission',
+          quickIssueTitle: 'Report Missing Items',
+          quickDeliveryTitle: 'Send Goods To Site',
+          quickEquipmentTitle: 'Request Equipment / Tools',
+          quickPaymentTitle: 'Request Payment',
+          quickMilestoneTitle: 'Submit Work by Milestone',
+          quickIssueHelper: 'Report shortages or on-site issues right away',
+          quickDeliveryHelper: 'Log goods and stock moving into the site',
+          quickEquipmentHelper: 'Request equipment or tools needed for work',
+          quickPaymentHelper: 'Submit a payment request by task category and work zone',
+          quickMilestoneHelper: 'Send milestone progress with photos and notes',
+          editableUpdateAction: 'Update selected option',
+          editableSelectedHelper: 'Pick from the list or type a new value to add/update it instantly',
+          requestItemPlaceholder: 'Main item',
+          requestQuantityPlaceholder: 'Quantity',
+          requestUnitPlaceholder: 'Unit',
+          requestNotePlaceholder: 'Extra details',
+          requestPhotoHelper: 'Attach a supporting photo when needed',
+          requestSubmitAction: 'Send entry',
+          requestRecentTitle: 'Recent entries',
+          requestDeliveryScreenTitle: 'Send Goods To Site',
+          requestDeliveryScreenDesc: 'Log incoming goods with the real task category and work area',
+          requestEquipmentScreenTitle: 'Request Equipment / Tools',
+          requestEquipmentScreenDesc: 'Send equipment requests with the real task category and work area',
+          paymentScreenTitle: 'Request Payment',
+          paymentScreenDesc: 'Enter amount, task category, and zone before submitting the payment request',
+          paymentAmountLabel: 'Amount',
+          paymentAmountPlaceholder: 'Enter amount',
+          paymentSubmitAction: 'Submit payment request',
+          paymentRecentTitle: 'Recent payment requests',
+          paymentSaved: 'Payment request submitted',
+          milestoneScreenTitle: 'Submit Work by Milestone',
+          milestoneScreenDesc: 'Update milestone progress with photos and notes',
+          milestoneProgressLabel: 'Progress (%)',
+          milestoneProgressPlaceholder: 'Example 45',
+          milestoneSubmitAction: 'Submit milestone',
+          milestoneRecentTitle: 'Recent milestone submissions',
+          milestoneSaved: 'Milestone submitted',
+          requestSavedDelivery: 'Goods received at site',
+          requestSavedEquipment: 'Equipment / tools request sent',
         };
   const siteName = currentProject?.name || pickText(t, 'worker_site_name_fallback', 'Project not assigned');
   const today = new Date().toISOString().split('T')[0];
@@ -533,6 +662,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [voiceNotes, setVoiceNotes] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.voiceNotes, []));
   const [issues, setIssues] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.issues, []));
   const [materialRequests, setMaterialRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, []));
+  const [paymentRequests, setPaymentRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.paymentRequests, []));
+  const [milestoneSubmissions, setMilestoneSubmissions] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, []));
   const [settings, setSettings] = useState(() => ({ ...DATA_SAVER_DEFAULTS, ...loadFromStorage(WORKER_STORAGE_KEYS.settings, {}) }));
   const [tasks, setTasks] = useState(() => {
     const saved = loadFromStorage(WORKER_STORAGE_KEYS.tasks, []);
@@ -542,6 +673,9 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [photoBatchForm, setPhotoBatchForm] = useState(() => createDefaultPhotoBatchForm(getPreferredProject(projectsList, currentProject)));
   const [issueForm, setIssueForm] = useState(defaultIssueForm);
   const [requestForm, setRequestForm] = useState(defaultRequestForm);
+  const [paymentForm, setPaymentForm] = useState(defaultPaymentForm);
+  const [milestoneForm, setMilestoneForm] = useState(defaultMilestoneForm);
+  const [requestMode, setRequestMode] = useState('equipment');
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -557,6 +691,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.voiceNotes, voiceNotes), [voiceNotes]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.issues, issues), [issues]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.materialRequests, materialRequests), [materialRequests]);
+  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.paymentRequests, paymentRequests), [paymentRequests]);
+  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, milestoneSubmissions), [milestoneSubmissions]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.settings, settings), [settings]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.tasks, tasks), [tasks]);
 
@@ -673,6 +809,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     () => materialRequests.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
     [materialRequests, currentWorker.id]
   );
+  const latestPaymentRequests = useMemo(
+    () => paymentRequests.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
+    [paymentRequests, currentWorker.id]
+  );
+  const latestMilestones = useMemo(
+    () => milestoneSubmissions.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
+    [milestoneSubmissions, currentWorker.id]
+  );
   const workTypeOptions = useMemo(() => projectBatchOptions.workTypes, [projectBatchOptions.workTypes]);
   const tradeTeamOptions = useMemo(
     () => projectBatchOptions.tradeTeams.filter((option) => !photoBatchForm.workType || option.workTypes?.includes(photoBatchForm.workType)),
@@ -708,7 +852,17 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     .filter((entry) => entry.workerId === currentWorker.id && entry.dateKey === today)
     .length;
   const todayVoiceCount = latestVoiceNotes.filter((entry) => entry.dateKey === today).length;
+  const todayIssueCount = latestIssues.filter((entry) => entry.dateKey === today).length;
+  const todayDeliveryCount = latestRequests.filter((entry) => entry.dateKey === today && entry.requestType === 'delivery').length;
+  const todayEquipmentCount = latestRequests.filter((entry) => entry.dateKey === today && entry.requestType !== 'delivery').length;
+  const todayPaymentCount = latestPaymentRequests.filter((entry) => entry.dateKey === today).length;
+  const todayMilestoneCount = latestMilestones.filter((entry) => entry.dateKey === today).length;
   const todayStatus = isCheckedOut ? localCopy.checkedOut : isCheckedIn ? localCopy.working : localCopy.notCheckedIn;
+  const isDeliveryMode = requestMode === 'delivery';
+  const requestScreenTitle = isDeliveryMode ? localCopy.requestDeliveryScreenTitle : localCopy.requestEquipmentScreenTitle;
+  const requestScreenDesc = isDeliveryMode ? localCopy.requestDeliveryScreenDesc : localCopy.requestEquipmentScreenDesc;
+  const requestSubmitLabel = localCopy.requestSubmitAction;
+  const requestRecentItems = latestRequests.filter((entry) => (isDeliveryMode ? entry.requestType === 'delivery' : entry.requestType !== 'delivery'));
 
   const activityFeed = useMemo(() => {
     const attendanceItems = attendanceRecords
@@ -760,22 +914,46 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     const requestItems = latestRequests.map((entry) => ({
       id: entry.id,
       type: 'request',
-        title: pickText(t, 'worker_material', 'Request Material'),
-        detail: `${entry.itemName} • ${entry.quantity} ${entry.unit} • ${formatDateTime(entry.requestedAt, locale)}`,
+        title: entry.requestType === 'delivery' ? localCopy.quickDeliveryTitle : localCopy.quickEquipmentTitle,
+        detail: `${entry.itemName} • ${entry.quantity} ${entry.unit} • ${entry.areaZone || '-'} • ${formatDateTime(entry.requestedAt, locale)}`,
         status: entry.status,
         imageData: entry.imageData,
         audioData: '',
         timestamp: entry.requestedAt,
       }));
 
-    return [...attendanceItems, ...photoItems, ...voiceItems, ...issueItems, ...requestItems]
+    const paymentItems = latestPaymentRequests.map((entry) => ({
+      id: entry.id,
+      type: 'payment',
+      title: localCopy.quickPaymentTitle,
+      detail: `${entry.amount} • ${entry.taskCategory || '-'} • ${formatDateTime(entry.requestedAt, locale)}`,
+      status: entry.status,
+      imageData: '',
+      audioData: '',
+      timestamp: entry.requestedAt,
+    }));
+
+    const milestoneItems = latestMilestones.map((entry) => ({
+      id: entry.id,
+      type: 'milestone',
+      title: localCopy.quickMilestoneTitle,
+      detail: `${entry.progress}% • ${entry.areaZone || '-'} • ${formatDateTime(entry.submittedAt, locale)}`,
+      status: entry.status,
+      imageData: entry.photos?.[0]?.imageData || '',
+      audioData: '',
+      timestamp: entry.submittedAt,
+    }));
+
+    return [...attendanceItems, ...photoItems, ...voiceItems, ...issueItems, ...requestItems, ...paymentItems, ...milestoneItems]
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
       .slice(0, 12);
-  }, [attendanceRecords, currentWorker.id, latestIssues, latestPhotoReports, latestRequests, latestVoiceNotes, locale, localCopy.voiceSaved, siteName, t]);
+  }, [attendanceRecords, currentWorker.id, latestIssues, latestMilestones, latestPaymentRequests, latestPhotoReports, latestRequests, latestVoiceNotes, locale, localCopy.quickMilestoneTitle, localCopy.quickPaymentTitle, localCopy.voiceSaved, siteName, t]);
 
   const pendingItems = [
     ...latestPhotoReports.filter((entry) => entry.status === 'draft').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_photo', 'Photo')} • ${entry.batchTitle || entry.workType}` })),
-    ...latestRequests.filter((entry) => entry.status === 'pending').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_material', 'Material')} • ${entry.itemName}` })),
+    ...latestRequests.filter((entry) => entry.status === 'pending').map((entry) => ({ id: entry.id, label: `${entry.requestType === 'delivery' ? localCopy.quickDeliveryTitle : localCopy.quickEquipmentTitle} • ${entry.itemName}` })),
+    ...latestPaymentRequests.filter((entry) => entry.status === 'pending').map((entry) => ({ id: entry.id, label: `${localCopy.quickPaymentTitle} • ${entry.amount}` })),
+    ...latestMilestones.filter((entry) => entry.status !== 'submitted').map((entry) => ({ id: entry.id, label: `${localCopy.quickMilestoneTitle} • ${entry.progress}%` })),
     ...latestIssues.filter((entry) => entry.status === 'open').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_sos', 'SOS')} • ${entry.category}` })),
     ...tasks.filter((entry) => entry.status !== TASK_STATUS.completed).map((entry) => ({ id: entry.id, label: pickText(t, `worker_task_title_${entry.title}`, entry.title) })),
   ].slice(0, 4);
@@ -783,7 +961,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const latestNotifications = [
     { id: 'attendance', title: todayStatus },
     { id: 'photos', title: latestPhotoReports[0] ? `${pickText(t, 'worker_photo', 'Photo')} • ${latestPhotoReports[0].batchTitle || latestPhotoReports[0].workType}` : pickText(t, 'worker_notification_sync', 'Offline data has been safely saved') },
-    { id: 'voice', title: latestVoiceNotes[0] ? `${localCopy.lastVoice} • ${formatDuration(latestVoiceNotes[0].durationMs)}` : isCheckedOut ? localCopy.doneHelper : isCheckedIn ? localCopy.readyHelper : localCopy.gateHelper },
+    { id: 'requests', title: latestPaymentRequests[0] ? `${localCopy.quickPaymentTitle} • ${latestPaymentRequests[0].amount}` : latestRequests[0] ? `${latestRequests[0].requestType === 'delivery' ? localCopy.quickDeliveryTitle : localCopy.quickEquipmentTitle} • ${latestRequests[0].itemName}` : isCheckedOut ? localCopy.doneHelper : isCheckedIn ? localCopy.readyHelper : localCopy.gateHelper },
   ];
 
   const openScreen = (screen, message = '') => {
@@ -797,6 +975,36 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setValidationError('');
     setVoiceError('');
     setActiveScreen(activeTab);
+  };
+
+  const openRequestScreen = (mode) => {
+    const nextMode = mode === 'delivery' ? 'delivery' : 'equipment';
+    setRequestMode(nextMode);
+    setRequestForm((current) => ({
+      ...current,
+      requestType: nextMode,
+      taskCategory: current.taskCategory || photoBatchForm.taskCategory,
+      areaZone: current.areaZone || photoBatchForm.areaZone,
+    }));
+    openScreen(nextMode === 'delivery' ? SCREEN_DELIVERY : SCREEN_REQUEST);
+  };
+
+  const openPaymentScreen = () => {
+    setPaymentForm((current) => ({
+      ...current,
+      taskCategory: current.taskCategory || photoBatchForm.taskCategory,
+      areaZone: current.areaZone || photoBatchForm.areaZone,
+    }));
+    openScreen(SCREEN_PAYMENT);
+  };
+
+  const openMilestoneScreen = () => {
+    setMilestoneForm((current) => ({
+      ...current,
+      taskCategory: current.taskCategory || photoBatchForm.taskCategory,
+      areaZone: current.areaZone || photoBatchForm.areaZone,
+    }));
+    openScreen(SCREEN_MILESTONE);
   };
 
   const pushToast = (messageKey, fallback) => setToast(localCopy[messageKey] || pickText(t, messageKey, fallback));
@@ -903,6 +1111,9 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       workType: nextValue,
       tradeTeam: current.tradeTeam || 'General Crew',
     }));
+    setRequestForm((current) => ({ ...current, taskCategory: nextValue }));
+    setPaymentForm((current) => ({ ...current, taskCategory: nextValue }));
+    setMilestoneForm((current) => ({ ...current, taskCategory: nextValue }));
   };
 
   const handleAreaZoneChange = (value) => {
@@ -913,6 +1124,9 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       roomId: nextValue,
       roomName: nextValue,
     }));
+    setRequestForm((current) => ({ ...current, areaZone: nextValue }));
+    setPaymentForm((current) => ({ ...current, areaZone: nextValue }));
+    setMilestoneForm((current) => ({ ...current, areaZone: nextValue }));
   };
 
   const addTaskCategoryOption = () => {
@@ -923,10 +1137,34 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setNewTaskCategory('');
   };
 
+  const updateTaskCategoryOption = () => {
+    const nextValue = newTaskCategory.trim();
+    const currentValue = photoBatchForm.taskCategory.trim();
+    if (!nextValue || !currentValue) return;
+    setCustomTaskCategories((current) => {
+      const filtered = current.filter((option) => option !== currentValue);
+      return Array.from(new Set([...filtered, nextValue]));
+    });
+    handleTaskCategoryChange(nextValue);
+    setNewTaskCategory('');
+  };
+
   const addAreaZoneOption = () => {
     const nextValue = newAreaZone.trim();
     if (!nextValue) return;
     setCustomAreaZones((current) => Array.from(new Set([...current, nextValue])));
+    handleAreaZoneChange(nextValue);
+    setNewAreaZone('');
+  };
+
+  const updateAreaZoneOption = () => {
+    const nextValue = newAreaZone.trim();
+    const currentValue = photoBatchForm.areaZone.trim();
+    if (!nextValue || !currentValue) return;
+    setCustomAreaZones((current) => {
+      const filtered = current.filter((option) => option !== currentValue);
+      return Array.from(new Set([...filtered, nextValue]));
+    });
     handleAreaZoneChange(nextValue);
     setNewAreaZone('');
   };
@@ -1048,7 +1286,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const submitRequest = () => {
     setValidationError('');
-    if (!requestForm.itemName || !requestForm.quantity || Number(requestForm.quantity) <= 0 || !requestForm.unit) {
+    if (
+      !requestForm.itemName
+      || !requestForm.quantity
+      || Number(requestForm.quantity) <= 0
+      || !requestForm.unit
+      || !requestForm.taskCategory
+      || !requestForm.areaZone
+    ) {
       setValidationError(pickText(t, 'worker_validation_material_quantity', 'Enter a valid quantity'));
       return;
     }
@@ -1062,12 +1307,119 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       unit: requestForm.unit,
       note: requestForm.note,
       imageData: requestForm.imageData,
+      requestType: requestMode,
+      taskCategory: requestForm.taskCategory,
+      areaZone: requestForm.areaZone,
+      projectName: photoBatchForm.projectName || siteName,
       status: 'pending',
     });
 
     setMaterialRequests((current) => [...current, record]);
-    setRequestForm(defaultRequestForm);
-    pushToast('worker_action_sent_success', 'Request sent successfully');
+    setRequestForm((current) => ({
+      ...defaultRequestForm,
+      requestType: requestMode,
+      taskCategory: current.taskCategory,
+      areaZone: current.areaZone,
+    }));
+    setToast(isDeliveryMode ? localCopy.requestSavedDelivery : localCopy.requestSavedEquipment);
+  };
+
+  const submitPaymentRequest = () => {
+    setValidationError('');
+    if (!paymentForm.amount || Number(paymentForm.amount) <= 0 || !paymentForm.taskCategory || !paymentForm.areaZone) {
+      setValidationError(pickText(t, 'worker_validation_required', 'Please complete required fields'));
+      return;
+    }
+
+    const record = createPaymentRequest({
+      workerId: currentWorker.id,
+      workerName: currentWorker.name,
+      siteName,
+      projectName: photoBatchForm.projectName || siteName,
+      amount: Number(paymentForm.amount),
+      taskCategory: paymentForm.taskCategory,
+      areaZone: paymentForm.areaZone,
+      note: paymentForm.note,
+    });
+
+    setPaymentRequests((current) => [...current, record]);
+    setPaymentForm((current) => ({
+      ...defaultPaymentForm,
+      taskCategory: current.taskCategory,
+      areaZone: current.areaZone,
+    }));
+    setToast(localCopy.paymentSaved);
+  };
+
+  const handleMilestonePhotoChange = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    await withBusyAction('milestone-upload', async () => {
+      const nextPhotos = [];
+      for (const file of files) {
+        const { imageData, stats } = await compressImageFile(file, settings);
+        nextPhotos.push({
+          id: `milestone_photo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          imageData,
+          imageStats: stats,
+          originalName: file.name || '',
+          capturedAt: Date.now(),
+        });
+      }
+
+      setMilestoneForm((current) => ({
+        ...current,
+        photos: [...current.photos, ...nextPhotos],
+      }));
+      setToast(localCopy.photoCaptured);
+    });
+
+    event.target.value = '';
+  };
+
+  const removeMilestonePhoto = (photoId) => {
+    setMilestoneForm((current) => ({
+      ...current,
+      photos: current.photos.filter((photo) => photo.id !== photoId),
+    }));
+    setToast(localCopy.photoRemoved);
+  };
+
+  const submitMilestone = async () => {
+    setValidationError('');
+    if (!milestoneForm.taskCategory || !milestoneForm.areaZone || !milestoneForm.progress) {
+      setValidationError(pickText(t, 'worker_validation_required', 'Please complete required fields'));
+      return;
+    }
+
+    await withBusyAction('milestone-submit', async () => {
+      const record = createMilestoneSubmission({
+        workerId: currentWorker.id,
+        workerName: currentWorker.name,
+        siteName,
+        projectName: photoBatchForm.projectName || siteName,
+        taskCategory: milestoneForm.taskCategory,
+        areaZone: milestoneForm.areaZone,
+        progress: milestoneForm.progress,
+        note: milestoneForm.note,
+        photos: milestoneForm.photos.map((photo) => ({
+          id: photo.id,
+          imageData: photo.imageData,
+          imageMeta: photo.imageStats || {},
+          originalName: photo.originalName || '',
+          capturedAt: photo.capturedAt || Date.now(),
+        })),
+      });
+
+      setMilestoneSubmissions((current) => [...current, record]);
+      setMilestoneForm((current) => ({
+        ...defaultMilestoneForm,
+        taskCategory: current.taskCategory,
+        areaZone: current.areaZone,
+      }));
+      setToast(localCopy.milestoneSaved);
+    });
   };
 
   const clearImageForm = (setter) => {
@@ -1224,25 +1576,43 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       todayBatchCount,
       todayPhotoCount,
       todayVoiceCount,
+      todayIssueCount,
+      todayDeliveryCount,
+      todayEquipmentCount,
+      todayPaymentCount,
+      todayMilestoneCount,
       activeScreen,
       isRecordingVoice,
       isVoiceProcessing,
       busyAction,
       screenPhoto: SCREEN_PHOTO,
       screenVoice: SCREEN_VOICE,
+      screenIssue: SCREEN_ISSUE,
+      screenDelivery: SCREEN_DELIVERY,
+      screenRequest: SCREEN_REQUEST,
+      screenPayment: SCREEN_PAYMENT,
+      screenMilestone: SCREEN_MILESTONE,
       roomName: photoBatchForm.areaZone || photoBatchForm.roomName,
     },
     handlers: {
       onCheckIn: () => handleAttendance('checkin'),
       onCheckOut: () => handleAttendance('checkout'),
       onPhoto: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
-      onVoice: () => openScreen(SCREEN_VOICE, localCopy.openVoice),
+      onIssue: () => openScreen(SCREEN_ISSUE),
+      onDelivery: () => openRequestScreen('delivery'),
+      onEquipment: () => openRequestScreen('equipment'),
+      onPayment: openPaymentScreen,
+      onMilestone: openMilestoneScreen,
     },
     icons: {
       checkin: CheckCircle2,
       checkout: Clock3,
       photo: Camera,
-      voice: Mic,
+      issue: AlertTriangle,
+      delivery: Package,
+      equipment: ClipboardList,
+      payment: Banknote,
+      milestone: ClipboardCheck,
     },
   });
 
@@ -1378,7 +1748,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               <div key={item.id} className="rounded-[1.3rem] border border-slate-200 p-3.5">
                 <div className="flex items-start gap-3">
                   <div className="rounded-2xl bg-slate-100 p-2 text-slate-700">
-                    {item.type === 'photo' ? <FileImage className="h-5 w-5" /> : item.type === 'request' ? <Package className="h-5 w-5" /> : item.type === 'issue' ? <AlertTriangle className="h-5 w-5" /> : item.type === 'voice' ? <Mic className="h-5 w-5" /> : <Clock3 className="h-5 w-5" />}
+                    {item.type === 'photo' ? <FileImage className="h-5 w-5" /> : item.type === 'request' ? <Package className="h-5 w-5" /> : item.type === 'payment' ? <Banknote className="h-5 w-5" /> : item.type === 'milestone' ? <ClipboardCheck className="h-5 w-5" /> : item.type === 'issue' ? <AlertTriangle className="h-5 w-5" /> : item.type === 'voice' ? <Mic className="h-5 w-5" /> : <Clock3 className="h-5 w-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
@@ -1412,11 +1782,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       </div>
       <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
         <div className="mb-3 text-base font-semibold text-slate-900">{pickText(t, 'worker_submitted_items', 'Submitted items')}</div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <MetricCard label={pickText(t, 'worker_photo', 'Photo')} value={`${photoReports.reduce((total, entry) => total + Number(entry.photoCount || entry.photos?.length || 0), 0)}`} compact />
           <MetricCard label={pickText(t, 'worker_material', 'Material')} value={`${latestRequests.length}`} compact />
           <MetricCard label={pickText(t, 'worker_sos', 'SOS')} value={`${latestIssues.length}`} compact />
           <MetricCard label={localCopy.voiceTitle} value={`${latestVoiceNotes.length}`} compact />
+          <MetricCard label={localCopy.quickPaymentTitle} value={`${latestPaymentRequests.length}`} compact />
+          <MetricCard label={localCopy.quickMilestoneTitle} value={`${latestMilestones.length}`} compact />
         </div>
       </div>
       <DataSaverCard settings={settings} setSettings={setSettings} t={t} />
@@ -1468,8 +1840,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               createValue={newTaskCategory}
               onCreateValueChange={setNewTaskCategory}
               onCreate={addTaskCategoryOption}
+              onUpdate={updateTaskCategoryOption}
               createPlaceholder={localCopy.customInputPlaceholder}
               actionLabel={localCopy.addOptionAction}
+              updateLabel={localCopy.editableUpdateAction}
+              helperText={localCopy.editableSelectedHelper}
               accent="blue"
             />
             <DropdownCreateField
@@ -1482,8 +1857,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               createValue={newAreaZone}
               onCreateValueChange={setNewAreaZone}
               onCreate={addAreaZoneOption}
+              onUpdate={updateAreaZoneOption}
               createPlaceholder={localCopy.customInputPlaceholder}
               actionLabel={localCopy.addOptionAction}
+              updateLabel={localCopy.editableUpdateAction}
+              helperText={localCopy.editableSelectedHelper}
               accent="emerald"
             />
             <input
@@ -1677,31 +2055,280 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const renderRequestScreen = () => (
     <SinglePurposeScreen
-      title={pickText(t, 'worker_request_screen_title', 'Request Material')}
-      subtitle={pickText(t, 'worker_request_screen_desc', 'Submit material requests and check pending items')}
+      title={requestScreenTitle}
+      subtitle={requestScreenDesc}
       onBack={goBack}
       t={t}
     >
-      <FormCard title={pickText(t, 'worker_material', 'Request Material')}>
-        <input value={requestForm.itemName} onChange={(event) => setRequestForm((current) => ({ ...current, itemName: event.target.value }))} placeholder={pickText(t, 'worker_request_item_name', 'Item')} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <input type="number" min="1" value={requestForm.quantity} onChange={(event) => setRequestForm((current) => ({ ...current, quantity: event.target.value }))} placeholder={pickText(t, 'worker_request_quantity', 'Quantity')} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-          <input value={requestForm.unit} onChange={(event) => setRequestForm((current) => ({ ...current, unit: event.target.value }))} placeholder={pickText(t, 'worker_request_unit', 'Unit')} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
+      <FormCard title={requestScreenTitle}>
+        <div className="rounded-[1.3rem] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {photoBatchForm.projectName || siteName} • {localCopy.editableSelectedHelper}
         </div>
-        <input value={requestForm.note} onChange={(event) => setRequestForm((current) => ({ ...current, note: event.target.value }))} placeholder={pickText(t, 'worker_note_label', 'Note')} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-        <FilePicker imageData={requestForm.imageData} onChange={(event) => handleFileChange(event, setRequestForm)} onRemove={() => clearImageForm(setRequestForm)} label={pickText(t, 'worker_req_photo_cta', 'Attach photo')} helperText={localCopy.photoHelp} actionLabel={localCopy.photoPick} retakeLabel={localCopy.photoRetake} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
-        <button onClick={submitRequest} className="mt-3 w-full rounded-[1.2rem] bg-orange-500 px-4 py-3 text-sm font-semibold text-white">{pickText(t, 'worker_request_submit_cta', 'Send request')}</button>
+        <div className="mt-4 space-y-4">
+          <DropdownCreateField
+            label={localCopy.taskCategoryLabel}
+            value={requestForm.taskCategory}
+            onSelect={(value) => setRequestForm((current) => ({ ...current, taskCategory: value }))}
+            options={taskCategoryOptions}
+            selectPlaceholder={localCopy.taskCategoryPlaceholder}
+            createLabel={localCopy.addTaskCategoryLabel}
+            createValue={newTaskCategory}
+            onCreateValueChange={setNewTaskCategory}
+            onCreate={addTaskCategoryOption}
+            onUpdate={updateTaskCategoryOption}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.addOptionAction}
+            updateLabel={localCopy.editableUpdateAction}
+            helperText={localCopy.editableSelectedHelper}
+            accent="blue"
+          />
+          <DropdownCreateField
+            label={localCopy.areaZoneLabel}
+            value={requestForm.areaZone}
+            onSelect={(value) => setRequestForm((current) => ({ ...current, areaZone: value }))}
+            options={areaZoneOptions}
+            selectPlaceholder={localCopy.areaZonePlaceholder}
+            createLabel={localCopy.addAreaZoneLabel}
+            createValue={newAreaZone}
+            onCreateValueChange={setNewAreaZone}
+            onCreate={addAreaZoneOption}
+            onUpdate={updateAreaZoneOption}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.addOptionAction}
+            updateLabel={localCopy.editableUpdateAction}
+            helperText={localCopy.editableSelectedHelper}
+            accent="emerald"
+          />
+          <input
+            value={requestForm.itemName}
+            onChange={(event) => setRequestForm((current) => ({ ...current, itemName: event.target.value }))}
+            placeholder={localCopy.requestItemPlaceholder}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="number"
+              min="1"
+              value={requestForm.quantity}
+              onChange={(event) => setRequestForm((current) => ({ ...current, quantity: event.target.value }))}
+              placeholder={localCopy.requestQuantityPlaceholder}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+            />
+            <input
+              value={requestForm.unit}
+              onChange={(event) => setRequestForm((current) => ({ ...current, unit: event.target.value }))}
+              placeholder={localCopy.requestUnitPlaceholder}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+            />
+          </div>
+          <textarea
+            value={requestForm.note}
+            onChange={(event) => setRequestForm((current) => ({ ...current, note: event.target.value }))}
+            placeholder={localCopy.requestNotePlaceholder}
+            rows={3}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+          />
+        </div>
+        <FilePicker imageData={requestForm.imageData} onChange={(event) => handleFileChange(event, setRequestForm)} onRemove={() => clearImageForm(setRequestForm)} label={pickText(t, 'worker_req_photo_cta', 'Attach photo')} helperText={localCopy.requestPhotoHelper} actionLabel={localCopy.photoPick} retakeLabel={localCopy.photoRetake} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
+        <button onClick={submitRequest} className="mt-4 min-h-14 w-full rounded-[1.2rem] bg-orange-500 px-4 py-4 text-base font-semibold text-white touch-manipulation">{requestSubmitLabel}</button>
       </FormCard>
-      <FormCard title={pickText(t, 'worker_recent_requests', 'Recent Requests')}>
+      <FormCard title={localCopy.requestRecentTitle}>
         <HistoryList
-          items={latestRequests}
+          items={requestRecentItems}
           emptyLabel={pickText(t, 'worker_no_data', 'No data yet')}
           renderItem={(item) => (
             <HistoryCard
               title={`${item.itemName} • ${item.quantity} ${item.unit}`}
-              detail={`${item.note || '-'} • ${formatDateTime(item.requestedAt, locale)}`}
+              detail={`${item.taskCategory || '-'} • ${item.areaZone || '-'} • ${formatDateTime(item.requestedAt, locale)}`}
               status={item.status}
               imageData={item.imageData}
+            />
+          )}
+        />
+      </FormCard>
+    </SinglePurposeScreen>
+  );
+
+  const renderPaymentScreen = () => (
+    <SinglePurposeScreen
+      title={localCopy.paymentScreenTitle}
+      subtitle={localCopy.paymentScreenDesc}
+      onBack={goBack}
+      t={t}
+    >
+      <FormCard title={localCopy.paymentScreenTitle}>
+        <div className="rounded-[1.3rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          {photoBatchForm.projectName || siteName} • {localCopy.editableSelectedHelper}
+        </div>
+        <div className="mt-4 space-y-4">
+          <DropdownCreateField
+            label={localCopy.taskCategoryLabel}
+            value={paymentForm.taskCategory}
+            onSelect={(value) => setPaymentForm((current) => ({ ...current, taskCategory: value }))}
+            options={taskCategoryOptions}
+            selectPlaceholder={localCopy.taskCategoryPlaceholder}
+            createLabel={localCopy.addTaskCategoryLabel}
+            createValue={newTaskCategory}
+            onCreateValueChange={setNewTaskCategory}
+            onCreate={addTaskCategoryOption}
+            onUpdate={updateTaskCategoryOption}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.addOptionAction}
+            updateLabel={localCopy.editableUpdateAction}
+            helperText={localCopy.editableSelectedHelper}
+            accent="blue"
+          />
+          <DropdownCreateField
+            label={localCopy.areaZoneLabel}
+            value={paymentForm.areaZone}
+            onSelect={(value) => setPaymentForm((current) => ({ ...current, areaZone: value }))}
+            options={areaZoneOptions}
+            selectPlaceholder={localCopy.areaZonePlaceholder}
+            createLabel={localCopy.addAreaZoneLabel}
+            createValue={newAreaZone}
+            onCreateValueChange={setNewAreaZone}
+            onCreate={addAreaZoneOption}
+            onUpdate={updateAreaZoneOption}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.addOptionAction}
+            updateLabel={localCopy.editableUpdateAction}
+            helperText={localCopy.editableSelectedHelper}
+            accent="emerald"
+          />
+          <div>
+            <div className="mb-2 text-sm font-semibold text-slate-700">{localCopy.paymentAmountLabel}</div>
+            <input
+              type="number"
+              min="0"
+              value={paymentForm.amount}
+              onChange={(event) => setPaymentForm((current) => ({ ...current, amount: event.target.value }))}
+              placeholder={localCopy.paymentAmountPlaceholder}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+            />
+          </div>
+          <textarea
+            value={paymentForm.note}
+            onChange={(event) => setPaymentForm((current) => ({ ...current, note: event.target.value }))}
+            placeholder={localCopy.requestNotePlaceholder}
+            rows={3}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+          />
+        </div>
+        <button onClick={submitPaymentRequest} className="mt-4 min-h-14 w-full rounded-[1.2rem] bg-emerald-600 px-4 py-4 text-base font-semibold text-white touch-manipulation">
+          {localCopy.paymentSubmitAction}
+        </button>
+      </FormCard>
+      <FormCard title={localCopy.paymentRecentTitle}>
+        <HistoryList
+          items={latestPaymentRequests}
+          emptyLabel={pickText(t, 'worker_no_data', 'No data yet')}
+          renderItem={(item) => (
+            <HistoryCard
+              title={`${item.amount} • ${item.taskCategory || '-'}`}
+              detail={`${item.areaZone || '-'} • ${item.note || '-'} • ${formatDateTime(item.requestedAt, locale)}`}
+              status={item.status}
+            />
+          )}
+        />
+      </FormCard>
+    </SinglePurposeScreen>
+  );
+
+  const renderMilestoneScreen = () => (
+    <SinglePurposeScreen
+      title={localCopy.milestoneScreenTitle}
+      subtitle={localCopy.milestoneScreenDesc}
+      onBack={goBack}
+      t={t}
+    >
+      <FormCard title={localCopy.milestoneScreenTitle}>
+        <div className="rounded-[1.3rem] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {photoBatchForm.projectName || siteName} • {localCopy.editableSelectedHelper}
+        </div>
+        <div className="mt-4 space-y-4">
+          <DropdownCreateField
+            label={localCopy.taskCategoryLabel}
+            value={milestoneForm.taskCategory}
+            onSelect={(value) => setMilestoneForm((current) => ({ ...current, taskCategory: value }))}
+            options={taskCategoryOptions}
+            selectPlaceholder={localCopy.taskCategoryPlaceholder}
+            createLabel={localCopy.addTaskCategoryLabel}
+            createValue={newTaskCategory}
+            onCreateValueChange={setNewTaskCategory}
+            onCreate={addTaskCategoryOption}
+            onUpdate={updateTaskCategoryOption}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.addOptionAction}
+            updateLabel={localCopy.editableUpdateAction}
+            helperText={localCopy.editableSelectedHelper}
+            accent="blue"
+          />
+          <DropdownCreateField
+            label={localCopy.areaZoneLabel}
+            value={milestoneForm.areaZone}
+            onSelect={(value) => setMilestoneForm((current) => ({ ...current, areaZone: value }))}
+            options={areaZoneOptions}
+            selectPlaceholder={localCopy.areaZonePlaceholder}
+            createLabel={localCopy.addAreaZoneLabel}
+            createValue={newAreaZone}
+            onCreateValueChange={setNewAreaZone}
+            onCreate={addAreaZoneOption}
+            onUpdate={updateAreaZoneOption}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.addOptionAction}
+            updateLabel={localCopy.editableUpdateAction}
+            helperText={localCopy.editableSelectedHelper}
+            accent="emerald"
+          />
+          <div>
+            <div className="mb-2 text-sm font-semibold text-slate-700">{localCopy.milestoneProgressLabel}</div>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={milestoneForm.progress}
+              onChange={(event) => setMilestoneForm((current) => ({ ...current, progress: event.target.value }))}
+              placeholder={localCopy.milestoneProgressPlaceholder}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+            />
+          </div>
+          <textarea
+            value={milestoneForm.note}
+            onChange={(event) => setMilestoneForm((current) => ({ ...current, note: event.target.value }))}
+            placeholder={localCopy.requestNotePlaceholder}
+            rows={3}
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+          />
+        </div>
+        <div className="mt-4">
+          <MultiPhotoPicker
+            photos={milestoneForm.photos}
+            onChange={handleMilestonePhotoChange}
+            onRemove={removeMilestonePhoto}
+            label={pickText(t, 'worker_report_photo', 'Photos')}
+            helperText={localCopy.quickMilestoneHelper}
+            actionLabel={localCopy.photoPick}
+            retakeLabel={localCopy.photoRetake}
+            removeLabel={localCopy.photoRemove}
+            countLabel={localCopy.photoBatchCount}
+            loading={busyAction === 'milestone-upload'}
+            disabled={false}
+          />
+        </div>
+        <button onClick={submitMilestone} className="mt-4 min-h-14 w-full rounded-[1.2rem] bg-slate-900 px-4 py-4 text-base font-semibold text-white touch-manipulation">
+          {localCopy.milestoneSubmitAction}
+        </button>
+      </FormCard>
+      <FormCard title={localCopy.milestoneRecentTitle}>
+        <HistoryList
+          items={latestMilestones}
+          emptyLabel={pickText(t, 'worker_no_data', 'No data yet')}
+          renderItem={(item) => (
+            <HistoryCard
+              title={`${item.progress}% • ${item.taskCategory || '-'}`}
+              detail={`${item.areaZone || '-'} • ${item.note || '-'} • ${formatDateTime(item.submittedAt, locale)}`}
+              status={item.status}
+              imageData={item.photos?.[0]?.imageData}
             />
           )}
         />
@@ -1767,7 +2394,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const renderBody = () => {
     if (activeScreen === SCREEN_PHOTO) return renderPhotoScreen();
     if (activeScreen === SCREEN_VOICE) return renderVoiceScreen();
+    if (activeScreen === SCREEN_DELIVERY) return renderRequestScreen();
     if (activeScreen === SCREEN_REQUEST) return renderRequestScreen();
+    if (activeScreen === SCREEN_PAYMENT) return renderPaymentScreen();
+    if (activeScreen === SCREEN_MILESTONE) return renderMilestoneScreen();
     if (activeScreen === SCREEN_ISSUE) return renderIssueScreen();
     if (activeScreen === SCREEN_TASKS) return renderTasks();
     if (activeScreen === SCREEN_ACTIVITY) return renderActivity();
@@ -1882,8 +2512,11 @@ function DropdownCreateField({
   createValue,
   onCreateValueChange,
   onCreate,
+  onUpdate,
   createPlaceholder,
   actionLabel,
+  updateLabel,
+  helperText = '',
   accent = 'blue',
 }) {
   const toneClasses = accent === 'emerald'
@@ -1903,22 +2536,33 @@ function DropdownCreateField({
           <option key={option} value={option} />
         ))}
       </select>
+      {helperText ? <div className="mt-2 text-xs text-slate-500">{helperText}</div> : null}
       <div className="mt-3 rounded-[1.3rem] border border-slate-200 bg-slate-50 p-3">
         <div className="text-sm font-semibold text-slate-700">{createLabel}</div>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-3 flex flex-col gap-3">
           <input
             value={createValue}
             onChange={(event) => onCreateValueChange(event.target.value)}
             placeholder={createPlaceholder}
             className="min-h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
           />
-          <button
-            type="button"
-            onClick={onCreate}
-            className={`min-h-12 rounded-2xl border px-5 py-3 text-sm font-semibold touch-manipulation ${toneClasses}`}
-          >
-            {actionLabel}
-          </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onCreate}
+              className={`min-h-12 rounded-2xl border px-5 py-3 text-sm font-semibold touch-manipulation ${toneClasses}`}
+            >
+              {actionLabel}
+            </button>
+            <button
+              type="button"
+              onClick={onUpdate}
+              disabled={!value}
+              className="min-h-12 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 touch-manipulation disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+            >
+              {updateLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>
