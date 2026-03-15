@@ -19,6 +19,40 @@ export const workerNavItemDefs = [
   { id: TAB_PROFILE, labelKey: 'worker_nav_chat', fallback: 'Profile', icon: 'profile' },
 ];
 
+export const constructionTaskCategoryOptions = [
+  'Foundation',
+  'Structure',
+  'Concrete',
+  'Rebar',
+  'Formwork',
+  'Masonry',
+  'Electrical',
+  'Plumbing',
+  'HVAC',
+  'Waterproofing',
+  'Ceiling',
+  'Flooring',
+  'Painting',
+  'Finishing',
+  'Inspection',
+  'Safety',
+];
+
+export const constructionAreaZoneOptions = [
+  'Zone A',
+  'Zone B',
+  'North Wing',
+  'South Wing',
+  'East Wing',
+  'West Wing',
+  'Basement',
+  'Ground Floor',
+  'Level 1',
+  'Level 2',
+  'Roof',
+  'Lobby',
+];
+
 export function createWorkerNavItems({ t, pickText, iconMap }) {
   return workerNavItemDefs.map((item) => ({
     id: item.id,

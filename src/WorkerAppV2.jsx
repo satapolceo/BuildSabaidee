@@ -49,11 +49,15 @@ import {
   SCREEN_ISSUE,
   createWorkerNavItems,
   createWorkerActionButtons,
+  constructionTaskCategoryOptions,
+  constructionAreaZoneOptions,
 } from './workerMobileMenuConfig';
 
 const defaultPhotoBatch = {
   projectId: '',
   projectName: '',
+  taskCategory: '',
+  areaZone: '',
   workType: '',
   tradeTeam: '',
   roomId: '',
@@ -487,6 +491,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [isBatchVoiceProcessing, setIsBatchVoiceProcessing] = useState(false);
   const [projectBatchOptions, setProjectBatchOptions] = useState({ workTypes: [], tradeTeams: [], rooms: [] });
   const [isProjectBatchOptionsLoading, setIsProjectBatchOptionsLoading] = useState(false);
+  const [customTaskCategories, setCustomTaskCategories] = useState([]);
+  const [customAreaZones, setCustomAreaZones] = useState([]);
 
   const [attendanceRecords, setAttendanceRecords] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.attendance, []));
   const [photoReports, setPhotoReports] = useState(() =>
@@ -648,12 +654,20 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     }),
     [photoBatchForm.tradeTeam, photoBatchForm.workType, projectBatchOptions.rooms]
   );
+  const taskCategoryOptions = useMemo(() => {
+    const projectCategories = workTypeOptions.map((option) => option.label).filter(Boolean);
+    return Array.from(new Set([...constructionTaskCategoryOptions, ...projectCategories, ...customTaskCategories]));
+  }, [customTaskCategories, workTypeOptions]);
+  const areaZoneOptions = useMemo(() => {
+    const projectAreas = roomOptions.map((option) => option.label).filter(Boolean);
+    return Array.from(new Set([...constructionAreaZoneOptions, ...projectAreas, ...customAreaZones]));
+  }, [customAreaZones, roomOptions]);
 
   const effectiveAttendance = attendanceOverride || todayAttendance;
   const isCheckedIn = Boolean(effectiveAttendance.checkIn);
   const isCheckedOut = Boolean(effectiveAttendance.checkOut);
   const canUseWorkActions = isCheckedIn && !isCheckedOut;
-  const hasBatchRoomSelection = Boolean(photoBatchForm.roomId);
+  const hasBatchRoomSelection = Boolean(photoBatchForm.areaZone || photoBatchForm.roomId);
   const canOpenWorkerTools = canUseWorkActions && hasBatchRoomSelection && !isProjectBatchOptionsLoading;
   const todayPhotoCount = photoReports
     .filter((entry) => entry.workerId === currentWorker.id && entry.dateKey === today)
@@ -826,6 +840,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       ...current,
       projectId,
       projectName: getProjectNameById(projectsList, projectId),
+      taskCategory: '',
+      areaZone: '',
       workType: '',
       tradeTeam: '',
       roomId: '',
@@ -838,13 +854,39 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       ...current,
       [field]: value,
       ...(field === 'workType'
-        ? { tradeTeam: '', roomId: '', roomName: '' }
+        ? { taskCategory: getOptionLabel(workTypeOptions, value), tradeTeam: '', roomId: '', roomName: '', areaZone: '' }
         : field === 'tradeTeam'
-          ? { roomId: '', roomName: '' }
+          ? { roomId: '', roomName: '', areaZone: '' }
           : field === 'roomId'
-            ? { roomName: getOptionLabel(roomOptions, value) }
+            ? { roomName: getOptionLabel(roomOptions, value), areaZone: getOptionLabel(roomOptions, value) }
             : {}),
     }));
+  };
+
+  const handleTaskCategoryChange = (value) => {
+    const nextValue = value.trimStart();
+    setPhotoBatchForm((current) => ({
+      ...current,
+      taskCategory: nextValue,
+      workType: nextValue,
+      tradeTeam: current.tradeTeam || 'General Crew',
+    }));
+    if (nextValue.trim()) {
+      setCustomTaskCategories((current) => Array.from(new Set([...current, nextValue.trim()])));
+    }
+  };
+
+  const handleAreaZoneChange = (value) => {
+    const nextValue = value.trimStart();
+    setPhotoBatchForm((current) => ({
+      ...current,
+      areaZone: nextValue,
+      roomId: nextValue,
+      roomName: nextValue,
+    }));
+    if (nextValue.trim()) {
+      setCustomAreaZones((current) => Array.from(new Set([...current, nextValue.trim()])));
+    }
   };
 
   const handleBatchPhotoChange = async (event) => {
@@ -893,7 +935,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       return;
     }
 
-    if (!photoBatchForm.projectId || !photoBatchForm.workType || !photoBatchForm.tradeTeam || !photoBatchForm.roomId) {
+    if (!photoBatchForm.projectId || !photoBatchForm.taskCategory || !photoBatchForm.areaZone) {
       setValidationError(pickText(t, 'worker_validation_required', 'Please complete required fields'));
       return;
     }
@@ -905,9 +947,9 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
     const timestamp = Date.now();
     const projectName = photoBatchForm.projectName || getProjectNameById(projectsList, photoBatchForm.projectId) || siteName;
-    const workTypeLabel = getOptionLabel(workTypeOptions, photoBatchForm.workType);
-    const roomName = getOptionLabel(roomOptions, photoBatchForm.roomId);
-    const tradeTeamName = getOptionLabel(tradeTeamOptions, photoBatchForm.tradeTeam);
+    const workTypeLabel = photoBatchForm.taskCategory.trim() || getOptionLabel(workTypeOptions, photoBatchForm.workType);
+    const roomName = photoBatchForm.areaZone.trim() || photoBatchForm.roomName || getOptionLabel(roomOptions, photoBatchForm.roomId);
+    const tradeTeamName = photoBatchForm.tradeTeam || 'General Crew';
     const batchTitle = photoBatchForm.batchTitle.trim() || `${localCopy.batchTitleAuto} • ${workTypeLabel}`;
 
     await withBusyAction(nextStatus === 'draft' ? 'photo-draft' : 'photo-submit', async () => {
@@ -918,7 +960,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         projectName,
         workType: workTypeLabel,
         tradeTeam: tradeTeamName,
-        roomId: photoBatchForm.roomId,
+        roomId: photoBatchForm.roomId || roomName,
         roomName,
         batchTitle,
         notes: photoBatchForm.notes.trim(),
@@ -1146,7 +1188,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       busyAction,
       screenPhoto: SCREEN_PHOTO,
       screenVoice: SCREEN_VOICE,
-      roomName: photoBatchForm.roomName,
+      roomName: photoBatchForm.areaZone || photoBatchForm.roomName,
     },
     handlers: {
       onCheckIn: () => handleAttendance('checkin'),
@@ -1340,7 +1382,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   );
 
   const renderPhotoScreen = () => {
-    const batchReadyForPhotos = Boolean(photoBatchForm.projectId && photoBatchForm.workType && photoBatchForm.tradeTeam && photoBatchForm.roomId);
+    const batchReadyForPhotos = Boolean(photoBatchForm.projectId && photoBatchForm.taskCategory && photoBatchForm.areaZone);
     const totalOriginalBytes = photoBatchForm.photos.reduce((total, photo) => total + Number(photo.imageStats?.originalBytes || 0), 0);
     const totalCompressedBytes = photoBatchForm.photos.reduce((total, photo) => total + Number(photo.imageStats?.compressedBytes || 0), 0);
     const batchStatusLabel = isBatchRecordingVoice
@@ -1361,59 +1403,49 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         <DataSaverCard settings={settings} setSettings={setSettings} t={t} compact />
         <FormCard title={pickText(t, 'worker_photo_batch_setup', 'Work Submission Batch')}>
           <div className={`rounded-[1.3rem] border px-4 py-3 text-sm ${isProjectBatchOptionsLoading ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-blue-200 bg-blue-50 text-blue-900'}`}>
-            {isProjectBatchOptionsLoading ? localCopy.batchProjectDataLoading : photoBatchForm.projectId ? localCopy.batchProjectDataReady : localCopy.batchSelectionHelp}
+            {isProjectBatchOptionsLoading ? localCopy.batchProjectDataLoading : pickText(t, 'worker_photo_simplified_flow', 'Simplified mobile flow: category, area, photos, submit')}
           </div>
-          {photoBatchForm.roomId ? (
+          {(photoBatchForm.taskCategory || photoBatchForm.areaZone) ? (
             <div className="mt-3 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              {photoBatchForm.projectName || '-'} • {getOptionLabel(workTypeOptions, photoBatchForm.workType)} • {getOptionLabel(tradeTeamOptions, photoBatchForm.tradeTeam)} • {photoBatchForm.roomName || getOptionLabel(roomOptions, photoBatchForm.roomId)}
+              {photoBatchForm.projectName || '-'} • {photoBatchForm.taskCategory || '-'} • {photoBatchForm.areaZone || '-'}
             </div>
           ) : null}
           <div className="mt-4 space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">{pickText(t, 'label_name', 'Project')}</label>
-              <select value={photoBatchForm.projectId} onChange={(event) => handleBatchProjectChange(event.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900">
-                <option value="">{pickText(t, 'filter_project', 'Select project')}</option>
-                {projectsList.map((project) => (
-                  <option key={project.id} value={project.id}>{project.name}</option>
-                ))}
-              </select>
+            <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{pickText(t, 'label_name', 'Project')}</div>
+              <div className="mt-2 text-base font-semibold text-slate-900">{photoBatchForm.projectName || siteName}</div>
+              <div className="mt-1 text-sm text-slate-500">{pickText(t, 'worker_project_auto_selected', 'Auto-selected from the assigned site for faster mobile submission')}</div>
             </div>
-            <SelectorPillGroup
-              label={pickText(t, 'worker_report_category', 'Work category')}
-              options={workTypeOptions}
-              value={photoBatchForm.workType}
-              onChange={(value) => handleBatchOptionChange('workType', value)}
-              emptyLabel={photoBatchForm.projectId && !isProjectBatchOptionsLoading ? localCopy.batchNoProjectData : localCopy.batchSelectionHelp}
-              disabled={!photoBatchForm.projectId || isProjectBatchOptionsLoading}
+            <EditableSuggestionsField
+              label={pickText(t, 'worker_report_category', 'Task Category')}
+              value={photoBatchForm.taskCategory}
+              onChange={handleTaskCategoryChange}
+              options={taskCategoryOptions}
+              placeholder={pickText(t, 'worker_task_category_placeholder', 'Select or type a task category')}
+              helperText={pickText(t, 'worker_task_category_helper', 'Tap a suggestion or type your own category')}
+              accent="blue"
             />
-            <SelectorPillGroup
-              label={pickText(t, 'worker_trade_team', 'Trade / Team')}
-              options={tradeTeamOptions}
-              value={photoBatchForm.tradeTeam}
-              onChange={(value) => handleBatchOptionChange('tradeTeam', value)}
-              emptyLabel={photoBatchForm.workType ? localCopy.batchNoProjectData : localCopy.batchFilterTrade}
-              disabled={!photoBatchForm.workType || isProjectBatchOptionsLoading}
-            />
-            <SelectorPillGroup
-              label={pickText(t, 'worker_room_label', 'Room / Area')}
-              options={roomOptions}
-              value={photoBatchForm.roomId}
-              onChange={(value) => handleBatchOptionChange('roomId', value)}
-              emptyLabel={photoBatchForm.workType && photoBatchForm.tradeTeam ? localCopy.batchNoProjectData : localCopy.batchFilterRoom}
-              disabled={!photoBatchForm.workType || !photoBatchForm.tradeTeam || isProjectBatchOptionsLoading}
+            <EditableSuggestionsField
+              label={pickText(t, 'worker_room_label', 'Area / Zone')}
+              value={photoBatchForm.areaZone}
+              onChange={handleAreaZoneChange}
+              options={areaZoneOptions}
+              placeholder={pickText(t, 'worker_area_zone_placeholder', 'Select or type an area / zone')}
+              helperText={pickText(t, 'worker_area_zone_helper', 'Define the exact work area for this photo batch')}
+              accent="emerald"
             />
             <input
               value={photoBatchForm.batchTitle}
               onChange={(event) => setPhotoBatchField('batchTitle', event.target.value)}
-              placeholder={pickText(t, 'worker_batch_title', 'Batch title')}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+              placeholder={pickText(t, 'worker_batch_title', 'Short title (optional)')}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
             />
             <textarea
               value={photoBatchForm.notes}
               onChange={(event) => setPhotoBatchField('notes', event.target.value)}
               placeholder={pickText(t, 'worker_report_details', 'Details')}
               rows={4}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
             />
           </div>
         </FormCard>
@@ -1490,11 +1522,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           <PhotoBatchCard
             item={{
               id: 'draft-preview',
-              batchTitle: photoBatchForm.batchTitle || `${localCopy.batchTitleAuto} • ${getOptionLabel(workTypeOptions, photoBatchForm.workType)}`,
+              batchTitle: photoBatchForm.batchTitle || `${localCopy.batchTitleAuto} • ${photoBatchForm.taskCategory || '-'}`,
               projectName: photoBatchForm.projectName || getProjectNameById(projectsList, photoBatchForm.projectId) || '-',
-              workType: getOptionLabel(workTypeOptions, photoBatchForm.workType),
-              tradeTeam: getOptionLabel(tradeTeamOptions, photoBatchForm.tradeTeam),
-              roomName: getOptionLabel(roomOptions, photoBatchForm.roomId),
+              workType: photoBatchForm.taskCategory,
+              tradeTeam: photoBatchForm.tradeTeam || 'General Crew',
+              roomName: photoBatchForm.areaZone,
               notes: photoBatchForm.notes,
               photoCount: photoBatchForm.photos.length,
               status: photoBatchForm.status,
@@ -1784,6 +1816,44 @@ function FormCard({ title, children }) {
     <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
       <div className="mb-3 text-base font-semibold text-slate-900">{title}</div>
       {children}
+    </div>
+  );
+}
+
+function EditableSuggestionsField({ label, value, onChange, options, placeholder, helperText, accent = 'blue' }) {
+  const listId = `${label.replace(/\s+/g, '-').toLowerCase()}-options`;
+  const toneClasses = accent === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-blue-200 bg-blue-50 text-blue-700';
+
+  return (
+    <div>
+      <div className="mb-2 text-sm font-semibold text-slate-700">{label}</div>
+      <input
+        list={listId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base text-slate-900 outline-none focus:border-blue-500"
+      />
+      <datalist id={listId}>
+        {options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+      <div className="mt-2 text-sm text-slate-500">{helperText}</div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.slice(0, 8).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={`min-h-11 rounded-full border px-4 py-2 text-sm font-semibold transition touch-manipulation ${value === option ? toneClasses : 'border-slate-200 bg-white text-slate-700'}`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

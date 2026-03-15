@@ -18,6 +18,8 @@ import {
   TAB_HOME,
   createWorkerActionButtons,
   createWorkerNavItems,
+  constructionAreaZoneOptions,
+  constructionTaskCategoryOptions,
   workerNavItemDefs,
 } from './workerMobileMenuConfig';
 
@@ -98,6 +100,43 @@ function QuickActionButton({ label, helper, icon: Icon, disabled, active, onClic
   );
 }
 
+function EditableField({ label, value, onChange, options, placeholder, accent = 'blue' }) {
+  const listId = `${label.replace(/\s+/g, '-').toLowerCase()}-debug-list`;
+  const toneClasses = accent === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-blue-200 bg-blue-50 text-blue-700';
+
+  return (
+    <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="text-sm font-semibold text-slate-900">{label}</div>
+      <input
+        list={listId}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base outline-none focus:border-blue-500"
+      />
+      <datalist id={listId}>
+        {options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.slice(0, 8).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={`min-h-11 rounded-full border px-4 py-2 text-sm font-semibold touch-manipulation ${value === option ? toneClasses : 'border-slate-200 bg-white text-slate-700'}`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function WorkerMobileDebugApp() {
   const [activeTab, setActiveTab] = useState(TAB_HOME);
   const [activeScreen, setActiveScreen] = useState(SCREEN_HOME);
@@ -109,7 +148,10 @@ function WorkerMobileDebugApp() {
   const [todayPhotoCount, setTodayPhotoCount] = useState(0);
   const [todayVoiceCount, setTodayVoiceCount] = useState(0);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [roomName, setRoomName] = useState('Room A-12');
+  const [taskCategory, setTaskCategory] = useState('Concrete');
+  const [areaZone, setAreaZone] = useState('Zone A');
+  const [customTaskCategories, setCustomTaskCategories] = useState([]);
+  const [customAreaZones, setCustomAreaZones] = useState([]);
 
   const localCopy = useMemo(() => ({
     ready: 'Ready',
@@ -127,6 +169,14 @@ function WorkerMobileDebugApp() {
 
   const canUseWorkActions = isCheckedIn && !isCheckedOut;
   const canOpenWorkerTools = canUseWorkActions && hasBatchRoomSelection && !isProjectBatchOptionsLoading;
+  const taskCategoryOptions = useMemo(
+    () => Array.from(new Set([...constructionTaskCategoryOptions, ...customTaskCategories])),
+    [customTaskCategories]
+  );
+  const areaZoneOptions = useMemo(
+    () => Array.from(new Set([...constructionAreaZoneOptions, ...customAreaZones])),
+    [customAreaZones]
+  );
 
   const navItems = createWorkerNavItems({
     t,
@@ -159,7 +209,7 @@ function WorkerMobileDebugApp() {
       busyAction: '',
       screenPhoto: SCREEN_PHOTO,
       screenVoice: SCREEN_VOICE,
-      roomName,
+      roomName: areaZone,
     },
     handlers: {
       onCheckIn: () => {
@@ -192,6 +242,14 @@ function WorkerMobileDebugApp() {
     && navItems.every((item, index) => item.id === workerNavItemDefs[index].id);
   const labelsLoaded = navItems.every((item) => Boolean(item.label));
   const reportOk = footerMatchesNav && labelsLoaded;
+  const handleTaskCategoryChange = (value) => {
+    setTaskCategory(value);
+    if (value.trim()) setCustomTaskCategories((current) => Array.from(new Set([...current, value.trim()])));
+  };
+  const handleAreaZoneChange = (value) => {
+    setAreaZone(value);
+    if (value.trim()) setCustomAreaZones((current) => Array.from(new Set([...current, value.trim()])));
+  };
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#e2e8f0_0%,#f8fafc_45%,#e2e8f0_100%)] px-4 py-6">
@@ -225,15 +283,6 @@ function WorkerMobileDebugApp() {
               <ControlNumber label="Today batch count" value={todayBatchCount} onChange={setTodayBatchCount} />
               <ControlNumber label="Today photo count" value={todayPhotoCount} onChange={setTodayPhotoCount} />
               <ControlNumber label="Today voice count" value={todayVoiceCount} onChange={setTodayVoiceCount} />
-              <label className="block rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <div className="text-sm font-medium text-slate-700">Room name</div>
-                <input
-                  type="text"
-                  value={roomName}
-                  onChange={(event) => setRoomName(event.target.value || 'Room A-12')}
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-500"
-                />
-              </label>
             </div>
           </section>
 
@@ -256,6 +305,28 @@ function WorkerMobileDebugApp() {
               </div>
 
               <div className="pointer-events-auto flex-1 overflow-y-auto px-4 pb-6 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}>
+                <section className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
+                  <div className="text-sm font-semibold text-slate-900">Photo Submission Playground</div>
+                  <div className="mt-1 text-xs text-slate-500">Editable dropdowns for task category and area / zone update instantly</div>
+                  <div className="mt-4 space-y-4">
+                    <EditableField
+                      label="Task Category"
+                      value={taskCategory}
+                      onChange={handleTaskCategoryChange}
+                      options={taskCategoryOptions}
+                      placeholder="Select or type a task category"
+                    />
+                    <EditableField
+                      label="Area / Zone"
+                      value={areaZone}
+                      onChange={handleAreaZoneChange}
+                      options={areaZoneOptions}
+                      placeholder="Select or type an area / zone"
+                      accent="emerald"
+                    />
+                  </div>
+                </section>
+
                 <section className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
                   <div className="text-sm font-semibold text-slate-900">Quick Actions Stub</div>
                   <div className="mt-1 text-xs text-slate-500">Edit the controls to test gating logic for mobile buttons</div>
@@ -310,6 +381,20 @@ function WorkerMobileDebugApp() {
                     <div className="mt-1 text-sm text-slate-600">{item.label}</div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="text-sm font-semibold text-slate-900">Photo submission editable state</div>
+              <div className="mt-3 space-y-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-sm font-semibold text-slate-900">Task Category</div>
+                  <div className="mt-1 text-sm text-slate-600">{taskCategory || '-'}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-sm font-semibold text-slate-900">Area / Zone</div>
+                  <div className="mt-1 text-sm text-slate-600">{areaZone || '-'}</div>
+                </div>
               </div>
             </div>
 
