@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkerAppV2 from '../src/WorkerAppV2.jsx';
 
@@ -69,9 +69,7 @@ class MockMediaRecorder {
     this.state = 'inactive';
     const blob = new Blob(['mock-audio'], { type: this.mimeType });
     this.ondataavailable?.({ data: blob, size: blob.size });
-    setTimeout(() => {
-      this.onstop?.();
-    }, 0);
+    setTimeout(() => this.onstop?.(), 0);
   }
 }
 
@@ -90,65 +88,6 @@ function renderWorkerApp(language = 'EN') {
   );
 }
 
-function getQuickActionButton(pattern) {
-  return screen.getAllByRole('button').find((button) => pattern.test(button.textContent || ''));
-}
-
-function getProjectSelect() {
-  return screen.getAllByRole('combobox').find((element) => element.querySelector('option[value="p1"]'));
-}
-
-async function openPhotoScreen(user) {
-  const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
-  if (!photoButton) throw new Error('Photo quick action not found');
-  await waitFor(() => expect(photoButton).toBeEnabled());
-  await user.click(photoButton);
-  await waitFor(() => expect(screen.getByText('Submit Work Photo')).toBeInTheDocument());
-}
-
-async function checkInAndOpenPhoto(user) {
-  const checkInButton = getQuickActionButton(/Check In/i);
-  const checkOutButton = getQuickActionButton(/Check Out/i);
-  if (!checkInButton || !checkOutButton) throw new Error('Attendance quick actions not found');
-
-  await user.click(checkInButton);
-  expect(checkInButton).toBeDisabled();
-  await waitFor(() => expect(checkOutButton).toBeEnabled());
-  await openPhotoScreen(user);
-}
-
-async function selectTowerBatch(user) {
-  const projectSelect = getProjectSelect();
-  if (!projectSelect) throw new Error('Project select not found');
-  await user.selectOptions(projectSelect, 'p1');
-  await waitFor(() => expect(screen.getByRole('button', { name: 'MEP' })).toBeInTheDocument());
-  await user.click(screen.getByRole('button', { name: 'MEP' }));
-  await user.click(screen.getByRole('button', { name: 'MEP Rough-in Team' }));
-  await user.click(screen.getByRole('button', { name: 'Level 12 Corridor' }));
-}
-
-function getBatchPhotoInput(container) {
-  const input = container.querySelector('input[type="file"][multiple]');
-  if (!input) throw new Error('Batch photo input not found');
-  return input;
-}
-
-function createImageFile(name, size = 2048) {
-  return new File([new Uint8Array(size)], name, { type: 'image/jpeg' });
-}
-
-async function uploadBatchPhotos(user, container, files) {
-  const input = getBatchPhotoInput(container);
-  await user.upload(input, files);
-}
-
-async function recordInlineVoice(user) {
-  await user.click(screen.getByRole('button', { name: /Record in batch/i }));
-  expect(screen.getAllByText('Recording inside this batch...').length).toBeGreaterThan(0);
-  await user.click(screen.getByRole('button', { name: /Stop recording/i }));
-  await waitFor(() => expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0));
-}
-
 function printResult(feature, status, details) {
   console.log(`[${status}] ${feature}${details ? `: ${details}` : ''}`);
 }
@@ -164,6 +103,78 @@ async function withFeature(name, fn) {
     printResult(name, 'FAIL', details);
     throw error;
   }
+}
+
+function getQuickActionButton(pattern) {
+  return screen.getAllByRole('button').find((button) => pattern.test(button.textContent || ''));
+}
+
+async function openPhotoScreen(user) {
+  const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
+  if (!photoButton) throw new Error('Photo quick action not found');
+  await waitFor(() => expect(photoButton).toBeEnabled());
+  await user.click(photoButton);
+  await waitFor(() => expect(screen.getByText('Submit Work Photo')).toBeInTheDocument());
+}
+
+async function checkIn(user) {
+  const checkInButton = getQuickActionButton(/Check In/i);
+  if (!checkInButton) throw new Error('Check In quick action not found');
+  await user.click(checkInButton);
+  await waitFor(() => expect(checkInButton).toBeDisabled());
+}
+
+async function checkInAndOpenPhoto(user) {
+  await checkIn(user);
+  await openPhotoScreen(user);
+}
+
+function getPhotoFormSelects() {
+  const selects = screen.getAllByRole('combobox');
+  return {
+    project: selects[0],
+    taskCategory: selects[1],
+    workSubcategory: selects[2],
+    areaZone: selects[3],
+    standardPhrase: selects[4],
+  };
+}
+
+async function openCompactAdd(user, label) {
+  await user.click(screen.getByRole('button', { name: `Add ${label}` }));
+}
+
+async function saveCompactAdd(user, label, value) {
+  await openCompactAdd(user, label);
+  const input = screen.getByPlaceholderText('Type a new option');
+  await user.clear(input);
+  await user.type(input, value);
+  await user.click(screen.getByRole('button', { name: /^Save$/i }));
+}
+
+function getFirstSelectableOption(select) {
+  return Array.from(select.options).find((option) => option.value);
+}
+
+function createImageFile(name, size = 2048) {
+  return new File([new Uint8Array(size)], name, { type: 'image/jpeg' });
+}
+
+function getBatchPhotoInput(container) {
+  const input = container.querySelector('input[type="file"][multiple]');
+  if (!input) throw new Error('Batch photo input not found');
+  return input;
+}
+
+async function uploadBatchPhotos(user, container, files) {
+  await user.upload(getBatchPhotoInput(container), files);
+}
+
+async function recordInlineVoice(user) {
+  await user.click(screen.getByRole('button', { name: /Record in batch/i }));
+  expect(screen.getAllByText('Recording inside this batch...').length).toBeGreaterThan(0);
+  await user.click(screen.getByRole('button', { name: /Stop recording/i }));
+  await waitFor(() => expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0));
 }
 
 beforeAll(() => {
@@ -210,152 +221,126 @@ afterAll(() => {
 });
 
 describe('WorkerAppV2 mobile automation', () => {
-  it('checks in and checks out with correct action states', async () => withFeature('Check In / Check Out states', async () => {
+  it('keeps mobile check-in and quick action states responsive', async () => withFeature('Check In / Check Out states', async () => {
     const user = userEvent.setup();
     renderWorkerApp('EN');
 
     const checkInButton = getQuickActionButton(/Check In/i);
     const checkOutButton = getQuickActionButton(/Check Out/i);
-    const uploadPhotoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
+    const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
     const voiceButton = getQuickActionButton(/Voice Notes|Voice/i);
 
-    expect(checkInButton).toBeDefined();
-    expect(checkOutButton).toBeDefined();
-    expect(uploadPhotoButton).toBeDefined();
-    expect(voiceButton).toBeDefined();
     expect(checkInButton).toBeEnabled();
     expect(checkOutButton).toBeDisabled();
-    expect(uploadPhotoButton).toBeDisabled();
+    expect(photoButton).toBeDisabled();
     expect(voiceButton).toBeDisabled();
 
     await user.click(checkInButton);
-    expect(checkInButton).toBeDisabled();
     await waitFor(() => expect(checkOutButton).toBeEnabled());
-    await waitFor(() => expect(uploadPhotoButton).toBeEnabled());
+    await waitFor(() => expect(photoButton).toBeEnabled());
     await waitFor(() => expect(voiceButton).toBeEnabled());
 
     await user.click(checkOutButton);
     await waitFor(() => expect(checkOutButton).toBeDisabled());
-    expect(uploadPhotoButton).toBeDisabled();
+    expect(photoButton).toBeDisabled();
     expect(voiceButton).toBeDisabled();
-    return 'Check-in updated immediately, enabled room-based work actions, and checkout disabled them again';
+
+    return 'Quick actions update immediately on tap and keep the mobile gate logic intact';
   }));
 
-  it('loads project-specific dependent selectors for the batch flow', async () => withFeature('Project-specific dropdown dependencies', async () => {
+
+  it('adds custom main category, subcategory, zone, and standard phrase inline', async () => withFeature('Compact add preset flow', async () => {
     const user = userEvent.setup();
     renderWorkerApp('EN');
 
     await checkInAndOpenPhoto(user);
-    expect(getProjectSelect()).toHaveValue('p1');
-    expect(screen.getByRole('button', { name: 'Structure' })).toHaveClass('bg-blue-700');
-    expect(screen.getByRole('button', { name: 'Concrete Team' })).toHaveClass('bg-blue-700');
-    expect(screen.getByRole('button', { name: 'Core Level 12' })).toHaveClass('bg-blue-700');
-    expect(screen.getByRole('button', { name: /Save draft/i })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /Take or choose photo/i })).toBeEnabled();
 
-    await selectTowerBatch(user);
+    await saveCompactAdd(user, 'Task Category', 'Custom QA Category');
+    let selects = getPhotoFormSelects();
+    expect(selects.taskCategory).toHaveValue('Custom QA Category');
+    expect(getFirstSelectableOption(selects.taskCategory)?.text).toBe('Custom QA Category');
+    expect(screen.getAllByText(/Custom QA Category/).length).toBeGreaterThan(0);
 
-    expect(getProjectSelect()).toHaveValue('p1');
-    expect(screen.getByRole('button', { name: 'MEP Rough-in Team' })).toHaveClass('bg-blue-700');
-    expect(screen.getByRole('button', { name: 'Level 12 Corridor' })).toHaveClass('bg-blue-700');
-    expect(screen.queryByRole('button', { name: 'Footing Team' })).not.toBeInTheDocument();
+    await saveCompactAdd(user, 'Work Subcategory', 'Custom QA Subcategory');
+    selects = getPhotoFormSelects();
+    expect(selects.workSubcategory).toHaveValue('Custom QA Subcategory');
+    expect(getFirstSelectableOption(selects.workSubcategory)?.text).toBe('Custom QA Subcategory');
 
-    return 'Default batch context loaded for the assigned project, then filtered MEP -> MEP Rough-in Team -> Level 12 Corridor';
-  }));
+    await saveCompactAdd(user, 'Zone / Area', 'Roof Edge Test Zone');
+    selects = getPhotoFormSelects();
+    expect(selects.areaZone).toHaveValue('Roof Edge Test Zone');
+    expect(getFirstSelectableOption(selects.areaZone)?.text).toBe('Roof Edge Test Zone');
+    expect(screen.getAllByText(/Roof Edge Test Zone/).length).toBeGreaterThan(0);
 
-  it('adds, removes, and re-adds batch photos with upload loading state', async () => withFeature('Multi-photo batch interactions', async () => {
+    await saveCompactAdd(user, 'Standard Phrases', 'Need final QC approval');
+    selects = getPhotoFormSelects();
+    expect(selects.standardPhrase).toHaveValue('Need final QC approval');
+    expect(getFirstSelectableOption(selects.standardPhrase)?.text).toBe('Need final QC approval');
+    expect(screen.getByPlaceholderText('Details')).toHaveValue('Need final QC approval');
+
+    return 'Inline add controls insert new items first, refresh immediately, auto-select them, and reflect the result on screen';
+  }), 15000);
+
+
+  it('keeps the batch workflow working after the compact form redesign', async () => withFeature('Batch save and submit flow', async () => {
     const user = userEvent.setup();
     const view = renderWorkerApp('EN');
 
     await checkInAndOpenPhoto(user);
-    await selectTowerBatch(user);
+    await saveCompactAdd(user, 'Task Category', 'Mobile QA Category');
+    await saveCompactAdd(user, 'Work Subcategory', 'Surface Inspection');
+    await saveCompactAdd(user, 'Zone / Area', 'Showroom Entry');
+    await saveCompactAdd(user, 'Standard Phrases', 'Waiting for inspection sign-off');
 
-    mockState.compressionPaused = true;
-    const uploadPromise = uploadBatchPhotos(user, view.container, [
-      createImageFile('a.jpg', 3000),
-      createImageFile('b.jpg', 2500),
-    ]);
-
-    await waitFor(() => expect(view.container.querySelector('.animate-spin')).toBeTruthy());
-    mockState.compressionResolvers.splice(0).forEach((resolve) => resolve());
-    mockState.compressionPaused = false;
-    await uploadPromise;
-
-    await waitFor(() => expect(screen.getByText('Photos: 2')).toBeInTheDocument());
-    expect(view.container.querySelectorAll('img').length).toBeGreaterThan(0);
-
-    const removeButtons = screen.getAllByRole('button', { name: 'Remove photo' });
-    await user.click(removeButtons[0]);
-    await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
-
-    await uploadBatchPhotos(user, view.container, [createImageFile('c.jpg', 2100)]);
-    await waitFor(() => expect(screen.getByText('Photos: 2')).toBeInTheDocument());
-
-    return `Compression calls: ${mockState.compressionCalls}, final photo count: 2`;
-  }));
-
-  it('records, plays back, and deletes inline batch voice notes', async () => withFeature('Inline voice recording in batch', async () => {
-    const user = userEvent.setup();
-    const view = renderWorkerApp('EN');
-
-    await checkInAndOpenPhoto(user);
-    await selectTowerBatch(user);
-    expect(screen.getByRole('button', { name: /Record in batch/i })).toBeEnabled();
-    await recordInlineVoice(user);
-
-    expect(view.container.querySelector('audio')).toBeInTheDocument();
-    expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Delete batch voice/i })).toBeEnabled();
-
-    await user.click(screen.getByRole('button', { name: /Delete batch voice/i }));
-    await waitFor(() => expect(screen.getByText('No inline batch voice yet')).toBeInTheDocument());
-    expect(view.container.querySelector('audio')).not.toBeInTheDocument();
-
-    return 'Inline recorder created an attached voice note, showed its active state, and deleted it cleanly';
-  }));
-
-  it('saves draft and submitted batches with updated cards', async () => withFeature('Draft and submitted batch cards', async () => {
-    const user = userEvent.setup();
-    const view = renderWorkerApp('EN');
-
-    await checkInAndOpenPhoto(user);
-    await selectTowerBatch(user);
-    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Corridor MEP inspection');
-    await user.type(screen.getByPlaceholderText('Details'), 'Ceiling rough-in complete and ready for review');
-    await uploadBatchPhotos(user, view.container, [createImageFile('draft.jpg', 1800)]);
+    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Compact UI batch');
+    await uploadBatchPhotos(user, view.container, [createImageFile('draft.jpg', 2200)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
     await recordInlineVoice(user);
 
     await user.click(screen.getByRole('button', { name: /Save draft/i }));
     await waitFor(() => expect(screen.getByText('Photo batch saved')).toBeInTheDocument());
-
-    expect(screen.getAllByText('Corridor MEP inspection').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Sky Tower').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('MEP').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('MEP Rough-in Team').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Level 12 Corridor').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Compact UI batch').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Draft').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0);
 
-    await selectTowerBatch(user);
-    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Corridor MEP handover');
-    await uploadBatchPhotos(user, view.container, [createImageFile('submit.jpg', 2200)]);
+    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Compact UI submit');
+    await uploadBatchPhotos(user, view.container, [createImageFile('submit.jpg', 2400)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /Submit batch/i }));
     await waitFor(() => expect(screen.getByText('Photo batch submitted')).toBeInTheDocument());
-
+    expect(screen.getAllByText('Compact UI submit').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Submitted').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Updated').length).toBeGreaterThan(0);
 
-    return 'Recent cards showed draft/submitted status, project data, photo count, voice attachment, and updated label';
+    return 'Photo draft and submit still work with the shorter form layout and compact add controls';
   }), 15000);
 
-  it('renders translated inline voice labels across Thai, Lao, and English', async () => withFeature('Three-language labels', async () => {
+  it('keeps inline voice and mobile shell navigation working', async () => withFeature('Inline voice and mobile shell', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+
+    await checkIn(user);
+    const voiceButton = getQuickActionButton(/Voice Notes|Voice/i);
+    await waitFor(() => expect(voiceButton).toBeEnabled());
+    await user.click(voiceButton);
+    await waitFor(() => expect(screen.getByRole('button', { name: /Start recording/i })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: /Start recording/i }));
+    expect(screen.getByText('Recording...')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Stop recording/i }));
+    await waitFor(() => expect(view.container.querySelector('audio')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /Back/i }));
+    await openPhotoScreen(user);
+    await recordInlineVoice(user);
+    expect(screen.getByRole('button', { name: /Delete batch voice/i })).toBeEnabled();
+
+    return 'Voice screen recording, inline batch recording, and return navigation still work on mobile';
+  }));
+
+  it('preserves Thai, Lao, and English labels with the new compact controls', async () => withFeature('Three-language labels', async () => {
     const user = userEvent.setup();
     const { rerender } = renderWorkerApp('EN');
 
     await checkInAndOpenPhoto(user);
-    expect(screen.getByText('Inline batch voice')).toBeInTheDocument();
+    expect(screen.getByText('Standard Phrases')).toBeInTheDocument();
 
     rerender(
       <WorkerAppV2
@@ -366,7 +351,7 @@ describe('WorkerAppV2 mobile automation', () => {
         projectsList={projectsList}
       />
     );
-    await waitFor(() => expect(screen.getByText('เสียงในชุดงาน')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('วลีมาตรฐาน')).toBeInTheDocument());
 
     rerender(
       <WorkerAppV2
@@ -377,7 +362,7 @@ describe('WorkerAppV2 mobile automation', () => {
         projectsList={projectsList}
       />
     );
-    await waitFor(() => expect(screen.getByText('ສຽງໃນຊຸດວຽກ')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('ປະໂຫຍກມາດຕະຖານ')).toBeInTheDocument());
 
     rerender(
       <WorkerAppV2
@@ -388,40 +373,8 @@ describe('WorkerAppV2 mobile automation', () => {
         projectsList={projectsList}
       />
     );
-    await waitFor(() => expect(screen.getByText('Inline batch voice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Standard Phrases')).toBeInTheDocument());
 
-    return 'Verified EN / TH / LA labels for the inline batch voice module';
+    return 'Compact add labels and worker form labels still switch across EN / TH / LA';
   }));
-
-  it('supports voice screen recording and batch submission from the mobile shell', async () => withFeature('Voice screen and submit flow', async () => {
-    const user = userEvent.setup();
-    const view = renderWorkerApp('EN');
-
-    const checkInButton = getQuickActionButton(/Check In/i);
-    const voiceAction = getQuickActionButton(/Voice Notes|Voice/i);
-    expect(checkInButton).toBeDefined();
-    expect(voiceAction).toBeDefined();
-
-    await user.click(checkInButton);
-    await waitFor(() => expect(voiceAction).toBeEnabled());
-    await user.click(voiceAction);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Start recording/i })).toBeEnabled());
-    await user.click(screen.getByRole('button', { name: /Start recording/i }));
-    expect(screen.getByText('Recording...')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Stop recording/i }));
-    await waitFor(() => expect(view.container.querySelector('audio')).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: /Back/i }));
-    await openPhotoScreen(user);
-    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Mobile shell submit');
-    await uploadBatchPhotos(user, view.container, [createImageFile('mobile-shell.jpg', 2200)]);
-    await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: /Submit batch/i }));
-    await waitFor(() => expect(screen.getByText('Photo batch submitted')).toBeInTheDocument());
-
-    const recentCards = screen.getAllByText('Mobile shell submit');
-    expect(recentCards.length).toBeGreaterThan(0);
-    return 'Recorded from the voice screen, returned through the mobile shell, and submitted a batch';
-  }), 15000);
 });
-

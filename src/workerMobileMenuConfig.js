@@ -22,46 +22,138 @@ export const workerNavItemDefs = [
   { id: TAB_PROFILE, labelKey: 'worker_nav_chat', fallback: 'Profile', icon: 'profile' },
 ];
 
+const sameLabel = (value) => ({ TH: value, LA: value, EN: value });
+
 export const constructionTaskCategoryDefs = [
-  { value: 'foundation', labels: { EN: 'Foundation', TH: 'ฐานราก', LA: 'ຖານຮາກ' } },
-  { value: 'structure', labels: { EN: 'Structure', TH: 'โครงสร้าง', LA: 'ໂຄງສ້າງ' } },
-  { value: 'concrete', labels: { EN: 'Concrete', TH: 'คอนกรีต', LA: 'ຄອນກຣີດ' } },
-  { value: 'rebar', labels: { EN: 'Rebar', TH: 'เหล็กเสริม', LA: 'ເຫຼັກເສີມ' } },
-  { value: 'formwork', labels: { EN: 'Formwork', TH: 'แบบหล่อ', LA: 'ແບບຫຼໍ່' } },
-  { value: 'masonry', labels: { EN: 'Masonry', TH: 'งานก่อ', LA: 'ວຽກກໍ່' } },
-  { value: 'electrical', labels: { EN: 'Electrical', TH: 'ไฟฟ้า', LA: 'ໄຟຟ້າ' } },
-  { value: 'plumbing', labels: { EN: 'Plumbing', TH: 'ประปา', LA: 'ປະປາ' } },
-  { value: 'hvac', labels: { EN: 'HVAC', TH: 'ปรับอากาศ', LA: 'ລະບົບອາກາດ' } },
-  { value: 'waterproofing', labels: { EN: 'Waterproofing', TH: 'กันซึม', LA: 'ກັນຊຶມ' } },
-  { value: 'ceiling', labels: { EN: 'Ceiling', TH: 'ฝ้าเพดาน', LA: 'ຝ້າເພດານ' } },
-  { value: 'flooring', labels: { EN: 'Flooring', TH: 'พื้น', LA: 'ພື້ນ' } },
-  { value: 'painting', labels: { EN: 'Painting', TH: 'ทาสี', LA: 'ທາສີ' } },
-  { value: 'finishing', labels: { EN: 'Finishing', TH: 'เก็บงาน', LA: 'ເກັບງານ' } },
-  { value: 'inspection', labels: { EN: 'Inspection', TH: 'ตรวจงาน', LA: 'ກວດງານ' } },
-  { value: 'safety', labels: { EN: 'Safety', TH: 'ความปลอดภัย', LA: 'ຄວາມປອດໄພ' } },
+  { value: 'งานเตรยมพนท', labels: sameLabel('งานเตรยมพนท') },
+  { value: 'งานโครงสราง', labels: sameLabel('งานโครงสราง') },
+  { value: 'งานกออฐฉาบปน', labels: sameLabel('งานกออฐฉาบปน') },
+  { value: 'งานหลงคา', labels: sameLabel('งานหลงคา') },
+  { value: 'งานฝาเพดาน', labels: sameLabel('งานฝาเพดาน') },
+  { value: 'งานพน', labels: sameLabel('งานพน') },
+  { value: 'งานผนง', labels: sameLabel('งานผนง') },
+  { value: 'งานประตหนาตาง', labels: sameLabel('งานประตหนาตาง') },
+  { value: 'งานไฟฟา', labels: sameLabel('งานไฟฟา') },
+  { value: 'งานประปา', labels: sameLabel('งานประปา') },
+  { value: 'งานสขภณฑ', labels: sameLabel('งานสขภณฑ') },
+  { value: 'งานแอรและระบายอากาศ', labels: sameLabel('งานแอรและระบายอากาศ') },
+  { value: 'งานส', labels: sameLabel('งานส') },
+  { value: 'งานบวทอน', labels: sameLabel('งานบวทอน') },
+  { value: 'งานครว', labels: sameLabel('งานครว') },
+  { value: 'งานภายนอกอาคาร', labels: sameLabel('งานภายนอกอาคาร') },
+  { value: 'งานรวและประต', labels: sameLabel('งานรวและประต') },
+  { value: 'งานภมทศน', labels: sameLabel('งานภมทศน') },
+  { value: 'งานทำความสะอาด', labels: sameLabel('งานทำความสะอาด') },
+  { value: 'งานแกไข/เกบงาน', labels: sameLabel('งานแกไข/เกบงาน') },
+  { value: 'งานตรวจรบ', labels: sameLabel('งานตรวจรบ') },
 ];
+
+export const constructionSubcategoryPresetMap = {
+  'งานเตรยมพนท': ['เคลยรพนท', 'ขนยายวสด', 'ตงแนว', 'วดระยะ', 'เตรยมจดทำงาน'],
+  'งานโครงสราง': ['ขดฐานราก', 'ผกเหลก', 'ตงแบบ', 'เทคอนกรต', 'เสา', 'คาน', 'พนคอนกรต', 'บนได'],
+  'งานกออฐฉาบปน': ['กอผนง', 'ฉาบผนง', 'ซอมฉาบ', 'ปรบระดบ', 'อดรอย'],
+  'งานหลงคา': ['โครงหลงคา', 'มงหลงคา', 'ครอบสน', 'รางนำ', 'กนซม'],
+  'งานฝาเพดาน': ['โครงฝา', 'ปดฝา', 'ซอมฝา', 'เกบรอยตอ'],
+  'งานพน': ['ปกระเบอง', 'เทพน', 'ปรบระดบพน', 'ยาแนว', 'ซอมพน'],
+  'งานผนง': ['กรผนง', 'ตกแตงผนง', 'ซอมผนง', 'เกบผว'],
+  'งานประตหนาตาง': ['ตดตงวงกบ', 'ตดตงบานประต', 'ตดตงหนาตาง', 'ปรบตง', 'เกบซลโคน'],
+  'งานไฟฟา': ['เดนทอ', 'เดนสาย', 'ตดตงปลก', 'ตดตงสวตช', 'ตดตงโคมไฟ', 'ตดตงตไฟ', 'ทดสอบระบบ'],
+  'งานประปา': ['เดนทอนำด', 'เดนทอนำทง', 'ตดตงสขภณฑ', 'ตดตงปมนำ', 'ตดตงแทงกนำ', 'ทดสอบรวซม'],
+  'งานสขภณฑ': ['ตดตงชกโครก', 'ตดตงอางลางหนา', 'ตดตงกอกนำ', 'ตดตงฝกบว', 'เกบซลโคน'],
+  'งานแอรและระบายอากาศ': ['ตดตงแอร', 'เดนทอนำยา', 'เดนทอนำทง', 'ตดตงพดลมดดอากาศ', 'ทดสอบระบบ'],
+  'งานส': ['ขดผว', 'โปว', 'รองพน', 'ทาสจรง', 'เกบงานส'],
+  'งานบวทอน': ['ตดตงต', 'ตดตงชน', 'ตดตงหนาบาน', 'ปรบตง', 'เกบรายละเอยด'],
+  'งานครว': ['ตดตงเคานเตอร', 'ตดตงซงก', 'ตดตงเตา', 'ตดตงฮด', 'เกบซลโคน'],
+  'งานภายนอกอาคาร': ['ฉาบภายนอก', 'ทาสภายนอก', 'ปพนภายนอก', 'ตดตงกนสาด', 'เกบงานภายนอก'],
+  'งานรวและประต': ['ตงเสารว', 'กอรว', 'ตดตงประตรว', 'เชอม', 'ทาส'],
+  'งานภมทศน': ['ปรบดน', 'ปหญา', 'ปลกตนไม', 'วางทางเดน', 'ตดตงระบบนำ'],
+  'งานทำความสะอาด': ['เกบเศษวสด', 'ลางพน', 'เชดกระจก', 'ทำความสะอาดสงมอบ'],
+  'งานแกไข/เกบงาน': ['แกงาน', 'เกบรายละเอยด', 'ตรวจจดบกพรอง', 'ซอมซำ', 'สงตรวจซำ'],
+  'งานตรวจรบ': ['ตรวจคณภาพ', 'ตรวจแบบ', 'ตรวจระบบ', 'ทดสอบใชงาน', 'สงมอบงาน'],
+};
 
 export const constructionAreaZoneDefs = [
-  { value: 'zone_a', labels: { EN: 'Zone A', TH: 'โซน A', LA: 'ໂຊນ A' } },
-  { value: 'zone_b', labels: { EN: 'Zone B', TH: 'โซน B', LA: 'ໂຊນ B' } },
-  { value: 'north_wing', labels: { EN: 'North Wing', TH: 'ปีกเหนือ', LA: 'ປີກເໜືອ' } },
-  { value: 'south_wing', labels: { EN: 'South Wing', TH: 'ปีกใต้', LA: 'ປີກໃຕ້' } },
-  { value: 'east_wing', labels: { EN: 'East Wing', TH: 'ปีกตะวันออก', LA: 'ປີກຕາເວັນອອກ' } },
-  { value: 'west_wing', labels: { EN: 'West Wing', TH: 'ปีกตะวันตก', LA: 'ປີກຕາເວັນຕົກ' } },
-  { value: 'basement', labels: { EN: 'Basement', TH: 'ชั้นใต้ดิน', LA: 'ຊັ້ນໃຕ້ດິນ' } },
-  { value: 'ground_floor', labels: { EN: 'Ground Floor', TH: 'ชั้นล่าง', LA: 'ຊັ້ນລຸ່ມ' } },
-  { value: 'level_1', labels: { EN: 'Level 1', TH: 'ชั้น 1', LA: 'ຊັ້ນ 1' } },
-  { value: 'level_2', labels: { EN: 'Level 2', TH: 'ชั้น 2', LA: 'ຊັ້ນ 2' } },
-  { value: 'roof', labels: { EN: 'Roof', TH: 'ดาดฟ้า', LA: 'ດາດຟ້າ' } },
-  { value: 'lobby', labels: { EN: 'Lobby', TH: 'ล็อบบี้', LA: 'ລັອບບີ້' } },
-];
+  'หนาบาน',
+  'หลงบาน',
+  'ดานซายอาคาร',
+  'ดานขวาอาคาร',
+  'ทจอดรถ',
+  'สวน',
+  'รวหนา',
+  'รวขาง',
+  'ทางเดนรอบบาน',
+  'ลานซกลาง',
+  'จดปมนำ/แทงกนำ',
+  'โถงทางเขา',
+  'หองนงเลน',
+  'หองรบแขก',
+  'พนททานอาหาร',
+  'หองครว',
+  'ครวไทย',
+  'ครวแพนทร',
+  'หองนำชนลาง',
+  'หองเกบของ',
+  'หองนอนชนลาง',
+  'หองแมบาน',
+  'หองซกรด',
+  'บนได',
+  'โถงบนได',
+  'โถงชนบน',
+  'หองนอนใหญ',
+  'หองนำหองนอนใหญ',
+  'หองแตงตว',
+  'หองนอน 1',
+  'หองนอน 2',
+  'หองนอน 3',
+  'หองนำรวม',
+  'ระเบยง',
+  'มมนงเลนชนบน',
+  'ใตหลงคา',
+  'ฝาเพดาน',
+  'หองเครอง',
+  'ตไฟหลก',
+  'จดเมนประปา',
+  'จดแอร',
+  'จดกลองวงจรปด',
+  'จดอนเทอรเนต',
+].map((value) => ({ value, labels: sameLabel(value) }));
+
+export const standardConstructionPhraseDefs = [
+  'เรมงานแลว',
+  'เขางานเรยบรอย',
+  'งานคบหนาตามแผน',
+  'งานเสรจแลว',
+  'สงรปความคบหนาแลว',
+  'รอตรวจ',
+  'ผานตรวจ',
+  'ไมผานตรวจ',
+  'รอวสด',
+  'รอแบบ',
+  'พนทยงไมพรอม',
+  'พบปญหาหนางาน',
+  'แกไขแลว',
+  'ตองแกไขเพมเตม',
+  'ทดสอบแลว',
+  'ฝนตกทำงานตอไมได',
+  'ขออนมตงานตอ',
+  'ขออนมตวสดเพม',
+].map((value) => ({ value, labels: sameLabel(value) }));
 
 export function getLocalizedConstructionTaskCategoryOptions(language = 'EN') {
-  return constructionTaskCategoryDefs.map((item) => item.labels[language] || item.labels.EN);
+  return constructionTaskCategoryDefs.map((item) => item.labels[language] || item.labels.EN || item.value);
 }
 
 export function getLocalizedConstructionAreaZoneOptions(language = 'EN') {
-  return constructionAreaZoneDefs.map((item) => item.labels[language] || item.labels.EN);
+  return constructionAreaZoneDefs.map((item) => item.labels[language] || item.labels.EN || item.value);
+}
+
+export function getLocalizedConstructionSubcategoryOptions(category, language = 'EN') {
+  if (!category) return [];
+  return (constructionSubcategoryPresetMap[category] || []).map((value) => sameLabel(value)[language] || value);
+}
+
+export function getLocalizedStandardConstructionPhraseOptions(language = 'EN') {
+  return standardConstructionPhraseDefs.map((item) => item.labels[language] || item.labels.EN || item.value);
 }
 
 export function createWorkerNavItems({ t, pickText, iconMap }) {

@@ -10,6 +10,7 @@ export const WORKER_STORAGE_KEYS = {
   milestoneSubmissions: `${STORAGE_PREFIX}milestoneSubmissions`,
   tasks: `${STORAGE_PREFIX}tasks`,
   settings: `${STORAGE_PREFIX}settings`,
+  workerPresets: `${STORAGE_PREFIX}workerPresets`,
 };
 
 export const ATTENDANCE_STATUS = {
@@ -200,6 +201,7 @@ export function createPhotoSubmissionBatch({
   projectId = '',
   projectName = '',
   workType,
+  workSubcategory = '',
   tradeTeam,
   roomId,
   roomName,
@@ -219,6 +221,7 @@ export function createPhotoSubmissionBatch({
     projectName,
     siteName: projectName,
     workType,
+    workSubcategory,
     tradeTeam,
     roomId,
     roomName,
@@ -251,6 +254,7 @@ export function normalizePhotoSubmissionBatch(entry) {
       projectName: entry.projectName || entry.siteName || '',
       siteName: entry.projectName || entry.siteName || '',
       workType: entry.workType || entry.category || '',
+      workSubcategory: entry.workSubcategory || '',
       tradeTeam: entry.tradeTeam || '',
       roomId: entry.roomId || '',
       roomName: entry.roomName || '',
@@ -279,6 +283,7 @@ export function normalizePhotoSubmissionBatch(entry) {
     projectName: entry.siteName || entry.projectName || '',
     siteName: entry.siteName || entry.projectName || '',
     workType: entry.category || '',
+    workSubcategory: entry.workSubcategory || '',
     tradeTeam: entry.tradeTeam || '',
     roomId: entry.roomId || '',
     roomName: entry.roomName || '',

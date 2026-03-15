@@ -14,6 +14,7 @@ import {
   MapPin,
   Mic,
   Package,
+  Plus,
   Square,
   Trash2,
   UserCircle2,
@@ -58,12 +59,15 @@ import {
   createWorkerActionButtons,
   getLocalizedConstructionTaskCategoryOptions,
   getLocalizedConstructionAreaZoneOptions,
+  getLocalizedConstructionSubcategoryOptions,
+  getLocalizedStandardConstructionPhraseOptions,
 } from './workerMobileMenuConfig';
 
 const defaultPhotoBatch = {
   projectId: '',
   projectName: '',
   taskCategory: '',
+  workSubcategory: '',
   areaZone: '',
   workType: '',
   tradeTeam: '',
@@ -71,14 +75,15 @@ const defaultPhotoBatch = {
   roomName: '',
   batchTitle: '',
   notes: '',
+  standardPhrase: '',
   photos: [],
   voiceNote: null,
   status: 'draft',
 };
-const defaultIssueForm = { category: 'safety', urgency: 'high', detail: '', imageData: '', imageStats: null, originalName: '' };
-const defaultRequestForm = { itemName: '', quantity: '1', unit: 'piece', note: '', taskCategory: '', areaZone: '', imageData: '', imageStats: null, originalName: '' };
-const defaultPaymentForm = { amount: '', taskCategory: '', areaZone: '', note: '' };
-const defaultMilestoneForm = { taskCategory: '', areaZone: '', progress: '', note: '', photos: [] };
+const defaultIssueForm = { category: 'safety', urgency: 'high', detail: '', imageData: '', imageStats: null, originalName: '', standardPhrase: '' };
+const defaultRequestForm = { itemName: '', quantity: '1', unit: 'piece', note: '', taskCategory: '', areaZone: '', imageData: '', imageStats: null, originalName: '', standardPhrase: '' };
+const defaultPaymentForm = { amount: '', taskCategory: '', areaZone: '', note: '', standardPhrase: '' };
+const defaultMilestoneForm = { taskCategory: '', areaZone: '', progress: '', note: '', photos: [], standardPhrase: '' };
 
 const PROJECT_BATCH_LIBRARY = {
   default: {
@@ -191,6 +196,23 @@ const getProjectNameById = (projects, projectId) =>
 const getPreferredProject = (projects, currentProject) => {
   if (currentProject?.id) return currentProject;
   return projects[0] || null;
+};
+
+const prependUniqueOption = (items = [], nextValue = '') => {
+  const normalized = String(nextValue || '').trim();
+  if (!normalized) return items;
+  return [normalized, ...items.filter((item) => item !== normalized)];
+};
+
+const mergeOptionLists = (...groups) => {
+  const seen = new Set();
+  const result = [];
+  groups.flat().filter(Boolean).forEach((item) => {
+    if (seen.has(item)) return;
+    seen.add(item);
+    result.push(item);
+  });
+  return result;
 };
 
 const createDefaultPhotoBatchForm = (project) => ({
@@ -333,13 +355,22 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         batchFilterTrade: 'เลือกประเภทงานก่อนจึงจะเลือกทีมได้',
         batchFilterRoom: 'เลือกประเภทงานและทีมก่อนจึงจะเลือกห้องได้',
         taskCategoryLabel: 'หมวดงาน',
+        workSubcategoryLabel: 'หมวดย่อย',
         areaZoneLabel: 'พื้นที่ / โซน',
+        standardPhrasesLabel: 'วลีมาตรฐาน',
         taskCategoryPlaceholder: 'เลือกหมวดงาน',
+        workSubcategoryPlaceholder: 'เลือกหมวดย่อย',
         areaZonePlaceholder: 'เลือกพื้นที่ / โซน',
+        standardPhrasesPlaceholder: 'เลือกวลีมาตรฐาน',
         addTaskCategoryLabel: 'เพิ่มหมวดงานเอง',
+        addWorkSubcategoryLabel: 'เพิ่มหมวดย่อยเอง',
         addAreaZoneLabel: 'เพิ่มพื้นที่เอง',
+        addStandardPhraseLabel: 'เพิ่มวลีเอง',
         addOptionAction: 'เพิ่มรายการ',
         customInputPlaceholder: 'พิมพ์แล้วเพิ่มเข้ารายการ',
+        compactAddAction: 'เพิ่ม',
+        compactAddSave: 'บันทึก',
+        compactAddCancel: 'ยกเลิก',
         photoFlowHelper: 'โฟลว์มือถือแบบย่อ: เลือกหมวดงาน, พื้นที่, แนบรูป, ส่งงาน',
         projectAutoSelected: 'เลือกโครงการจากไซต์ที่รับผิดชอบให้อัตโนมัติ เพื่อลดขั้นตอนบนมือถือ',
         quickSubmitTitle: 'อัปเดตส่งงาน',
@@ -355,6 +386,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         quickMilestoneHelper: 'ส่งความคืบหน้างวดงานพร้อมรูปและหมายเหตุ',
         editableUpdateAction: 'อัปเดตรายการที่เลือก',
         editableSelectedHelper: 'เลือกจากรายการ หรือพิมพ์ค่าใหม่เพื่อเพิ่ม/แก้ได้ทันที',
+        subcategoryHelper: 'เลือกหมวดหลักก่อน แล้วจึงเลือกหมวดย่อย',
+        phraseHelper: 'เลือกวลีเพื่อเติมข้อความเร็วขึ้น หรือเพิ่มวลีใหม่ได้ทันที',
         requestItemPlaceholder: 'รายการหลัก',
         requestQuantityPlaceholder: 'จำนวน',
         requestUnitPlaceholder: 'หน่วย',
@@ -459,13 +492,22 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           batchFilterTrade: 'ເລືອກປະເພດວຽກກ່ອນ ຈຶ່ງຈະເລືອກທີມໄດ້',
           batchFilterRoom: 'ເລືອກປະເພດວຽກ ແລະ ທີມ ກ່ອນ ຈຶ່ງຈະເລືອກຫ້ອງໄດ້',
           taskCategoryLabel: 'ໝວດວຽກ',
+          workSubcategoryLabel: 'ໝວດຍ່ອຍ',
           areaZoneLabel: 'ພື້ນທີ່ / ໂຊນ',
+          standardPhrasesLabel: 'ປະໂຫຍກມາດຕະຖານ',
           taskCategoryPlaceholder: 'ເລືອກໝວດວຽກ',
+          workSubcategoryPlaceholder: 'ເລືອກໝວດຍ່ອຍ',
           areaZonePlaceholder: 'ເລືອກພື້ນທີ່ / ໂຊນ',
+          standardPhrasesPlaceholder: 'ເລືອກປະໂຫຍກມາດຕະຖານ',
           addTaskCategoryLabel: 'ເພີ່ມໝວດວຽກເອງ',
+          addWorkSubcategoryLabel: 'ເພີ່ມໝວດຍ່ອຍເອງ',
           addAreaZoneLabel: 'ເພີ່ມພື້ນທີ່ເອງ',
+          addStandardPhraseLabel: 'ເພີ່ມປະໂຫຍກເອງ',
           addOptionAction: 'ເພີ່ມລາຍການ',
           customInputPlaceholder: 'ພິມແລ້ວເພີ່ມເຂົ້າລາຍການ',
+          compactAddAction: 'ເພີ່ມ',
+          compactAddSave: 'ບັນທຶກ',
+          compactAddCancel: 'ຍົກເລີກ',
           photoFlowHelper: 'ໂຟລວ໌ມືຖືແບບຍໍ້: ເລືອກໝວດວຽກ, ພື້ນທີ່, ແນບຮູບ, ສົ່ງງານ',
           projectAutoSelected: 'ເລືອກໂຄງການໃຫ້ອັດຕະໂນມັດຈາກໄຊທ໌ທີ່ຮັບຜິດຊອບ ເພື່ອຫຼຸດຂັ້ນຕອນໃນມືຖື',
           quickSubmitTitle: 'ອັບເດດສົ່ງງານ',
@@ -481,6 +523,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           quickMilestoneHelper: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດພ້ອມຮູບ ແລະ ໝາຍເຫດ',
           editableUpdateAction: 'ອັບເດດລາຍການທີ່ເລືອກ',
           editableSelectedHelper: 'ເລືອກຈາກລາຍການ ຫຼື ພິມຄ່າໃໝ່ເພື່ອເພີ່ມ/ແກ້ໄຂໄດ້ທັນທີ',
+          subcategoryHelper: 'ເລືອກໝວດຫຼັກກ່ອນ ແລ້ວຈຶ່ງເລືອກໝວດຍ່ອຍ',
+          phraseHelper: 'ເລືອກປະໂຫຍກເພື່ອໃສ່ຂໍ້ຄວາມໄວ ຫຼື ເພີ່ມປະໂຫຍກໃໝ່ໄດ້ທັນທີ',
           requestItemPlaceholder: 'ລາຍການຫຼັກ',
           requestQuantityPlaceholder: 'ຈຳນວນ',
           requestUnitPlaceholder: 'ໜ່ວຍ',
@@ -584,13 +628,22 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           batchFilterTrade: 'Pick a work type before choosing a team',
           batchFilterRoom: 'Pick a work type and team before choosing a room',
           taskCategoryLabel: 'Task Category',
+          workSubcategoryLabel: 'Work Subcategory',
           areaZoneLabel: 'Zone / Area',
+          standardPhrasesLabel: 'Standard Phrases',
           taskCategoryPlaceholder: 'Select task category',
+          workSubcategoryPlaceholder: 'Select work subcategory',
           areaZonePlaceholder: 'Select zone / area',
+          standardPhrasesPlaceholder: 'Select standard phrase',
           addTaskCategoryLabel: 'Add your own task category',
+          addWorkSubcategoryLabel: 'Add your own subcategory',
           addAreaZoneLabel: 'Add your own zone / area',
+          addStandardPhraseLabel: 'Add your own standard phrase',
           addOptionAction: 'Add option',
           customInputPlaceholder: 'Type a new option',
+          compactAddAction: 'Add',
+          compactAddSave: 'Save',
+          compactAddCancel: 'Cancel',
           photoFlowHelper: 'Simplified mobile flow: choose task category, area, attach photos, submit',
           projectAutoSelected: 'The assigned project is selected automatically to reduce mobile steps',
           quickSubmitTitle: 'Update Submission',
@@ -606,6 +659,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           quickMilestoneHelper: 'Send milestone progress with photos and notes',
           editableUpdateAction: 'Update selected option',
           editableSelectedHelper: 'Pick from the list or type a new value to add/update it instantly',
+          subcategoryHelper: 'Select the main category first, then choose the subcategory',
+          phraseHelper: 'Pick a phrase to fill the note quickly or add a new phrase inline',
           requestItemPlaceholder: 'Main item',
           requestQuantityPlaceholder: 'Quantity',
           requestUnitPlaceholder: 'Unit',
@@ -653,10 +708,21 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [isBatchVoiceProcessing, setIsBatchVoiceProcessing] = useState(false);
   const [projectBatchOptions, setProjectBatchOptions] = useState({ workTypes: [], tradeTeams: [], rooms: [] });
   const [isProjectBatchOptionsLoading, setIsProjectBatchOptionsLoading] = useState(false);
-  const [customTaskCategories, setCustomTaskCategories] = useState([]);
-  const [customAreaZones, setCustomAreaZones] = useState([]);
+  const [workerPresets, setWorkerPresets] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.workerPresets, {
+    taskCategories: [],
+    subcategories: {},
+    areaZones: [],
+    standardPhrases: [],
+  }));
+  const [customTaskCategories, setCustomTaskCategories] = useState(() => workerPresets.taskCategories || []);
+  const [customSubcategories, setCustomSubcategories] = useState(() => workerPresets.subcategories || {});
+  const [customAreaZones, setCustomAreaZones] = useState(() => workerPresets.areaZones || []);
+  const [customStandardPhrases, setCustomStandardPhrases] = useState(() => workerPresets.standardPhrases || []);
+  const [openAddField, setOpenAddField] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('');
+  const [newWorkSubcategory, setNewWorkSubcategory] = useState('');
   const [newAreaZone, setNewAreaZone] = useState('');
+  const [newStandardPhrase, setNewStandardPhrase] = useState('');
 
   const [attendanceRecords, setAttendanceRecords] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.attendance, []));
   const [photoReports, setPhotoReports] = useState(() =>
@@ -698,6 +764,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, milestoneSubmissions), [milestoneSubmissions]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.settings, settings), [settings]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.tasks, tasks), [tasks]);
+  useEffect(() => {
+    saveToStorage(WORKER_STORAGE_KEYS.workerPresets, {
+      taskCategories: customTaskCategories,
+      subcategories: customSubcategories,
+      areaZones: customAreaZones,
+      standardPhrases: customStandardPhrases,
+    });
+  }, [customAreaZones, customStandardPhrases, customSubcategories, customTaskCategories]);
 
   useEffect(() => {
     setPhotoReports((current) => current.map(normalizePhotoSubmissionBatch).filter(Boolean));
@@ -767,7 +841,18 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         ...selectionDefaults,
       };
     });
-  }, [projectBatchOptions, projectsList]);
+  }, [
+    photoBatchForm.areaZone,
+    photoBatchForm.projectId,
+    photoBatchForm.projectName,
+    photoBatchForm.roomId,
+    photoBatchForm.roomName,
+    photoBatchForm.taskCategory,
+    photoBatchForm.tradeTeam,
+    photoBatchForm.workType,
+    projectBatchOptions,
+    projectsList,
+  ]);
 
   useEffect(() => {
     setAttendanceOverride(null);
@@ -837,12 +922,45 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   );
   const taskCategoryOptions = useMemo(() => {
     const projectCategories = workTypeOptions.map((option) => option.label).filter(Boolean);
-    return Array.from(new Set([...getLocalizedConstructionTaskCategoryOptions(language), ...projectCategories, ...customTaskCategories]));
+    return mergeOptionLists(customTaskCategories, getLocalizedConstructionTaskCategoryOptions(language), projectCategories);
   }, [customTaskCategories, language, workTypeOptions]);
+  const workSubcategoryOptions = useMemo(() => mergeOptionLists(
+    customSubcategories[photoBatchForm.taskCategory] || [],
+    getLocalizedConstructionSubcategoryOptions(photoBatchForm.taskCategory, language)
+  ), [customSubcategories, language, photoBatchForm.taskCategory]);
   const areaZoneOptions = useMemo(() => {
     const projectAreas = roomOptions.map((option) => option.label).filter(Boolean);
-    return Array.from(new Set([...getLocalizedConstructionAreaZoneOptions(language), ...projectAreas, ...customAreaZones]));
+    return mergeOptionLists(customAreaZones, getLocalizedConstructionAreaZoneOptions(language), projectAreas);
   }, [customAreaZones, language, roomOptions]);
+  const standardPhraseOptions = useMemo(
+    () => mergeOptionLists(customStandardPhrases, getLocalizedStandardConstructionPhraseOptions(language)),
+    [customStandardPhrases, language]
+  );
+
+  useEffect(() => {
+    setPhotoBatchForm((current) => {
+      const nextTaskCategory = taskCategoryOptions.includes(current.taskCategory)
+        ? current.taskCategory
+        : (taskCategoryOptions[0] || '');
+      const nextSubcategoryOptions = mergeOptionLists(
+        customSubcategories[nextTaskCategory] || [],
+        getLocalizedConstructionSubcategoryOptions(nextTaskCategory, language)
+      );
+      const nextWorkSubcategory = nextSubcategoryOptions.includes(current.workSubcategory)
+        ? current.workSubcategory
+        : (nextSubcategoryOptions[0] || '');
+
+      if (nextTaskCategory === current.taskCategory && nextWorkSubcategory === current.workSubcategory) {
+        return current;
+      }
+
+      return {
+        ...current,
+        taskCategory: nextTaskCategory,
+        workSubcategory: nextWorkSubcategory,
+      };
+    });
+  }, [customSubcategories, language, taskCategoryOptions]);
 
   const effectiveAttendance = attendanceOverride || todayAttendance;
   const isCheckedIn = Boolean(effectiveAttendance.checkIn);
@@ -1115,13 +1233,24 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setPhotoBatchForm((current) => ({
       ...current,
       taskCategory: nextValue,
-      workType: nextValue,
-      tradeTeam: current.tradeTeam || 'General Crew',
+      workSubcategory: mergeOptionLists(
+        customSubcategories[nextValue] || [],
+        getLocalizedConstructionSubcategoryOptions(nextValue, language)
+      )[0] || '',
       status: 'draft',
     }));
     setRequestForm((current) => ({ ...current, taskCategory: nextValue }));
     setPaymentForm((current) => ({ ...current, taskCategory: nextValue }));
     setMilestoneForm((current) => ({ ...current, taskCategory: nextValue }));
+  };
+
+  const handleWorkSubcategoryChange = (value) => {
+    const nextValue = value.trimStart();
+    setPhotoBatchForm((current) => ({
+      ...current,
+      workSubcategory: nextValue,
+      status: 'draft',
+    }));
   };
 
   const handleAreaZoneChange = (value) => {
@@ -1138,44 +1267,58 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setMilestoneForm((current) => ({ ...current, areaZone: nextValue }));
   };
 
-  const addTaskCategoryOption = () => {
+  const toggleCompactAdd = (fieldId) => {
+    setOpenAddField((current) => current === fieldId ? '' : fieldId);
+  };
+
+  const addTaskCategoryOption = (onSelect = handleTaskCategoryChange) => {
     const nextValue = newTaskCategory.trim();
     if (!nextValue) return;
-    setCustomTaskCategories((current) => Array.from(new Set([...current, nextValue])));
-    handleTaskCategoryChange(nextValue);
+    setCustomTaskCategories((current) => prependUniqueOption(current, nextValue));
+    setCustomSubcategories((current) => (current[nextValue] ? current : { ...current, [nextValue]: [] }));
+    onSelect(nextValue);
     setNewTaskCategory('');
+    setOpenAddField('');
   };
 
-  const updateTaskCategoryOption = () => {
-    const nextValue = newTaskCategory.trim();
-    const currentValue = photoBatchForm.taskCategory.trim();
-    if (!nextValue || !currentValue) return;
-    setCustomTaskCategories((current) => {
-      const filtered = current.filter((option) => option !== currentValue);
-      return Array.from(new Set([...filtered, nextValue]));
-    });
-    handleTaskCategoryChange(nextValue);
-    setNewTaskCategory('');
+  const addWorkSubcategoryOption = () => {
+    const nextValue = newWorkSubcategory.trim();
+    const categoryKey = photoBatchForm.taskCategory.trim();
+    if (!nextValue || !categoryKey) return;
+    setCustomSubcategories((current) => ({
+      ...current,
+      [categoryKey]: prependUniqueOption(current[categoryKey] || [], nextValue),
+    }));
+    handleWorkSubcategoryChange(nextValue);
+    setNewWorkSubcategory('');
+    setOpenAddField('');
   };
 
-  const addAreaZoneOption = () => {
+  const addAreaZoneOption = (onSelect = handleAreaZoneChange) => {
     const nextValue = newAreaZone.trim();
     if (!nextValue) return;
-    setCustomAreaZones((current) => Array.from(new Set([...current, nextValue])));
-    handleAreaZoneChange(nextValue);
+    setCustomAreaZones((current) => prependUniqueOption(current, nextValue));
+    onSelect(nextValue);
     setNewAreaZone('');
+    setOpenAddField('');
   };
 
-  const updateAreaZoneOption = () => {
-    const nextValue = newAreaZone.trim();
-    const currentValue = photoBatchForm.areaZone.trim();
-    if (!nextValue || !currentValue) return;
-    setCustomAreaZones((current) => {
-      const filtered = current.filter((option) => option !== currentValue);
-      return Array.from(new Set([...filtered, nextValue]));
-    });
-    handleAreaZoneChange(nextValue);
-    setNewAreaZone('');
+  const applyStandardPhrase = (setter, value, textField = 'note') => {
+    setter((current) => ({
+      ...current,
+      standardPhrase: value,
+      [textField]: value,
+      ...('status' in current ? { status: 'draft' } : {}),
+    }));
+  };
+
+  const addStandardPhraseOption = (setter, textField = 'note') => {
+    const nextValue = newStandardPhrase.trim();
+    if (!nextValue) return;
+    setCustomStandardPhrases((current) => prependUniqueOption(current, nextValue));
+    applyStandardPhrase(setter, nextValue, textField);
+    setNewStandardPhrase('');
+    setOpenAddField('');
   };
 
   const handleBatchPhotoChange = async (event) => {
@@ -1253,6 +1396,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         projectId: photoBatchForm.projectId,
         projectName,
         workType: workTypeLabel,
+        workSubcategory: photoBatchForm.workSubcategory,
         tradeTeam: tradeTeamName,
         roomId: photoBatchForm.roomId || roomName,
         roomName,
@@ -1885,7 +2029,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               emptyLabel={photoBatchForm.tradeTeam ? localCopy.batchNoProjectData : localCopy.batchFilterRoom}
               disabled={isProjectBatchOptionsLoading || !photoBatchForm.tradeTeam}
             />
-            <DropdownCreateField
+            <CompactSelectCreateField
               label={localCopy.taskCategoryLabel}
               value={photoBatchForm.taskCategory}
               onSelect={handleTaskCategoryChange}
@@ -1894,15 +2038,35 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               createLabel={localCopy.addTaskCategoryLabel}
               createValue={newTaskCategory}
               onCreateValueChange={setNewTaskCategory}
-              onCreate={addTaskCategoryOption}
-              onUpdate={updateTaskCategoryOption}
+              onCreate={() => addTaskCategoryOption()}
               createPlaceholder={localCopy.customInputPlaceholder}
-              actionLabel={localCopy.addOptionAction}
-              updateLabel={localCopy.editableUpdateAction}
+              actionLabel={localCopy.compactAddSave}
+              cancelLabel={localCopy.compactAddCancel}
               helperText={localCopy.editableSelectedHelper}
               accent="blue"
+              addOpen={openAddField === 'photo-task-category'}
+              onToggleAdd={() => toggleCompactAdd('photo-task-category')}
             />
-            <DropdownCreateField
+            <CompactSelectCreateField
+              label={localCopy.workSubcategoryLabel}
+              value={photoBatchForm.workSubcategory}
+              onSelect={handleWorkSubcategoryChange}
+              options={workSubcategoryOptions}
+              selectPlaceholder={localCopy.workSubcategoryPlaceholder}
+              createLabel={localCopy.addWorkSubcategoryLabel}
+              createValue={newWorkSubcategory}
+              onCreateValueChange={setNewWorkSubcategory}
+              onCreate={addWorkSubcategoryOption}
+              createPlaceholder={localCopy.customInputPlaceholder}
+              actionLabel={localCopy.compactAddSave}
+              cancelLabel={localCopy.compactAddCancel}
+              helperText={photoBatchForm.taskCategory ? localCopy.editableSelectedHelper : localCopy.subcategoryHelper}
+              accent="blue"
+              addOpen={openAddField === 'photo-work-subcategory'}
+              onToggleAdd={() => toggleCompactAdd('photo-work-subcategory')}
+              disabled={!photoBatchForm.taskCategory}
+            />
+            <CompactSelectCreateField
               label={localCopy.areaZoneLabel}
               value={photoBatchForm.areaZone}
               onSelect={handleAreaZoneChange}
@@ -1911,13 +2075,32 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               createLabel={localCopy.addAreaZoneLabel}
               createValue={newAreaZone}
               onCreateValueChange={setNewAreaZone}
-              onCreate={addAreaZoneOption}
-              onUpdate={updateAreaZoneOption}
+              onCreate={() => addAreaZoneOption()}
               createPlaceholder={localCopy.customInputPlaceholder}
-              actionLabel={localCopy.addOptionAction}
-              updateLabel={localCopy.editableUpdateAction}
+              actionLabel={localCopy.compactAddSave}
+              cancelLabel={localCopy.compactAddCancel}
               helperText={localCopy.editableSelectedHelper}
               accent="emerald"
+              addOpen={openAddField === 'photo-area-zone'}
+              onToggleAdd={() => toggleCompactAdd('photo-area-zone')}
+            />
+            <CompactSelectCreateField
+              label={localCopy.standardPhrasesLabel}
+              value={photoBatchForm.standardPhrase || ''}
+              onSelect={(value) => applyStandardPhrase(setPhotoBatchForm, value, 'notes')}
+              options={standardPhraseOptions}
+              selectPlaceholder={localCopy.standardPhrasesPlaceholder}
+              createLabel={localCopy.addStandardPhraseLabel}
+              createValue={newStandardPhrase}
+              onCreate={() => addStandardPhraseOption(setPhotoBatchForm, 'notes')}
+              onCreateValueChange={setNewStandardPhrase}
+              createPlaceholder={localCopy.customInputPlaceholder}
+              actionLabel={localCopy.compactAddSave}
+              cancelLabel={localCopy.compactAddCancel}
+              helperText={localCopy.phraseHelper}
+              accent="emerald"
+              addOpen={openAddField === 'photo-standard-phrase'}
+              onToggleAdd={() => toggleCompactAdd('photo-standard-phrase')}
             />
             <input
               value={photoBatchForm.batchTitle}
@@ -2010,6 +2193,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               batchTitle: photoBatchForm.batchTitle || `${localCopy.batchTitleAuto} • ${photoBatchForm.taskCategory || '-'}`,
               projectName: photoBatchForm.projectName || getProjectNameById(projectsList, photoBatchForm.projectId) || '-',
               workType: photoBatchForm.taskCategory,
+              workSubcategory: photoBatchForm.workSubcategory,
               tradeTeam: photoBatchForm.tradeTeam || 'General Crew',
               roomName: photoBatchForm.areaZone,
               notes: photoBatchForm.notes,
@@ -2125,7 +2309,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           {photoBatchForm.projectName || siteName} • {localCopy.editableSelectedHelper}
         </div>
         <div className="mt-4 space-y-4">
-          <DropdownCreateField
+          <CompactSelectCreateField
             label={localCopy.taskCategoryLabel}
             value={requestForm.taskCategory}
             onSelect={(value) => setRequestForm((current) => ({ ...current, taskCategory: value }))}
@@ -2134,15 +2318,16 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             createLabel={localCopy.addTaskCategoryLabel}
             createValue={newTaskCategory}
             onCreateValueChange={setNewTaskCategory}
-            onCreate={addTaskCategoryOption}
-            onUpdate={updateTaskCategoryOption}
+            onCreate={() => addTaskCategoryOption((value) => setRequestForm((current) => ({ ...current, taskCategory: value })))}
             createPlaceholder={localCopy.customInputPlaceholder}
-            actionLabel={localCopy.addOptionAction}
-            updateLabel={localCopy.editableUpdateAction}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
             helperText={localCopy.editableSelectedHelper}
             accent="blue"
+            addOpen={openAddField === 'request-task-category'}
+            onToggleAdd={() => toggleCompactAdd('request-task-category')}
           />
-          <DropdownCreateField
+          <CompactSelectCreateField
             label={localCopy.areaZoneLabel}
             value={requestForm.areaZone}
             onSelect={(value) => setRequestForm((current) => ({ ...current, areaZone: value }))}
@@ -2151,13 +2336,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             createLabel={localCopy.addAreaZoneLabel}
             createValue={newAreaZone}
             onCreateValueChange={setNewAreaZone}
-            onCreate={addAreaZoneOption}
-            onUpdate={updateAreaZoneOption}
+            onCreate={() => addAreaZoneOption((value) => setRequestForm((current) => ({ ...current, areaZone: value })))}
             createPlaceholder={localCopy.customInputPlaceholder}
-            actionLabel={localCopy.addOptionAction}
-            updateLabel={localCopy.editableUpdateAction}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
             helperText={localCopy.editableSelectedHelper}
             accent="emerald"
+            addOpen={openAddField === 'request-area-zone'}
+            onToggleAdd={() => toggleCompactAdd('request-area-zone')}
           />
           <input
             value={requestForm.itemName}
@@ -2181,6 +2367,24 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
             />
           </div>
+          <CompactSelectCreateField
+            label={localCopy.standardPhrasesLabel}
+            value={requestForm.standardPhrase || ''}
+            onSelect={(value) => applyStandardPhrase(setRequestForm, value)}
+            options={standardPhraseOptions}
+            selectPlaceholder={localCopy.standardPhrasesPlaceholder}
+            createLabel={localCopy.addStandardPhraseLabel}
+            createValue={newStandardPhrase}
+            onCreate={() => addStandardPhraseOption(setRequestForm)}
+            onCreateValueChange={setNewStandardPhrase}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
+            helperText={localCopy.phraseHelper}
+            accent="emerald"
+            addOpen={openAddField === 'request-standard-phrase'}
+            onToggleAdd={() => toggleCompactAdd('request-standard-phrase')}
+          />
           <textarea
             value={requestForm.note}
             onChange={(event) => setRequestForm((current) => ({ ...current, note: event.target.value }))}
@@ -2221,7 +2425,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           {photoBatchForm.projectName || siteName} • {localCopy.editableSelectedHelper}
         </div>
         <div className="mt-4 space-y-4">
-          <DropdownCreateField
+          <CompactSelectCreateField
             label={localCopy.taskCategoryLabel}
             value={paymentForm.taskCategory}
             onSelect={(value) => setPaymentForm((current) => ({ ...current, taskCategory: value }))}
@@ -2230,15 +2434,16 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             createLabel={localCopy.addTaskCategoryLabel}
             createValue={newTaskCategory}
             onCreateValueChange={setNewTaskCategory}
-            onCreate={addTaskCategoryOption}
-            onUpdate={updateTaskCategoryOption}
+            onCreate={() => addTaskCategoryOption((value) => setPaymentForm((current) => ({ ...current, taskCategory: value })))}
             createPlaceholder={localCopy.customInputPlaceholder}
-            actionLabel={localCopy.addOptionAction}
-            updateLabel={localCopy.editableUpdateAction}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
             helperText={localCopy.editableSelectedHelper}
             accent="blue"
+            addOpen={openAddField === 'payment-task-category'}
+            onToggleAdd={() => toggleCompactAdd('payment-task-category')}
           />
-          <DropdownCreateField
+          <CompactSelectCreateField
             label={localCopy.areaZoneLabel}
             value={paymentForm.areaZone}
             onSelect={(value) => setPaymentForm((current) => ({ ...current, areaZone: value }))}
@@ -2247,13 +2452,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             createLabel={localCopy.addAreaZoneLabel}
             createValue={newAreaZone}
             onCreateValueChange={setNewAreaZone}
-            onCreate={addAreaZoneOption}
-            onUpdate={updateAreaZoneOption}
+            onCreate={() => addAreaZoneOption((value) => setPaymentForm((current) => ({ ...current, areaZone: value })))}
             createPlaceholder={localCopy.customInputPlaceholder}
-            actionLabel={localCopy.addOptionAction}
-            updateLabel={localCopy.editableUpdateAction}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
             helperText={localCopy.editableSelectedHelper}
             accent="emerald"
+            addOpen={openAddField === 'payment-area-zone'}
+            onToggleAdd={() => toggleCompactAdd('payment-area-zone')}
           />
           <div>
             <div className="mb-2 text-sm font-semibold text-slate-700">{localCopy.paymentAmountLabel}</div>
@@ -2266,6 +2472,24 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
             />
           </div>
+          <CompactSelectCreateField
+            label={localCopy.standardPhrasesLabel}
+            value={paymentForm.standardPhrase || ''}
+            onSelect={(value) => applyStandardPhrase(setPaymentForm, value)}
+            options={standardPhraseOptions}
+            selectPlaceholder={localCopy.standardPhrasesPlaceholder}
+            createLabel={localCopy.addStandardPhraseLabel}
+            createValue={newStandardPhrase}
+            onCreate={() => addStandardPhraseOption(setPaymentForm)}
+            onCreateValueChange={setNewStandardPhrase}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
+            helperText={localCopy.phraseHelper}
+            accent="emerald"
+            addOpen={openAddField === 'payment-standard-phrase'}
+            onToggleAdd={() => toggleCompactAdd('payment-standard-phrase')}
+          />
           <textarea
             value={paymentForm.note}
             onChange={(event) => setPaymentForm((current) => ({ ...current, note: event.target.value }))}
@@ -2306,7 +2530,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           {photoBatchForm.projectName || siteName} • {localCopy.editableSelectedHelper}
         </div>
         <div className="mt-4 space-y-4">
-          <DropdownCreateField
+          <CompactSelectCreateField
             label={localCopy.taskCategoryLabel}
             value={milestoneForm.taskCategory}
             onSelect={(value) => setMilestoneForm((current) => ({ ...current, taskCategory: value }))}
@@ -2315,15 +2539,16 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             createLabel={localCopy.addTaskCategoryLabel}
             createValue={newTaskCategory}
             onCreateValueChange={setNewTaskCategory}
-            onCreate={addTaskCategoryOption}
-            onUpdate={updateTaskCategoryOption}
+            onCreate={() => addTaskCategoryOption((value) => setMilestoneForm((current) => ({ ...current, taskCategory: value })))}
             createPlaceholder={localCopy.customInputPlaceholder}
-            actionLabel={localCopy.addOptionAction}
-            updateLabel={localCopy.editableUpdateAction}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
             helperText={localCopy.editableSelectedHelper}
             accent="blue"
+            addOpen={openAddField === 'milestone-task-category'}
+            onToggleAdd={() => toggleCompactAdd('milestone-task-category')}
           />
-          <DropdownCreateField
+          <CompactSelectCreateField
             label={localCopy.areaZoneLabel}
             value={milestoneForm.areaZone}
             onSelect={(value) => setMilestoneForm((current) => ({ ...current, areaZone: value }))}
@@ -2332,13 +2557,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             createLabel={localCopy.addAreaZoneLabel}
             createValue={newAreaZone}
             onCreateValueChange={setNewAreaZone}
-            onCreate={addAreaZoneOption}
-            onUpdate={updateAreaZoneOption}
+            onCreate={() => addAreaZoneOption((value) => setMilestoneForm((current) => ({ ...current, areaZone: value })))}
             createPlaceholder={localCopy.customInputPlaceholder}
-            actionLabel={localCopy.addOptionAction}
-            updateLabel={localCopy.editableUpdateAction}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
             helperText={localCopy.editableSelectedHelper}
             accent="emerald"
+            addOpen={openAddField === 'milestone-area-zone'}
+            onToggleAdd={() => toggleCompactAdd('milestone-area-zone')}
           />
           <div>
             <div className="mb-2 text-sm font-semibold text-slate-700">{localCopy.milestoneProgressLabel}</div>
@@ -2352,6 +2578,24 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
             />
           </div>
+          <CompactSelectCreateField
+            label={localCopy.standardPhrasesLabel}
+            value={milestoneForm.standardPhrase || ''}
+            onSelect={(value) => applyStandardPhrase(setMilestoneForm, value)}
+            options={standardPhraseOptions}
+            selectPlaceholder={localCopy.standardPhrasesPlaceholder}
+            createLabel={localCopy.addStandardPhraseLabel}
+            createValue={newStandardPhrase}
+            onCreate={() => addStandardPhraseOption(setMilestoneForm)}
+            onCreateValueChange={setNewStandardPhrase}
+            createPlaceholder={localCopy.customInputPlaceholder}
+            actionLabel={localCopy.compactAddSave}
+            cancelLabel={localCopy.compactAddCancel}
+            helperText={localCopy.phraseHelper}
+            accent="emerald"
+            addOpen={openAddField === 'milestone-standard-phrase'}
+            onToggleAdd={() => toggleCompactAdd('milestone-standard-phrase')}
+          />
           <textarea
             value={milestoneForm.note}
             onChange={(event) => setMilestoneForm((current) => ({ ...current, note: event.target.value }))}
@@ -2425,6 +2669,26 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               <option value="high">{pickText(t, 'worker_issue_urgency_high', 'High')}</option>
               <option value="critical">{pickText(t, 'worker_issue_urgency_critical', 'Critical')}</option>
             </select>
+          </div>
+          <div className="mt-3">
+            <CompactSelectCreateField
+              label={localCopy.standardPhrasesLabel}
+              value={issueForm.standardPhrase || ''}
+              onSelect={(value) => applyStandardPhrase(setIssueForm, value, 'detail')}
+              options={standardPhraseOptions}
+              selectPlaceholder={localCopy.standardPhrasesPlaceholder}
+              createLabel={localCopy.addStandardPhraseLabel}
+              createValue={newStandardPhrase}
+              onCreate={() => addStandardPhraseOption(setIssueForm, 'detail')}
+              onCreateValueChange={setNewStandardPhrase}
+              createPlaceholder={localCopy.customInputPlaceholder}
+              actionLabel={localCopy.compactAddSave}
+              cancelLabel={localCopy.compactAddCancel}
+              helperText={localCopy.phraseHelper}
+              accent="amber"
+              addOpen={openAddField === 'issue-standard-phrase'}
+              onToggleAdd={() => toggleCompactAdd('issue-standard-phrase')}
+            />
           </div>
           <textarea value={issueForm.detail} onChange={(event) => setIssueForm((current) => ({ ...current, detail: event.target.value }))} placeholder={pickText(t, 'worker_sos_desc', 'Describe the issue')} rows={4} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
           <FilePicker imageData={issueForm.imageData} onChange={(event) => handleFileChange(event, setIssueForm)} onRemove={() => clearImageForm(setIssueForm)} label={pickText(t, 'worker_sos_photo_optional', 'Photo optional')} helperText={localCopy.photoHelp} actionLabel={localCopy.photoPick} retakeLabel={localCopy.photoRetake} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
@@ -2562,7 +2826,7 @@ function FormCard({ title, children }) {
   );
 }
 
-function DropdownCreateField({
+function CompactSelectCreateField({
   label,
   value,
   onSelect,
@@ -2572,59 +2836,75 @@ function DropdownCreateField({
   createValue,
   onCreateValueChange,
   onCreate,
-  onUpdate,
   createPlaceholder,
   actionLabel,
-  updateLabel,
+  cancelLabel,
   helperText = '',
   accent = 'blue',
+  addOpen = false,
+  onToggleAdd,
+  disabled = false,
 }) {
   const toneClasses = accent === 'emerald'
     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : 'border-blue-200 bg-blue-50 text-blue-700';
+    : accent === 'amber'
+      ? 'border-amber-200 bg-amber-50 text-amber-700'
+      : 'border-blue-200 bg-blue-50 text-blue-700';
 
   return (
     <div>
-      <div className="mb-2 text-sm font-semibold text-slate-700">{label}</div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-slate-700">{label}</div>
+        <button
+          type="button"
+          onClick={onToggleAdd}
+          className={`inline-flex h-9 w-9 items-center justify-center rounded-full border touch-manipulation ${toneClasses}`}
+          aria-label={`Add ${label}`}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      </div>
       <select
         value={value}
         onChange={(event) => onSelect(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base text-slate-900 outline-none focus:border-blue-500"
+        disabled={disabled}
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
       >
         <option value="">{selectPlaceholder}</option>
         {options.map((option) => (
-          <option key={option} value={option} />
+          <option key={option} value={option}>{option}</option>
         ))}
       </select>
       {helperText ? <div className="mt-2 text-xs text-slate-500">{helperText}</div> : null}
-      <div className="mt-3 rounded-[1.3rem] border border-slate-200 bg-slate-50 p-3">
-        <div className="text-sm font-semibold text-slate-700">{createLabel}</div>
-        <div className="mt-3 flex flex-col gap-3">
+      {addOpen ? (
+        <div className="mt-3 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{createLabel}</div>
+          <div className="mt-3 flex flex-col gap-2">
           <input
             value={createValue}
             onChange={(event) => onCreateValueChange(event.target.value)}
             placeholder={createPlaceholder}
-            className="min-h-12 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+            className="min-h-11 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500"
           />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={onCreate}
-              className={`min-h-12 rounded-2xl border px-5 py-3 text-sm font-semibold touch-manipulation ${toneClasses}`}
+              className={`min-h-11 rounded-2xl border px-4 py-2.5 text-sm font-semibold touch-manipulation ${toneClasses}`}
             >
               {actionLabel}
             </button>
             <button
               type="button"
-              onClick={onUpdate}
-              disabled={!value}
-              className="min-h-12 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 touch-manipulation disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+              onClick={onToggleAdd}
+              className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 touch-manipulation"
             >
-              {updateLabel}
+              {cancelLabel}
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2724,7 +3004,7 @@ function PhotoBatchCard({ item, updatedLabel, statusLabel, emptyNoteLabel, local
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-slate-900">{item.batchTitle || item.workType || '-'}</div>
           <div className="mt-1 text-sm text-slate-600">{item.projectName || '-'} • {item.roomName || '-'}</div>
-          <div className="mt-1 text-xs text-slate-500">{item.tradeTeam || '-'}</div>
+          <div className="mt-1 text-xs text-slate-500">{item.workSubcategory || item.tradeTeam || '-'}</div>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getBatchCardTone(item.status)}`}>{statusLabel}</span>
       </div>
