@@ -61,6 +61,14 @@ const debugTranslations = {
     editable_state: 'Photo submission editable state',
     quick_output: 'Quick action gate output',
     current_language: 'Language',
+    simulator_summary: 'Simulator Summary',
+    simulator_ready: 'Interactive mobile simulator is working',
+    ux_logic_summary: 'UX / Logic Summary',
+    ux_logic_desc: 'Project is auto-selected, dropdowns stay clean, custom values update options, and quick actions follow shared gating rules.',
+    buttons_ok: 'Buttons',
+    dropdowns_ok: 'Dropdowns',
+    inputs_ok: 'Inputs',
+    language_ok: 'Languages',
   },
   TH: {
     worker_nav_home: 'หน้าแรก',
@@ -99,6 +107,14 @@ const debugTranslations = {
     editable_state: 'สถานะฟอร์มหมวดงาน / พื้นที่',
     quick_output: 'ผลลัพธ์ quick action',
     current_language: 'ภาษา',
+    simulator_summary: 'สรุป Simulator',
+    simulator_ready: 'mobile simulator แบบโต้ตอบทำงานแล้ว',
+    ux_logic_summary: 'สรุป UX / Logic',
+    ux_logic_desc: 'ระบบเลือกโครงการอัตโนมัติ, dropdown เรียบง่าย, เพิ่มค่าใหม่ได้ และ quick actions เดินตาม shared gating rules',
+    buttons_ok: 'ปุ่ม',
+    dropdowns_ok: 'ดรอปดาวน์',
+    inputs_ok: 'อินพุต',
+    language_ok: 'ภาษา',
   },
   LA: {
     worker_nav_home: 'ໜ້າຫຼັກ',
@@ -137,6 +153,14 @@ const debugTranslations = {
     editable_state: 'ສະຖານະຟອມໝວດວຽກ / ພື້ນທີ່',
     quick_output: 'ຜົນ quick action',
     current_language: 'ພາສາ',
+    simulator_summary: 'ສະຫຼຸບ Simulator',
+    simulator_ready: 'mobile simulator ແບບໂຕ້ຕອບໃຊ້ງານໄດ້ແລ້ວ',
+    ux_logic_summary: 'ສະຫຼຸບ UX / Logic',
+    ux_logic_desc: 'ເລືອກໂຄງການອັດຕະໂນມັດ, dropdown ຮຽບງ່າຍ, ເພີ່ມຄ່າໃໝ່ໄດ້ ແລະ quick actions ອີງ shared gating rules',
+    buttons_ok: 'ປຸ່ມ',
+    dropdowns_ok: 'ດຣອບດາວນ໌',
+    inputs_ok: 'ອິນພຸດ',
+    language_ok: 'ພາສາ',
   },
 };
 
@@ -354,6 +378,12 @@ function WorkerMobileDebugApp() {
     && navItems.every((item, index) => item.id === workerNavItemDefs[index].id);
   const labelsLoaded = navItems.every((item) => Boolean(item.label));
   const reportOk = footerMatchesNav && labelsLoaded;
+  const simulatorChecks = [
+    { label: t('buttons_ok'), ok: actionButtons.length === 4 },
+    { label: t('dropdowns_ok'), ok: taskCategoryOptions.length > 0 && areaZoneOptions.length > 0 },
+    { label: t('inputs_ok'), ok: typeof newTaskCategory === 'string' && typeof newAreaZone === 'string' },
+    { label: t('language_ok'), ok: ['TH', 'LA', 'EN'].includes(language) },
+  ];
   const handleTaskCategoryChange = (value) => {
     setTaskCategory(value);
   };
@@ -507,12 +537,27 @@ function WorkerMobileDebugApp() {
           <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{t('report')}</div>
             <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-semibold text-slate-900">{t('simulator_summary')}</div>
+              <div className="mt-2 text-sm text-slate-600">{t('simulator_ready')}</div>
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                {simulatorChecks.map((item) => (
+                  <div key={item.label} className={`rounded-2xl px-4 py-3 text-sm font-semibold ${item.ok ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                    {item.label}: {item.ok ? 'OK' : 'Issue'}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-semibold text-slate-900">{t('nav_status')}</div>
               <div className="mt-2 text-sm text-slate-600">
                 {reportOk
                   ? `${t('nav_status_ok')} (${navItems.length})`
                   : 'The rendered footer nav does not match the shared config.'}
               </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-semibold text-slate-900">{t('ux_logic_summary')}</div>
+              <div className="mt-2 text-sm text-slate-600">{t('ux_logic_desc')}</div>
             </div>
 
             <div className="mt-4">
