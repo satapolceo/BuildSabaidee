@@ -19,39 +19,47 @@ export const workerNavItemDefs = [
   { id: TAB_PROFILE, labelKey: 'worker_nav_chat', fallback: 'Profile', icon: 'profile' },
 ];
 
-export const constructionTaskCategoryOptions = [
-  'Foundation',
-  'Structure',
-  'Concrete',
-  'Rebar',
-  'Formwork',
-  'Masonry',
-  'Electrical',
-  'Plumbing',
-  'HVAC',
-  'Waterproofing',
-  'Ceiling',
-  'Flooring',
-  'Painting',
-  'Finishing',
-  'Inspection',
-  'Safety',
+export const constructionTaskCategoryDefs = [
+  { value: 'foundation', labels: { EN: 'Foundation', TH: 'ฐานราก', LA: 'ຖານຮາກ' } },
+  { value: 'structure', labels: { EN: 'Structure', TH: 'โครงสร้าง', LA: 'ໂຄງສ້າງ' } },
+  { value: 'concrete', labels: { EN: 'Concrete', TH: 'คอนกรีต', LA: 'ຄອນກຣີດ' } },
+  { value: 'rebar', labels: { EN: 'Rebar', TH: 'เหล็กเสริม', LA: 'ເຫຼັກເສີມ' } },
+  { value: 'formwork', labels: { EN: 'Formwork', TH: 'แบบหล่อ', LA: 'ແບບຫຼໍ່' } },
+  { value: 'masonry', labels: { EN: 'Masonry', TH: 'งานก่อ', LA: 'ວຽກກໍ່' } },
+  { value: 'electrical', labels: { EN: 'Electrical', TH: 'ไฟฟ้า', LA: 'ໄຟຟ້າ' } },
+  { value: 'plumbing', labels: { EN: 'Plumbing', TH: 'ประปา', LA: 'ປະປາ' } },
+  { value: 'hvac', labels: { EN: 'HVAC', TH: 'ปรับอากาศ', LA: 'ລະບົບອາກາດ' } },
+  { value: 'waterproofing', labels: { EN: 'Waterproofing', TH: 'กันซึม', LA: 'ກັນຊຶມ' } },
+  { value: 'ceiling', labels: { EN: 'Ceiling', TH: 'ฝ้าเพดาน', LA: 'ຝ້າເພດານ' } },
+  { value: 'flooring', labels: { EN: 'Flooring', TH: 'พื้น', LA: 'ພື້ນ' } },
+  { value: 'painting', labels: { EN: 'Painting', TH: 'ทาสี', LA: 'ທາສີ' } },
+  { value: 'finishing', labels: { EN: 'Finishing', TH: 'เก็บงาน', LA: 'ເກັບງານ' } },
+  { value: 'inspection', labels: { EN: 'Inspection', TH: 'ตรวจงาน', LA: 'ກວດງານ' } },
+  { value: 'safety', labels: { EN: 'Safety', TH: 'ความปลอดภัย', LA: 'ຄວາມປອດໄພ' } },
 ];
 
-export const constructionAreaZoneOptions = [
-  'Zone A',
-  'Zone B',
-  'North Wing',
-  'South Wing',
-  'East Wing',
-  'West Wing',
-  'Basement',
-  'Ground Floor',
-  'Level 1',
-  'Level 2',
-  'Roof',
-  'Lobby',
+export const constructionAreaZoneDefs = [
+  { value: 'zone_a', labels: { EN: 'Zone A', TH: 'โซน A', LA: 'ໂຊນ A' } },
+  { value: 'zone_b', labels: { EN: 'Zone B', TH: 'โซน B', LA: 'ໂຊນ B' } },
+  { value: 'north_wing', labels: { EN: 'North Wing', TH: 'ปีกเหนือ', LA: 'ປີກເໜືອ' } },
+  { value: 'south_wing', labels: { EN: 'South Wing', TH: 'ปีกใต้', LA: 'ປີກໃຕ້' } },
+  { value: 'east_wing', labels: { EN: 'East Wing', TH: 'ปีกตะวันออก', LA: 'ປີກຕາເວັນອອກ' } },
+  { value: 'west_wing', labels: { EN: 'West Wing', TH: 'ปีกตะวันตก', LA: 'ປີກຕາເວັນຕົກ' } },
+  { value: 'basement', labels: { EN: 'Basement', TH: 'ชั้นใต้ดิน', LA: 'ຊັ້ນໃຕ້ດິນ' } },
+  { value: 'ground_floor', labels: { EN: 'Ground Floor', TH: 'ชั้นล่าง', LA: 'ຊັ້ນລຸ່ມ' } },
+  { value: 'level_1', labels: { EN: 'Level 1', TH: 'ชั้น 1', LA: 'ຊັ້ນ 1' } },
+  { value: 'level_2', labels: { EN: 'Level 2', TH: 'ชั้น 2', LA: 'ຊັ້ນ 2' } },
+  { value: 'roof', labels: { EN: 'Roof', TH: 'ดาดฟ้า', LA: 'ດາດຟ້າ' } },
+  { value: 'lobby', labels: { EN: 'Lobby', TH: 'ล็อบบี้', LA: 'ລັອບບີ້' } },
 ];
+
+export function getLocalizedConstructionTaskCategoryOptions(language = 'EN') {
+  return constructionTaskCategoryDefs.map((item) => item.labels[language] || item.labels.EN);
+}
+
+export function getLocalizedConstructionAreaZoneOptions(language = 'EN') {
+  return constructionAreaZoneDefs.map((item) => item.labels[language] || item.labels.EN);
+}
 
 export function createWorkerNavItems({ t, pickText, iconMap }) {
   return workerNavItemDefs.map((item) => ({
@@ -93,7 +101,7 @@ export function createWorkerActionButtons({
   return [
     {
       id: 'checkin',
-      label: pickText(t, 'worker_checkin_cta', 'Check In'),
+      label: 'Check-in',
       helper: isCheckedIn ? localCopy.done : localCopy.ready,
       icon: icons.checkin,
       tone: 'blue',
@@ -104,7 +112,7 @@ export function createWorkerActionButtons({
     },
     {
       id: 'checkout',
-      label: pickText(t, 'worker_checkout_cta', 'Check Out'),
+      label: 'Check-out',
       helper: isCheckedOut ? localCopy.done : isCheckedIn ? localCopy.active : localCopy.disabled,
       icon: icons.checkout,
       tone: 'emerald',
@@ -115,7 +123,7 @@ export function createWorkerActionButtons({
     },
     {
       id: 'photo',
-      label: pickText(t, 'worker_photo', 'Upload Photo'),
+      label: 'Photo',
       helper: todayPhotoCount > 0
         ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}`
         : !canUseWorkActions
@@ -134,7 +142,7 @@ export function createWorkerActionButtons({
     },
     {
       id: 'voice',
-      label: localCopy.voiceTitle,
+      label: 'Voice',
       helper: isRecordingVoice
         ? localCopy.recording
         : todayVoiceCount > 0
