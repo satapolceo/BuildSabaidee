@@ -15,6 +15,7 @@ import {
   updateWorkerTaskStatus,
 } from './workerStorage';
 import WorkerAppV2 from './WorkerAppV2';
+import WorkerMobileTestPage from './WorkerMobileTestPage';
 import { 
   CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
   BarChart3, Users, FileText, MessageSquare, Clock, 
@@ -4828,6 +4829,13 @@ export default function BuildSabaideeApp() {
           workersList={workersList} projectsList={projectsList} language={language}
         />
       )}
+      {currentView === 'worker_mobile_test' && (
+        <WorkerMobileTestPage
+          onNavigate={navigateTo}
+          t={t}
+          language={language}
+        />
+      )}
       {currentView === 'manager' && (
         <ManagerDashboard 
           onNavigate={navigateTo} t={t} language={language}
@@ -5158,6 +5166,9 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages 
               </button>
               <button onClick={() => onNavigate('worker')} className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/25 hover:text-white">
                 <Smartphone className="mr-2 h-4 w-4" /> {t('hero_btn_worker')}
+              </button>
+              <button onClick={() => onNavigate('worker_mobile_test')} className="inline-flex items-center justify-center rounded-full border border-blue-300/40 bg-blue-500/10 px-5 py-3 text-sm font-medium text-blue-100 transition hover:bg-blue-500/20">
+                <Smartphone className="mr-2 h-4 w-4" /> worker-mobile-test
               </button>
             </div>
           </div>
