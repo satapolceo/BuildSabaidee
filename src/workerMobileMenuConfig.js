@@ -53,6 +53,9 @@ export function createWorkerActionButtons({
     roomName,
   } = state;
 
+  const photoHistoryHighlight = canOpenWorkerTools && todayPhotoCount > 0;
+  const voiceHistoryHighlight = canOpenWorkerTools && todayVoiceCount > 0;
+
   return [
     {
       id: 'checkin',
@@ -92,7 +95,7 @@ export function createWorkerActionButtons({
       tone: 'slate',
       disabled: !canOpenWorkerTools,
       loading: busyAction === 'photo-upload' || busyAction === 'photo-submit' || busyAction === 'photo-draft',
-      active: activeScreen === screenPhoto || todayPhotoCount > 0,
+      active: activeScreen === screenPhoto || photoHistoryHighlight,
       onClick: handlers.onPhoto,
     },
     {
@@ -113,7 +116,7 @@ export function createWorkerActionButtons({
       tone: 'amber',
       disabled: !canOpenWorkerTools,
       loading: Boolean(state.isVoiceProcessing),
-      active: activeScreen === screenVoice || isRecordingVoice || todayVoiceCount > 0,
+      active: activeScreen === screenVoice || isRecordingVoice || voiceHistoryHighlight,
       onClick: handlers.onVoice,
     },
   ];
