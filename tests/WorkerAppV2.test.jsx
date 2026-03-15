@@ -110,7 +110,7 @@ function getQuickActionButton(pattern) {
 }
 
 async function openPhotoScreen(user) {
-  const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
+  const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo|อัปเดตส่งงาน|ອັບເດດສົ່ງງານ/i);
   if (!photoButton) throw new Error('Photo quick action not found');
   await waitFor(() => expect(photoButton).toBeEnabled());
   await user.click(photoButton);
@@ -160,14 +160,19 @@ function createImageFile(name, size = 2048) {
   return new File([new Uint8Array(size)], name, { type: 'image/jpeg' });
 }
 
-function getBatchPhotoInput(container) {
-  const input = container.querySelector('input[type="file"][multiple]');
-  if (!input) throw new Error('Batch photo input not found');
-  return input;
+function getBatchPhotoInputs(container) {
+  const camera = container.querySelector('input[data-testid="batch-camera-input"]');
+  const gallery = container.querySelector('input[data-testid="batch-gallery-input"]');
+  if (!camera || !gallery) throw new Error('Batch photo inputs not found');
+  return { camera, gallery };
 }
 
 async function uploadBatchPhotos(user, container, files) {
-  await user.upload(getBatchPhotoInput(container), files);
+  await user.upload(getBatchPhotoInputs(container).gallery, files);
+}
+
+async function uploadBatchCameraPhoto(user, container, file) {
+  await user.upload(getBatchPhotoInputs(container).camera, [file]);
 }
 
 async function recordInlineVoice(user) {
@@ -227,7 +232,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     const checkInButton = getQuickActionButton(/Check In/i);
     const checkOutButton = getQuickActionButton(/Check Out/i);
-    const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
+    const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo|อัปเดตส่งงาน|ອັບເດດສົ່ງງານ/i);
     const voiceButton = getQuickActionButton(/Voice Notes|Voice/i);
 
     expect(checkInButton).toBeEnabled();
@@ -272,7 +277,7 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(getFirstSelectableOption(selects.areaZone)?.text).toBe('Roof Edge Test Zone');
     expect(screen.getAllByText(/Roof Edge Test Zone/).length).toBeGreaterThan(0);
 
-    await saveCompactAdd(user, 'Standard Phrases', 'Need final QC approval');
+    await saveCompactAdd(user, 'Standard Notes', 'Need final QC approval');
     selects = getPhotoFormSelects();
     expect(selects.standardPhrase).toHaveValue('Need final QC approval');
     expect(getFirstSelectableOption(selects.standardPhrase)?.text).toBe('Need final QC approval');
@@ -290,7 +295,7 @@ describe('WorkerAppV2 mobile automation', () => {
     await saveCompactAdd(user, 'Task Category', 'Mobile QA Category');
     await saveCompactAdd(user, 'Work Subcategory', 'Surface Inspection');
     await saveCompactAdd(user, 'Zone / Area', 'Showroom Entry');
-    await saveCompactAdd(user, 'Standard Phrases', 'Waiting for inspection sign-off');
+    await saveCompactAdd(user, 'Standard Notes', 'Waiting for inspection sign-off');
 
     await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Compact UI batch');
     await uploadBatchPhotos(user, view.container, [createImageFile('draft.jpg', 2200)]);
@@ -335,12 +340,42 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Voice screen recording, inline batch recording, and return navigation still work on mobile';
   }));
 
+  it('keeps dropdown styling clean in Thai and splits camera/gallery actions', async () => withFeature('Thai dropdown UI and split photo actions', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('TH');
+
+    await checkInAndOpenPhoto(user);
+
+    expect(screen.getByText('หมายเหตมาตรฐาน')).toBeInTheDocument();
+
+    const selects = getPhotoFormSelects();
+    expect(selects.taskCategory).toHaveClass('worker-mobile-control');
+    expect(selects.workSubcategory).toHaveClass('worker-mobile-control');
+    expect(selects.areaZone).toHaveClass('worker-mobile-control');
+    expect(selects.standardPhrase).toHaveClass('worker-mobile-control');
+
+    const cameraButton = screen.getByRole('button', { name: 'ถายรป' });
+    const galleryButton = screen.getByRole('button', { name: 'เลอกรป' });
+    expect(cameraButton).toBeEnabled();
+    expect(galleryButton).toBeEnabled();
+
+    const inputs = getBatchPhotoInputs(view.container);
+    expect(inputs.camera).toHaveAttribute('capture', 'environment');
+    expect(inputs.gallery).not.toHaveAttribute('capture');
+
+    await uploadBatchCameraPhoto(user, view.container, createImageFile('camera-shot.jpg', 2100));
+    await uploadBatchPhotos(user, view.container, [createImageFile('gallery-shot.jpg', 2300)]);
+    await waitFor(() => expect(screen.getByText('จำนวนรูป: 2')).toBeInTheDocument());
+
+    return 'Thai labels stay visible, the renamed standard-note section renders, and camera/gallery actions are separated on mobile';
+  }), 15000);
+
   it('preserves Thai, Lao, and English labels with the new compact controls', async () => withFeature('Three-language labels', async () => {
     const user = userEvent.setup();
     const { rerender } = renderWorkerApp('EN');
 
     await checkInAndOpenPhoto(user);
-    expect(screen.getByText('Standard Phrases')).toBeInTheDocument();
+    expect(screen.getByText('Standard Notes')).toBeInTheDocument();
 
     rerender(
       <WorkerAppV2
@@ -351,7 +386,7 @@ describe('WorkerAppV2 mobile automation', () => {
         projectsList={projectsList}
       />
     );
-    await waitFor(() => expect(screen.getByText('วลีมาตรฐาน')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('หมายเหตมาตรฐาน')).toBeInTheDocument());
 
     rerender(
       <WorkerAppV2
@@ -373,8 +408,8 @@ describe('WorkerAppV2 mobile automation', () => {
         projectsList={projectsList}
       />
     );
-    await waitFor(() => expect(screen.getByText('Standard Phrases')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Standard Notes')).toBeInTheDocument());
 
-    return 'Compact add labels and worker form labels still switch across EN / TH / LA';
+    return 'Compact add labels and worker form labels still switch across EN / TH / LA with the renamed standard-note section';
   }));
 });

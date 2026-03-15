@@ -305,10 +305,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         voicePermission: 'ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตการใช้งาน',
         voiceProcessing: 'กำลังเตรียมไฟล์เสียง...',
         duration: 'ความยาว',
-        photoPick: 'ถ่ายรูปหรือเลือกรูป',
+        photoTakeAction: 'ถายรป',
+        photoChooseAction: 'เลอกรป',
         photoRetake: 'ถ่ายใหม่',
         photoRemove: 'ลบรูป',
-        photoHelp: 'รองรับกล้องมือถือ และเลือกรูปจากแกลเลอรีได้',
+        photoHelp: 'แตะ ถายรป เพื่อเปิดกล้อง หรือ เลอกรป เพื่อเปิดแกลเลอรี',
         photoCaptured: 'บันทึกรูปแล้ว',
         photoRemoved: 'ลบรูปแล้ว',
         checkinSaved: 'เช็กอินแล้ว',
@@ -357,15 +358,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         taskCategoryLabel: 'หมวดงาน',
         workSubcategoryLabel: 'หมวดย่อย',
         areaZoneLabel: 'พื้นที่ / โซน',
-        standardPhrasesLabel: 'วลีมาตรฐาน',
+        standardPhrasesLabel: 'หมายเหตมาตรฐาน',
         taskCategoryPlaceholder: 'เลือกหมวดงาน',
         workSubcategoryPlaceholder: 'เลือกหมวดย่อย',
         areaZonePlaceholder: 'เลือกพื้นที่ / โซน',
-        standardPhrasesPlaceholder: 'เลือกวลีมาตรฐาน',
+        standardPhrasesPlaceholder: 'เลือกหมายเหตมาตรฐาน',
         addTaskCategoryLabel: 'เพิ่มหมวดงานเอง',
         addWorkSubcategoryLabel: 'เพิ่มหมวดย่อยเอง',
         addAreaZoneLabel: 'เพิ่มพื้นที่เอง',
-        addStandardPhraseLabel: 'เพิ่มวลีเอง',
+        addStandardPhraseLabel: 'เพิ่มหมายเหตุเอง',
         addOptionAction: 'เพิ่มรายการ',
         customInputPlaceholder: 'พิมพ์แล้วเพิ่มเข้ารายการ',
         compactAddAction: 'เพิ่ม',
@@ -442,10 +443,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           voicePermission: 'ບໍ່ສາມາດເຂົ້າເຖິງໄມໂຄໂຟນໄດ້ ກະລຸນາອະນຸຍາດການໃຊ້ງານ',
           voiceProcessing: 'ກຳລັງຈັດກຽມໄຟລ໌ສຽງ...',
           duration: 'ຄວາມຍາວ',
-          photoPick: 'ຖ່າຍຮູບ ຫຼື ເລືອກຮູບ',
+          photoTakeAction: 'ຖ່າຍຮູບ',
+          photoChooseAction: 'ເລືອກຮູບ',
           photoRetake: 'ຖ່າຍໃໝ່',
           photoRemove: 'ລຶບຮູບ',
-          photoHelp: 'ຮອງຮັບກ້ອງມືຖື ແລະ ເລືອກຮູບຈາກຄັງຮູບໄດ້',
+          photoHelp: 'ແຕະ ຖ່າຍຮູບ ເພື່ອເປີດກ້ອງ ຫຼື ເລືອກຮູບ ເພື່ອເປີດຄັງຮູບ',
           photoCaptured: 'ບັນທຶກຮູບແລ້ວ',
           photoRemoved: 'ລຶບຮູບແລ້ວ',
           checkinSaved: 'ເຊັກອິນແລ້ວ',
@@ -578,10 +580,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           voicePermission: 'Microphone access was blocked. Please allow microphone permission.',
           voiceProcessing: 'Preparing audio...',
           duration: 'Duration',
-          photoPick: 'Take or choose photo',
+          photoTakeAction: 'Take photo',
+          photoChooseAction: 'Choose photo',
           photoRetake: 'Retake',
           photoRemove: 'Remove photo',
-          photoHelp: 'Works with mobile camera capture and gallery selection',
+          photoHelp: 'Use Take photo for the camera or Choose photo for the gallery/file picker',
           photoCaptured: 'Photo captured',
           photoRemoved: 'Photo removed',
           checkinSaved: 'Checked in',
@@ -630,15 +633,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           taskCategoryLabel: 'Task Category',
           workSubcategoryLabel: 'Work Subcategory',
           areaZoneLabel: 'Zone / Area',
-          standardPhrasesLabel: 'Standard Phrases',
+          standardPhrasesLabel: 'Standard Notes',
           taskCategoryPlaceholder: 'Select task category',
           workSubcategoryPlaceholder: 'Select work subcategory',
           areaZonePlaceholder: 'Select zone / area',
-          standardPhrasesPlaceholder: 'Select standard phrase',
+          standardPhrasesPlaceholder: 'Select standard note',
           addTaskCategoryLabel: 'Add your own task category',
           addWorkSubcategoryLabel: 'Add your own subcategory',
           addAreaZoneLabel: 'Add your own zone / area',
-          addStandardPhraseLabel: 'Add your own standard phrase',
+          addStandardPhraseLabel: 'Add your own standard note',
           addOptionAction: 'Add option',
           customInputPlaceholder: 'Type a new option',
           compactAddAction: 'Add',
@@ -1807,7 +1810,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             value={attendanceNote}
             onChange={(event) => setAttendanceNote(event.target.value)}
             placeholder={pickText(t, 'worker_note_label', 'Note')}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
+            className="worker-locale-safe worker-mobile-input text-sm"
           />
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
             {isCheckedOut ? localCopy.doneHelper : isCheckedIn ? localCopy.readyHelper : localCopy.gateHelper}
@@ -1840,7 +1843,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
                   <div className="text-sm font-semibold text-slate-900">{pickText(t, `worker_task_title_${task.title}`, task.title)}</div>
                   <div className="mt-1 text-xs text-slate-500">{siteName} • {formatDate(task.dueDate, locale)}</div>
                 </div>
-                <select value={task.status} onChange={(event) => setTasks((current) => updateWorkerTaskStatus(current, task.id, event.target.value))} className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs">
+                <select value={task.status} onChange={(event) => setTasks((current) => updateWorkerTaskStatus(current, task.id, event.target.value))} className="worker-locale-safe worker-mobile-control rounded-xl px-2 py-1 text-xs">
                   <option value={TASK_STATUS.notStarted}>{pickText(t, 'worker_task_status_not_started', 'Not started')}</option>
                   <option value={TASK_STATUS.inProgress}>{pickText(t, 'worker_task_status_in_progress', 'In progress')}</option>
                   <option value={TASK_STATUS.completed}>{pickText(t, 'worker_task_status_done', 'Done')}</option>
@@ -1996,7 +1999,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               <select
                 value={photoBatchForm.projectId}
                 onChange={(event) => handleBatchProjectChange(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base text-slate-900 outline-none focus:border-blue-500"
+                className="worker-locale-safe worker-mobile-control text-base"
               >
                 {projectsList.map((project) => (
                   <option key={project.id} value={String(project.id)}>
@@ -2125,8 +2128,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             onRemove={removeBatchPhoto}
             label={pickText(t, 'worker_report_photo', 'Photos')}
             helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
-            actionLabel={localCopy.photoPick}
-            retakeLabel={localCopy.photoRetake}
+            cameraLabel={localCopy.photoTakeAction}
+            galleryLabel={localCopy.photoChooseAction}
             removeLabel={localCopy.photoRemove}
             countLabel={localCopy.photoBatchCount}
             loading={busyAction === 'photo-upload'}
@@ -2393,7 +2396,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
           />
         </div>
-        <FilePicker imageData={requestForm.imageData} onChange={(event) => handleFileChange(event, setRequestForm)} onRemove={() => clearImageForm(setRequestForm)} label={pickText(t, 'worker_req_photo_cta', 'Attach photo')} helperText={localCopy.requestPhotoHelper} actionLabel={localCopy.photoPick} retakeLabel={localCopy.photoRetake} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
+        <FilePicker imageData={requestForm.imageData} onChange={(event) => handleFileChange(event, setRequestForm)} onRemove={() => clearImageForm(setRequestForm)} label={pickText(t, 'worker_req_photo_cta', 'Attach photo')} helperText={localCopy.requestPhotoHelper} cameraLabel={localCopy.photoTakeAction} galleryLabel={localCopy.photoChooseAction} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
         <button onClick={submitRequest} className="mt-4 min-h-14 w-full rounded-[1.2rem] bg-orange-500 px-4 py-4 text-base font-semibold text-white touch-manipulation">{requestSubmitLabel}</button>
       </FormCard>
       <FormCard title={localCopy.requestRecentTitle}>
@@ -2611,8 +2614,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             onRemove={removeMilestonePhoto}
             label={pickText(t, 'worker_report_photo', 'Photos')}
             helperText={localCopy.quickMilestoneHelper}
-            actionLabel={localCopy.photoPick}
-            retakeLabel={localCopy.photoRetake}
+            cameraLabel={localCopy.photoTakeAction}
+            galleryLabel={localCopy.photoChooseAction}
             removeLabel={localCopy.photoRemove}
             countLabel={localCopy.photoBatchCount}
             loading={busyAction === 'milestone-upload'}
@@ -2662,8 +2665,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         </div>
         <FormCard title={pickText(t, 'worker_sos', 'Report Issue / SOS')}>
           <div className="grid grid-cols-2 gap-3">
-            <input value={issueForm.category} onChange={(event) => setIssueForm((current) => ({ ...current, category: event.target.value }))} placeholder={pickText(t, 'worker_issue_category', 'Issue category')} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-            <select value={issueForm.urgency} onChange={(event) => setIssueForm((current) => ({ ...current, urgency: event.target.value }))} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <input value={issueForm.category} onChange={(event) => setIssueForm((current) => ({ ...current, category: event.target.value }))} placeholder={pickText(t, 'worker_issue_category', 'Issue category')} className="worker-locale-safe worker-mobile-input text-sm" />
+            <select value={issueForm.urgency} onChange={(event) => setIssueForm((current) => ({ ...current, urgency: event.target.value }))} className="worker-locale-safe worker-mobile-control text-sm">
               <option value="low">{pickText(t, 'worker_issue_urgency_low', 'Low')}</option>
               <option value="medium">{pickText(t, 'worker_issue_urgency_medium', 'Medium')}</option>
               <option value="high">{pickText(t, 'worker_issue_urgency_high', 'High')}</option>
@@ -2690,8 +2693,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               onToggleAdd={() => toggleCompactAdd('issue-standard-phrase')}
             />
           </div>
-          <textarea value={issueForm.detail} onChange={(event) => setIssueForm((current) => ({ ...current, detail: event.target.value }))} placeholder={pickText(t, 'worker_sos_desc', 'Describe the issue')} rows={4} className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm" />
-          <FilePicker imageData={issueForm.imageData} onChange={(event) => handleFileChange(event, setIssueForm)} onRemove={() => clearImageForm(setIssueForm)} label={pickText(t, 'worker_sos_photo_optional', 'Photo optional')} helperText={localCopy.photoHelp} actionLabel={localCopy.photoPick} retakeLabel={localCopy.photoRetake} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
+          <textarea value={issueForm.detail} onChange={(event) => setIssueForm((current) => ({ ...current, detail: event.target.value }))} placeholder={pickText(t, 'worker_sos_desc', 'Describe the issue')} rows={4} className="worker-locale-safe worker-mobile-textarea mt-3 text-sm" />
+          <FilePicker imageData={issueForm.imageData} onChange={(event) => handleFileChange(event, setIssueForm)} onRemove={() => clearImageForm(setIssueForm)} label={pickText(t, 'worker_sos_photo_optional', 'Photo optional')} helperText={localCopy.photoHelp} cameraLabel={localCopy.photoTakeAction} galleryLabel={localCopy.photoChooseAction} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
           <div className="mt-3">
             <button onClick={submitIssue} className="w-full rounded-[1.2rem] bg-amber-500 px-4 py-3 text-sm font-semibold text-white">{pickText(t, 'worker_issue_submit', 'Submit issue')}</button>
           </div>
@@ -2854,11 +2857,11 @@ function CompactSelectCreateField({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold text-slate-700">{label}</div>
+        <div className="worker-locale-safe text-sm font-semibold text-slate-700">{label}</div>
         <button
           type="button"
           onClick={onToggleAdd}
-          className={`inline-flex h-9 w-9 items-center justify-center rounded-full border touch-manipulation ${toneClasses}`}
+          className={`worker-mobile-chip inline-flex h-10 w-10 items-center justify-center rounded-full border shadow-[0_6px_16px_rgba(15,23,42,0.08)] touch-manipulation ${toneClasses}`}
           aria-label={`Add ${label}`}
         >
           <Plus className="h-4 w-4" />
@@ -2868,36 +2871,36 @@ function CompactSelectCreateField({
         value={value}
         onChange={(event) => onSelect(event.target.value)}
         disabled={disabled}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100"
+        className="worker-locale-safe worker-mobile-control"
       >
         <option value="">{selectPlaceholder}</option>
         {options.map((option) => (
           <option key={option} value={option}>{option}</option>
         ))}
       </select>
-      {helperText ? <div className="mt-2 text-xs text-slate-500">{helperText}</div> : null}
+      {helperText ? <div className="worker-locale-safe mt-2 px-1 text-[12px] text-slate-500">{helperText}</div> : null}
       {addOpen ? (
-        <div className="mt-3 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{createLabel}</div>
+        <div className="mt-3 rounded-[1.2rem] border border-slate-200 bg-slate-50/95 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="worker-locale-safe text-xs font-semibold text-slate-500">{createLabel}</div>
           <div className="mt-3 flex flex-col gap-2">
           <input
             value={createValue}
             onChange={(event) => onCreateValueChange(event.target.value)}
             placeholder={createPlaceholder}
-            className="min-h-11 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500"
+            className="worker-locale-safe worker-mobile-input min-h-12 flex-1 text-sm"
           />
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={onCreate}
-              className={`min-h-11 rounded-2xl border px-4 py-2.5 text-sm font-semibold touch-manipulation ${toneClasses}`}
+              className={`worker-locale-safe min-h-12 rounded-2xl border px-4 py-2.5 text-sm font-semibold touch-manipulation ${toneClasses}`}
             >
               {actionLabel}
             </button>
             <button
               type="button"
               onClick={onToggleAdd}
-              className="min-h-11 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 touch-manipulation"
+              className="worker-locale-safe min-h-12 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 touch-manipulation"
             >
               {cancelLabel}
             </button>
@@ -2912,7 +2915,7 @@ function CompactSelectCreateField({
 function SelectorPillGroup({ label, options, value, onChange, emptyLabel, disabled = false }) {
   return (
     <div>
-      <div className="mb-2 text-sm font-semibold text-slate-700">{label}</div>
+      <div className="worker-locale-safe mb-2 text-sm font-semibold text-slate-700">{label}</div>
       {options.length ? (
         <div className="grid grid-cols-2 gap-2">
           {options.map((option) => {
@@ -2923,7 +2926,7 @@ function SelectorPillGroup({ label, options, value, onChange, emptyLabel, disabl
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(option.value)}
-                className={`min-h-12 rounded-2xl border px-3 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed touch-manipulation ${active ? 'border-blue-600 bg-blue-700 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 disabled:bg-slate-100 disabled:text-slate-400'}`}
+                className={`worker-locale-safe worker-mobile-pill rounded-2xl border px-3 py-3 text-sm font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed touch-manipulation ${active ? 'border-blue-600 bg-blue-700 text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 disabled:bg-slate-100 disabled:text-slate-400'}`}
               >
                 {option.label}
               </button>
@@ -2931,7 +2934,7 @@ function SelectorPillGroup({ label, options, value, onChange, emptyLabel, disabl
           })}
         </div>
       ) : (
-        <div className={`rounded-2xl border px-4 py-3 text-sm ${disabled ? 'border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+        <div className={`worker-locale-safe rounded-2xl border px-4 py-3 text-sm ${disabled ? 'border-slate-200 bg-slate-100 text-slate-400' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
           {emptyLabel}
         </div>
       )}
@@ -2945,24 +2948,26 @@ function MultiPhotoPicker({
   onRemove,
   label,
   helperText,
-  actionLabel,
-  retakeLabel,
+  cameraLabel,
+  galleryLabel,
   removeLabel,
   countLabel,
   loading = false,
   disabled = false,
 }) {
-  const inputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   return (
     <div className={`rounded-[1.3rem] border border-dashed p-4 ${disabled ? 'border-slate-200 bg-slate-100' : 'border-slate-300 bg-slate-50'}`}>
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" multiple />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" multiple data-testid="batch-camera-input" />
+      <input ref={galleryInputRef} type="file" accept="image/*" onChange={onChange} className="hidden" multiple data-testid="batch-gallery-input" />
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-800">{label}</div>
-          <div className="mt-1 text-xs text-slate-500">{helperText}</div>
+          <div className="worker-locale-safe text-sm font-semibold text-slate-800">{label}</div>
+          <div className="worker-locale-safe mt-1 text-xs text-slate-500">{helperText}</div>
         </div>
-        <div className={`rounded-full px-3 py-1 text-xs font-semibold ${photos.length ? 'bg-blue-100 text-blue-700' : 'bg-white text-slate-500'}`}>
+        <div className={`worker-mobile-chip worker-locale-safe rounded-full px-3 py-1 text-xs font-semibold ${photos.length ? 'bg-blue-100 text-blue-700' : 'bg-white text-slate-500'}`}>
           {countLabel}: {photos.length}
         </div>
       </div>
@@ -2973,7 +2978,7 @@ function MultiPhotoPicker({
               <img src={photo.imageData} alt={`${label} ${index + 1}`} className="h-28 w-full object-cover" />
               <div className="flex items-center justify-between gap-2 px-3 py-2">
                 <div className="min-w-0 text-xs text-slate-500">#{index + 1}</div>
-                <button type="button" onClick={() => onRemove(photo.id)} className="inline-flex min-h-10 touch-manipulation items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+                <button type="button" onClick={() => onRemove(photo.id)} className="worker-locale-safe inline-flex min-h-10 touch-manipulation items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
                   {removeLabel}
                 </button>
               </div>
@@ -2985,14 +2990,26 @@ function MultiPhotoPicker({
           <Camera className="h-8 w-8" />
         </div>
       )}
-      <button
-        type="button"
-        disabled={loading || disabled}
-        onClick={() => inputRef.current?.click()}
-        className="mt-4 inline-flex min-h-12 w-full touch-manipulation items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-      >
-        {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : photos.length ? retakeLabel : actionLabel}
-      </button>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          disabled={loading || disabled}
+          onClick={() => cameraInputRef.current?.click()}
+          className="worker-photo-action worker-locale-safe inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          {cameraLabel}
+        </button>
+        <button
+          type="button"
+          disabled={loading || disabled}
+          onClick={() => galleryInputRef.current?.click()}
+          className="worker-photo-action worker-locale-safe inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+        >
+          <FileImage className="h-4 w-4" />
+          {galleryLabel}
+        </button>
+      </div>
     </div>
   );
 }
@@ -3057,23 +3074,30 @@ function DataSaverCard({ settings, setSettings, t, compact = false }) {
   );
 }
 
-function FilePicker({ imageData, onChange, onRemove, label, helperText, actionLabel, retakeLabel, removeLabel, loading = false, optional = false, t }) {
-  const inputRef = useRef(null);
+function FilePicker({ imageData, onChange, onRemove, label, helperText, cameraLabel, galleryLabel, removeLabel, loading = false, optional = false, t }) {
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   return (
     <div className="mt-3 rounded-[1.3rem] border border-dashed border-slate-300 bg-slate-50 p-4">
-      <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" />
+      <input ref={galleryInputRef} type="file" accept="image/*" onChange={onChange} className="hidden" />
       {imageData ? <img src={imageData} alt={label} className="mx-auto mb-3 max-h-44 w-full rounded-2xl object-cover" /> : <Camera className="mx-auto h-8 w-8 text-slate-400" />}
-      <div className="text-center text-sm font-medium text-slate-700">{label}</div>
-      <div className="mt-1 text-center text-xs text-slate-500">{helperText || (optional ? pickText(t, 'worker_optional_label', 'Optional') : pickText(t, 'worker_required_label', 'Required'))}</div>
+      <div className="worker-locale-safe text-center text-sm font-medium text-slate-700">{label}</div>
+      <div className="worker-locale-safe mt-1 text-center text-xs text-slate-500">{helperText || (optional ? pickText(t, 'worker_optional_label', 'Optional') : pickText(t, 'worker_required_label', 'Required'))}</div>
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" disabled={loading} onClick={() => inputRef.current?.click()} className="inline-flex min-h-12 items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
-          {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : (imageData ? retakeLabel : actionLabel)}
+        <button type="button" disabled={loading} onClick={() => cameraInputRef.current?.click()} className="worker-photo-action worker-locale-safe inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300">
+          {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          {cameraLabel}
         </button>
-        <button type="button" disabled={!imageData || loading} onClick={onRemove} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400">
-          {removeLabel}
+        <button type="button" disabled={loading} onClick={() => galleryInputRef.current?.click()} className="worker-photo-action worker-locale-safe inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+          <FileImage className="h-4 w-4" />
+          {galleryLabel}
         </button>
       </div>
+      <button type="button" disabled={!imageData || loading} onClick={onRemove} className="worker-photo-action worker-locale-safe mt-2 inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:text-slate-400">
+        {removeLabel}
+      </button>
     </div>
   );
 }
