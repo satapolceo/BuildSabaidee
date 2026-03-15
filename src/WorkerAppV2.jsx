@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
   Banknote,
   Camera,
+  ChevronDown,
   CheckCircle2,
   ClipboardCheck,
   ClipboardList,
@@ -1843,11 +1844,17 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
                   <div className="text-sm font-semibold text-slate-900">{pickText(t, `worker_task_title_${task.title}`, task.title)}</div>
                   <div className="mt-1 text-xs text-slate-500">{siteName} • {formatDate(task.dueDate, locale)}</div>
                 </div>
-                <select value={task.status} onChange={(event) => setTasks((current) => updateWorkerTaskStatus(current, task.id, event.target.value))} className="worker-locale-safe worker-mobile-control rounded-xl px-2 py-1 text-xs">
-                  <option value={TASK_STATUS.notStarted}>{pickText(t, 'worker_task_status_not_started', 'Not started')}</option>
-                  <option value={TASK_STATUS.inProgress}>{pickText(t, 'worker_task_status_in_progress', 'In progress')}</option>
-                  <option value={TASK_STATUS.completed}>{pickText(t, 'worker_task_status_done', 'Done')}</option>
-                </select>
+                <MobileSelectField
+                  value={task.status}
+                  onChange={(nextValue) => setTasks((current) => updateWorkerTaskStatus(current, task.id, nextValue))}
+                  options={[
+                    { value: TASK_STATUS.notStarted, label: pickText(t, 'worker_task_status_not_started', 'Not started') },
+                    { value: TASK_STATUS.inProgress, label: pickText(t, 'worker_task_status_in_progress', 'In progress') },
+                    { value: TASK_STATUS.completed, label: pickText(t, 'worker_task_status_done', 'Done') },
+                  ]}
+                  compact
+                  allowEmpty={false}
+                />
               </div>
             </div>
           ))}
@@ -1996,17 +2003,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             </div>
             <div>
               <div className="mb-2 text-sm font-semibold text-slate-700">{pickText(t, 'label_name', 'Project')}</div>
-              <select
+              <MobileSelectField
                 value={photoBatchForm.projectId}
-                onChange={(event) => handleBatchProjectChange(event.target.value)}
-                className="worker-locale-safe worker-mobile-control text-base"
-              >
-                {projectsList.map((project) => (
-                  <option key={project.id} value={String(project.id)}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                onChange={handleBatchProjectChange}
+                options={projectsList.map((project) => ({ value: String(project.id), label: project.name }))}
+                placeholder={pickText(t, 'worker_site_name_fallback', 'Project not assigned')}
+                allowEmpty={false}
+              />
             </div>
             <SelectorPillGroup
               label={pickText(t, 'worker_work_type', 'Work Type')}
@@ -2666,12 +2669,18 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         <FormCard title={pickText(t, 'worker_sos', 'Report Issue / SOS')}>
           <div className="grid grid-cols-2 gap-3">
             <input value={issueForm.category} onChange={(event) => setIssueForm((current) => ({ ...current, category: event.target.value }))} placeholder={pickText(t, 'worker_issue_category', 'Issue category')} className="worker-locale-safe worker-mobile-input text-sm" />
-            <select value={issueForm.urgency} onChange={(event) => setIssueForm((current) => ({ ...current, urgency: event.target.value }))} className="worker-locale-safe worker-mobile-control text-sm">
-              <option value="low">{pickText(t, 'worker_issue_urgency_low', 'Low')}</option>
-              <option value="medium">{pickText(t, 'worker_issue_urgency_medium', 'Medium')}</option>
-              <option value="high">{pickText(t, 'worker_issue_urgency_high', 'High')}</option>
-              <option value="critical">{pickText(t, 'worker_issue_urgency_critical', 'Critical')}</option>
-            </select>
+            <MobileSelectField
+              value={issueForm.urgency}
+              onChange={(nextValue) => setIssueForm((current) => ({ ...current, urgency: nextValue }))}
+              options={[
+                { value: 'low', label: pickText(t, 'worker_issue_urgency_low', 'Low') },
+                { value: 'medium', label: pickText(t, 'worker_issue_urgency_medium', 'Medium') },
+                { value: 'high', label: pickText(t, 'worker_issue_urgency_high', 'High') },
+                { value: 'critical', label: pickText(t, 'worker_issue_urgency_critical', 'Critical') },
+              ]}
+              placeholder={pickText(t, 'worker_issue_urgency_high', 'High')}
+              allowEmpty={false}
+            />
           </div>
           <div className="mt-3">
             <CompactSelectCreateField
@@ -2829,6 +2838,106 @@ function FormCard({ title, children }) {
   );
 }
 
+function MobileSelectField({
+  value,
+  onChange,
+  options,
+  placeholder = '',
+  disabled = false,
+  compact = false,
+  allowEmpty = true,
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const listboxId = useId();
+  const selectedOption = options.find((option) => String(option.value) === String(value)) || null;
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [open]);
+
+  const triggerClassName = compact
+    ? 'worker-locale-safe worker-mobile-dropdown-trigger worker-mobile-dropdown-trigger-compact'
+    : 'worker-locale-safe worker-mobile-dropdown-trigger';
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={listboxId}
+        aria-disabled={disabled}
+        data-selected-value={value || ''}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        className={triggerClassName}
+      >
+        <span className={`worker-locale-safe block min-w-0 flex-1 truncate text-left ${selectedOption ? 'text-slate-900' : 'text-slate-400'}`}>
+          {selectedOption?.label || placeholder}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && !disabled ? (
+        <div id={listboxId} role="listbox" className="worker-mobile-dropdown-panel absolute left-0 right-0 z-30 mt-2 max-h-72 overflow-y-auto rounded-[1.25rem] border border-slate-200 bg-white p-1.5 shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
+          {allowEmpty ? (
+            <button
+              type="button"
+              role="option"
+              aria-selected={!value}
+              onClick={() => {
+                onChange('');
+                setOpen(false);
+              }}
+              className={`worker-locale-safe worker-mobile-dropdown-option ${!value ? 'bg-blue-50 text-blue-700' : ''}`}
+            >
+              {placeholder}
+            </button>
+          ) : null}
+          {options.map((option) => {
+            const active = String(option.value) === String(value);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`worker-locale-safe worker-mobile-dropdown-option ${active ? 'bg-blue-50 text-blue-700' : ''}`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function CompactSelectCreateField({
   label,
   value,
@@ -2853,6 +2962,7 @@ function CompactSelectCreateField({
     : accent === 'amber'
       ? 'border-amber-200 bg-amber-50 text-amber-700'
       : 'border-blue-200 bg-blue-50 text-blue-700';
+  const selectOptions = options.map((option) => ({ value: option, label: option }));
 
   return (
     <div>
@@ -2867,17 +2977,13 @@ function CompactSelectCreateField({
           <Plus className="h-4 w-4" />
         </button>
       </div>
-      <select
+      <MobileSelectField
         value={value}
-        onChange={(event) => onSelect(event.target.value)}
+        onChange={onSelect}
+        options={selectOptions}
+        placeholder={selectPlaceholder}
         disabled={disabled}
-        className="worker-locale-safe worker-mobile-control"
-      >
-        <option value="">{selectPlaceholder}</option>
-        {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
+      />
       {helperText ? <div className="worker-locale-safe mt-2 px-1 text-[12px] text-slate-500">{helperText}</div> : null}
       {addOpen ? (
         <div className="mt-3 rounded-[1.2rem] border border-slate-200 bg-slate-50/95 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">

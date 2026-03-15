@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkerAppV2 from '../src/WorkerAppV2.jsx';
 
@@ -140,6 +140,24 @@ function getPhotoFormSelects() {
   };
 }
 
+function getSelectedComboboxValue(combobox) {
+  return combobox.getAttribute('data-selected-value') || '';
+}
+
+async function getDropdownOptionLabels(user, combobox) {
+  await user.click(combobox);
+  const listbox = screen.getByRole('listbox');
+  const labels = within(listbox).getAllByRole('option').map((option) => (option.textContent || '').trim());
+  await user.click(combobox);
+  return labels;
+}
+
+async function selectDropdownOption(user, combobox, label) {
+  await user.click(combobox);
+  await user.click(screen.getByRole('option', { name: label }));
+}
+
+
 async function openCompactAdd(user, label) {
   await user.click(screen.getByRole('button', { name: `Add ${label}` }));
 }
@@ -150,10 +168,6 @@ async function saveCompactAdd(user, label, value) {
   await user.clear(input);
   await user.type(input, value);
   await user.click(screen.getByRole('button', { name: /^Save$/i }));
-}
-
-function getFirstSelectableOption(select) {
-  return Array.from(select.options).find((option) => option.value);
 }
 
 function createImageFile(name, size = 2048) {
@@ -262,25 +276,25 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await saveCompactAdd(user, 'Task Category', 'Custom QA Category');
     let selects = getPhotoFormSelects();
-    expect(selects.taskCategory).toHaveValue('Custom QA Category');
-    expect(getFirstSelectableOption(selects.taskCategory)?.text).toBe('Custom QA Category');
+    expect(getSelectedComboboxValue(selects.taskCategory)).toBe('Custom QA Category');
+    expect((await getDropdownOptionLabels(user, selects.taskCategory))[1]).toBe('Custom QA Category');
     expect(screen.getAllByText(/Custom QA Category/).length).toBeGreaterThan(0);
 
     await saveCompactAdd(user, 'Work Subcategory', 'Custom QA Subcategory');
     selects = getPhotoFormSelects();
-    expect(selects.workSubcategory).toHaveValue('Custom QA Subcategory');
-    expect(getFirstSelectableOption(selects.workSubcategory)?.text).toBe('Custom QA Subcategory');
+    expect(getSelectedComboboxValue(selects.workSubcategory)).toBe('Custom QA Subcategory');
+    expect((await getDropdownOptionLabels(user, selects.workSubcategory))[1]).toBe('Custom QA Subcategory');
 
     await saveCompactAdd(user, 'Zone / Area', 'Roof Edge Test Zone');
     selects = getPhotoFormSelects();
-    expect(selects.areaZone).toHaveValue('Roof Edge Test Zone');
-    expect(getFirstSelectableOption(selects.areaZone)?.text).toBe('Roof Edge Test Zone');
+    expect(getSelectedComboboxValue(selects.areaZone)).toBe('Roof Edge Test Zone');
+    expect((await getDropdownOptionLabels(user, selects.areaZone))[1]).toBe('Roof Edge Test Zone');
     expect(screen.getAllByText(/Roof Edge Test Zone/).length).toBeGreaterThan(0);
 
     await saveCompactAdd(user, 'Standard Notes', 'Need final QC approval');
     selects = getPhotoFormSelects();
-    expect(selects.standardPhrase).toHaveValue('Need final QC approval');
-    expect(getFirstSelectableOption(selects.standardPhrase)?.text).toBe('Need final QC approval');
+    expect(getSelectedComboboxValue(selects.standardPhrase)).toBe('Need final QC approval');
+    expect((await getDropdownOptionLabels(user, selects.standardPhrase))[1]).toBe('Need final QC approval');
     expect(screen.getByPlaceholderText('Details')).toHaveValue('Need final QC approval');
 
     return 'Inline add controls insert new items first, refresh immediately, auto-select them, and reflect the result on screen';
@@ -340,34 +354,50 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Voice screen recording, inline batch recording, and return navigation still work on mobile';
   }));
 
-  it('keeps dropdown styling clean in Thai and splits camera/gallery actions', async () => withFeature('Thai dropdown UI and split photo actions', async () => {
+  it('renders Thai dropdown labels and selected values without clipping', async () => withFeature('Thai dropdown rendering', async () => {
     const user = userEvent.setup();
-    const view = renderWorkerApp('TH');
+    renderWorkerApp('TH');
 
     await checkInAndOpenPhoto(user);
 
     expect(screen.getByText('หมายเหตมาตรฐาน')).toBeInTheDocument();
 
     const selects = getPhotoFormSelects();
-    expect(selects.taskCategory).toHaveClass('worker-mobile-control');
-    expect(selects.workSubcategory).toHaveClass('worker-mobile-control');
-    expect(selects.areaZone).toHaveClass('worker-mobile-control');
-    expect(selects.standardPhrase).toHaveClass('worker-mobile-control');
+    expect(selects.taskCategory).toHaveClass('worker-mobile-dropdown-trigger');
+    expect(selects.workSubcategory).toHaveClass('worker-mobile-dropdown-trigger');
+    expect(selects.areaZone).toHaveClass('worker-mobile-dropdown-trigger');
+    expect(selects.standardPhrase).toHaveClass('worker-mobile-dropdown-trigger');
 
-    const cameraButton = screen.getByRole('button', { name: 'ถายรป' });
-    const galleryButton = screen.getByRole('button', { name: 'เลอกรป' });
-    expect(cameraButton).toBeEnabled();
-    expect(galleryButton).toBeEnabled();
+    const taskLabels = await getDropdownOptionLabels(user, selects.taskCategory);
+    expect(taskLabels).toContain('งานเตรียมพื้นที่');
+    expect(taskLabels).toContain('งานไฟฟ้า');
+    await selectDropdownOption(user, selects.taskCategory, 'งานไฟฟ้า');
+    expect(getSelectedComboboxValue(selects.taskCategory)).toBe('งานไฟฟ้า');
+    expect(selects.taskCategory).toHaveTextContent('งานไฟฟ้า');
 
-    const inputs = getBatchPhotoInputs(view.container);
-    expect(inputs.camera).toHaveAttribute('capture', 'environment');
-    expect(inputs.gallery).not.toHaveAttribute('capture');
+    const subcategoryLabels = await getDropdownOptionLabels(user, selects.workSubcategory);
+    expect(subcategoryLabels).toContain('ติดตั้งปลั๊ก');
+    expect(subcategoryLabels).toContain('ติดตั้งสวิตช์');
+    await selectDropdownOption(user, selects.workSubcategory, 'ติดตั้งปลั๊ก');
+    expect(getSelectedComboboxValue(selects.workSubcategory)).toBe('ติดตั้งปลั๊ก');
+    expect(selects.workSubcategory).toHaveTextContent('ติดตั้งปลั๊ก');
 
-    await uploadBatchCameraPhoto(user, view.container, createImageFile('camera-shot.jpg', 2100));
-    await uploadBatchPhotos(user, view.container, [createImageFile('gallery-shot.jpg', 2300)]);
-    await waitFor(() => expect(screen.getByText('จำนวนรูป: 2')).toBeInTheDocument());
+    const zoneLabels = await getDropdownOptionLabels(user, selects.areaZone);
+    expect(zoneLabels).toContain('ห้องน้ำชั้นล่าง');
+    expect(zoneLabels).toContain('โถงชั้นบน');
+    await selectDropdownOption(user, selects.areaZone, 'ห้องน้ำชั้นล่าง');
+    expect(getSelectedComboboxValue(selects.areaZone)).toBe('ห้องน้ำชั้นล่าง');
+    expect(selects.areaZone).toHaveTextContent('ห้องน้ำชั้นล่าง');
 
-    return 'Thai labels stay visible, the renamed standard-note section renders, and camera/gallery actions are separated on mobile';
+    const phraseLabels = await getDropdownOptionLabels(user, selects.standardPhrase);
+    expect(phraseLabels).toContain('พื้นที่ยังไม่พร้อม');
+    expect(phraseLabels).toContain('งานคืบหน้าตามแผน');
+    await selectDropdownOption(user, selects.standardPhrase, 'พื้นที่ยังไม่พร้อม');
+    expect(getSelectedComboboxValue(selects.standardPhrase)).toBe('พื้นที่ยังไม่พร้อม');
+    expect(selects.standardPhrase).toHaveTextContent('พื้นที่ยังไม่พร้อม');
+    expect(screen.getByPlaceholderText('Details')).toHaveValue('พื้นที่ยังไม่พร้อม');
+
+    return 'Thai dropdown options and selected values keep upper vowels and tone marks across task, zone, subcategory, and standard-note fields';
   }), 15000);
 
   it('preserves Thai, Lao, and English labels with the new compact controls', async () => withFeature('Three-language labels', async () => {

@@ -34,7 +34,8 @@ textarea {
 
 .worker-mobile-control,
 .worker-mobile-input,
-.worker-mobile-textarea {
+.worker-mobile-textarea,
+.worker-mobile-dropdown-trigger {
   width: 100%;
   border: 1px solid rgb(226 232 240);
   border-radius: 1.35rem;
@@ -61,7 +62,8 @@ textarea {
 
 .worker-mobile-control:focus,
 .worker-mobile-input:focus,
-.worker-mobile-textarea:focus {
+.worker-mobile-textarea:focus,
+.worker-mobile-dropdown-trigger:focus {
   outline: none;
   border-color: rgb(59 130 246);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
@@ -69,7 +71,8 @@ textarea {
 
 .worker-mobile-control:disabled,
 .worker-mobile-input:disabled,
-.worker-mobile-textarea:disabled {
+.worker-mobile-textarea:disabled,
+.worker-mobile-dropdown-trigger:disabled {
   background: rgb(241 245 249);
   color: rgb(148 163 184);
 }
@@ -77,6 +80,44 @@ textarea {
 .worker-mobile-control option {
   font-family: inherit;
   line-height: 1.6;
+}
+
+.worker-mobile-dropdown-trigger {
+  min-height: 3.85rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.92rem 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-align: left;
+  overflow: visible;
+}
+
+.worker-mobile-dropdown-trigger-compact {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.worker-mobile-dropdown-panel {
+  overflow: visible;
+}
+
+.worker-mobile-dropdown-option {
+  width: 100%;
+  min-height: 3rem;
+  display: block;
+  padding: 0.78rem 0.9rem;
+  border-radius: 1rem;
+  text-align: left;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: rgb(15 23 42);
+  overflow: visible;
 }
 
 .worker-mobile-input {
