@@ -104,40 +104,30 @@ textarea {
 }
 
 .worker-mobile-dropdown-panel {
-  overflow: visible;
+  padding: 0;
+  overflow: hidden;
 }
 
 .worker-mobile-dropdown-option {
   width: 100%;
-  min-height: 3.25rem;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
+  min-height: 3.4rem;
+  display: block;
   box-sizing: border-box;
   margin: 0;
-  padding: 0;
+  padding: 0.82rem 1rem;
   border: 0;
-  border-radius: 1rem;
+  border-radius: 0;
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
-  background-clip: padding-box;
+  background-clip: border-box;
   text-align: left;
   font-size: 0.95rem;
   line-height: 1.65;
   color: rgb(15 23 42);
   overflow: visible;
   cursor: pointer;
-}
-
-.worker-mobile-dropdown-option-label {
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0.78rem 0.9rem;
-  border-radius: inherit;
-  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 .worker-mobile-dropdown-option:hover,
@@ -151,8 +141,12 @@ textarea {
   color: rgb(29 78 216);
 }
 
-.worker-mobile-dropdown-option[data-selected='true'] .worker-mobile-dropdown-option-label {
+.worker-mobile-dropdown-option[data-selected='true'] {
   font-weight: 600;
+}
+
+.worker-mobile-dropdown-option + .worker-mobile-dropdown-option {
+  border-top: 1px solid rgb(241 245 249);
 }
 
 .worker-mobile-input {

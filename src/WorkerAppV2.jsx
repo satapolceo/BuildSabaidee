@@ -2899,7 +2899,7 @@ function MobileSelectField({
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && !disabled ? (
-        <div id={listboxId} role="listbox" className="worker-mobile-dropdown-panel absolute left-0 right-0 z-30 mt-2 max-h-72 overflow-y-auto rounded-[1.25rem] border border-slate-200 bg-white p-1.5 shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
+        <div id={listboxId} role="listbox" className="worker-mobile-dropdown-panel absolute left-0 right-0 z-30 mt-2 max-h-72 overflow-y-auto rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
           {allowEmpty ? (
             <button
               type="button"
@@ -2912,7 +2912,7 @@ function MobileSelectField({
               }}
               className="worker-locale-safe worker-mobile-dropdown-option"
             >
-              <span className="worker-mobile-dropdown-option-label">{placeholder}</span>
+              {placeholder}
             </button>
           ) : null}
           {options.map((option) => {
@@ -2930,7 +2930,7 @@ function MobileSelectField({
                 }}
                 className="worker-locale-safe worker-mobile-dropdown-option"
               >
-                <span className="worker-mobile-dropdown-option-label">{option.label}</span>
+                {option.label}
               </button>
             );
           })}

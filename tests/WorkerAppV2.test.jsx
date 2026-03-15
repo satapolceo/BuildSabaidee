@@ -417,6 +417,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     expect(option).toHaveClass('worker-mobile-dropdown-option');
     expect(option).toHaveAttribute('data-selected', 'false');
+    expect(option.querySelector('.worker-mobile-dropdown-option-label')).toBeNull();
 
     await user.click(option);
     expect(getSelectedComboboxValue(selects.standardPhrase)).toBe('พื้นที่ยังไม่พร้อม');
@@ -425,8 +426,21 @@ describe('WorkerAppV2 mobile automation', () => {
     const selectedOption = within(reopenedListbox).getByRole('option', { name: 'พื้นที่ยังไม่พร้อม' });
     expect(selectedOption).toHaveClass('worker-mobile-dropdown-option');
     expect(selectedOption).toHaveAttribute('data-selected', 'true');
+    expect(selectedOption.querySelector('.worker-mobile-dropdown-option-label')).toBeNull();
+    await user.click(selectedOption);
 
-    return 'Dropdown options use a full-row container for the background and keep the selected state on the main option row';
+    const taskListbox = await openDropdown(user, selects.taskCategory);
+    const taskOption = within(taskListbox).getByRole('option', { name: 'งานไฟฟ้า' });
+    expect(taskOption).toHaveClass('worker-mobile-dropdown-option');
+    expect(taskOption.querySelector('.worker-mobile-dropdown-option-label')).toBeNull();
+    await user.click(taskOption);
+
+    const zoneListbox = await openDropdown(user, selects.areaZone);
+    const zoneOption = within(zoneListbox).getByRole('option', { name: 'ห้องน้ำชั้นล่าง' });
+    expect(zoneOption).toHaveClass('worker-mobile-dropdown-option');
+    expect(zoneOption.querySelector('.worker-mobile-dropdown-option-label')).toBeNull();
+
+    return 'Dropdown options use a single full-row container for the background and selected state across multiple worker menus';
   }), 15000);
   it('preserves Thai, Lao, and English labels with the new compact controls', async () => withFeature('Three-language labels', async () => {
     const user = userEvent.setup();
