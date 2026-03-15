@@ -197,6 +197,7 @@ const createDefaultPhotoBatchForm = (project) => ({
   ...defaultPhotoBatch,
   projectId: project?.id ? String(project.id) : '',
   projectName: project?.name || '',
+  status: 'draft',
 });
 
 const resolveBatchSelectionDefaults = (current, projectBatchOptions, fallbackProjectName = '') => {
@@ -223,6 +224,8 @@ const resolveBatchSelectionDefaults = (current, projectBatchOptions, fallbackPro
     tradeTeam: nextTradeTeam,
     roomId: nextRoomId,
     roomName: nextRoomName,
+    taskCategory: current.taskCategory || (nextWorkType ? getOptionLabel(projectBatchOptions.workTypes, nextWorkType) : ''),
+    areaZone: current.areaZone || nextRoomName,
   };
 };
 
@@ -753,6 +756,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         && selectionDefaults.tradeTeam === current.tradeTeam
         && selectionDefaults.roomId === current.roomId
         && selectionDefaults.roomName === current.roomName
+        && selectionDefaults.taskCategory === current.taskCategory
+        && selectionDefaults.areaZone === current.areaZone
       ) {
         return current;
       }
@@ -1072,7 +1077,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   };
 
   const setPhotoBatchField = (field, value) => {
-    setPhotoBatchForm((current) => ({ ...current, [field]: value }));
+    setPhotoBatchForm((current) => ({ ...current, [field]: value, status: 'draft' }));
   };
 
   const handleBatchProjectChange = (projectId) => {
@@ -1086,6 +1091,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       tradeTeam: '',
       roomId: '',
       roomName: '',
+      status: 'draft',
     }));
   };
 
@@ -1100,6 +1106,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           : field === 'roomId'
             ? { roomName: getOptionLabel(roomOptions, value), areaZone: getOptionLabel(roomOptions, value) }
             : {}),
+      status: 'draft',
     }));
   };
 
@@ -1110,6 +1117,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       taskCategory: nextValue,
       workType: nextValue,
       tradeTeam: current.tradeTeam || 'General Crew',
+      status: 'draft',
     }));
     setRequestForm((current) => ({ ...current, taskCategory: nextValue }));
     setPaymentForm((current) => ({ ...current, taskCategory: nextValue }));
@@ -1123,6 +1131,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       areaZone: nextValue,
       roomId: nextValue,
       roomName: nextValue,
+      status: 'draft',
     }));
     setRequestForm((current) => ({ ...current, areaZone: nextValue }));
     setPaymentForm((current) => ({ ...current, areaZone: nextValue }));
@@ -1189,6 +1198,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       setPhotoBatchForm((current) => ({
         ...current,
         photos: [...current.photos, ...nextPhotos],
+        status: 'draft',
       }));
       setToast(localCopy.photoCaptured);
     });
@@ -1200,12 +1210,16 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setPhotoBatchForm((current) => ({
       ...current,
       photos: current.photos.filter((photo) => photo.id !== photoId),
+      status: 'draft',
     }));
     setToast(localCopy.photoRemoved);
   };
 
   const resetPhotoBatchForm = () => {
     setPhotoBatchForm(createDefaultPhotoBatchForm(getPreferredProject(projectsList, currentProject)));
+    setBatchVoiceError('');
+    setIsBatchRecordingVoice(false);
+    setIsBatchVoiceProcessing(false);
   };
 
   const submitPhotoBatch = async (nextStatus) => {
@@ -1481,6 +1495,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
                 recordedAt: Date.now(),
                 source: 'inline',
               },
+              status: 'draft',
             }));
             setToast(localCopy.batchVoiceSaved);
           } else {
@@ -1535,7 +1550,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   };
 
   const deleteBatchVoiceNote = () => {
-    setPhotoBatchForm((current) => ({ ...current, voiceNote: null }));
+    setPhotoBatchForm((current) => ({ ...current, voiceNote: null, status: 'draft' }));
     setBatchVoiceError('');
     setToast(localCopy.batchVoiceRemoved);
   };
@@ -1598,6 +1613,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       onCheckIn: () => handleAttendance('checkin'),
       onCheckOut: () => handleAttendance('checkout'),
       onPhoto: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
+      onVoice: () => openScreen(SCREEN_VOICE, localCopy.openVoice),
       onIssue: () => openScreen(SCREEN_ISSUE),
       onDelivery: () => openRequestScreen('delivery'),
       onEquipment: () => openRequestScreen('equipment'),
@@ -1608,6 +1624,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       checkin: CheckCircle2,
       checkout: Clock3,
       photo: Camera,
+      voice: Mic,
       issue: AlertTriangle,
       delivery: Package,
       equipment: ClipboardList,
@@ -1830,6 +1847,44 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               <div className="mt-2 text-base font-semibold text-slate-900">{photoBatchForm.projectName || siteName}</div>
               <div className="mt-1 text-sm text-slate-500">{localCopy.projectAutoSelected}</div>
             </div>
+            <div>
+              <div className="mb-2 text-sm font-semibold text-slate-700">{pickText(t, 'label_name', 'Project')}</div>
+              <select
+                value={photoBatchForm.projectId}
+                onChange={(event) => handleBatchProjectChange(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base text-slate-900 outline-none focus:border-blue-500"
+              >
+                {projectsList.map((project) => (
+                  <option key={project.id} value={String(project.id)}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <SelectorPillGroup
+              label={pickText(t, 'worker_work_type', 'Work Type')}
+              options={workTypeOptions}
+              value={photoBatchForm.workType}
+              onChange={(value) => handleBatchOptionChange('workType', value)}
+              emptyLabel={localCopy.batchNoProjectData}
+              disabled={isProjectBatchOptionsLoading}
+            />
+            <SelectorPillGroup
+              label={pickText(t, 'worker_trade_team', 'Team')}
+              options={tradeTeamOptions}
+              value={photoBatchForm.tradeTeam}
+              onChange={(value) => handleBatchOptionChange('tradeTeam', value)}
+              emptyLabel={photoBatchForm.workType ? localCopy.batchNoProjectData : localCopy.batchFilterTrade}
+              disabled={isProjectBatchOptionsLoading || !photoBatchForm.workType}
+            />
+            <SelectorPillGroup
+              label={pickText(t, 'worker_room', 'Room')}
+              options={roomOptions}
+              value={photoBatchForm.roomId}
+              onChange={(value) => handleBatchOptionChange('roomId', value)}
+              emptyLabel={photoBatchForm.tradeTeam ? localCopy.batchNoProjectData : localCopy.batchFilterRoom}
+              disabled={isProjectBatchOptionsLoading || !photoBatchForm.tradeTeam}
+            />
             <DropdownCreateField
               label={localCopy.taskCategoryLabel}
               value={photoBatchForm.taskCategory}
@@ -1970,6 +2025,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
             countLabel={localCopy.photoBatchCount}
             voiceLabel={localCopy.batchVoiceAttachedCount}
           />
+          {(isBatchRecordingVoice || isBatchVoiceProcessing) ? (
+            <div className={`mt-3 rounded-[1.2rem] border px-4 py-3 text-sm ${isBatchRecordingVoice ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+              {isBatchRecordingVoice ? localCopy.batchVoiceRecording : localCopy.batchVoiceProcessing}
+            </div>
+          ) : null}
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button onClick={() => submitPhotoBatch('draft')} disabled={!batchReadyForPhotos || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
               {busyAction === 'photo-draft' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileImage className="h-4 w-4" />}
@@ -2431,7 +2491,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           </div>
         </div>
 
-        <div className="pointer-events-auto flex-1 overflow-y-auto px-4 pb-6 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}>
+        <div className="pointer-events-auto relative z-0 flex-1 overflow-y-auto px-4 pb-6 pt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8rem)' }}>
           <div className={`mb-4 rounded-[1.4rem] border p-4 shadow-sm ${online ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
             <div className="flex items-start gap-3">
               <div className={`rounded-2xl p-2 ${online ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{online ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />}</div>
@@ -2448,13 +2508,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           {renderBody()}
         </div>
 
-        <div className="pointer-events-auto sticky bottom-0 z-30 border-t border-slate-200 bg-white/98 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.85rem)] pt-3 backdrop-blur supports-[backdrop-filter]:bg-white/90">
+        <div className="pointer-events-auto sticky bottom-0 z-40 border-t border-slate-200 bg-white/98 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.95rem)] pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-white/90">
           <div className="grid grid-cols-4 gap-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = item.id === activeTab && activeScreen === activeTab;
               return (
-                <button key={item.id} onClick={() => setTabScreen(item.id)} className={`min-h-14 rounded-2xl px-2 py-3 text-center touch-manipulation ${active ? 'bg-blue-700 text-white' : 'text-slate-500'}`}>
+                <button key={item.id} type="button" onClick={() => setTabScreen(item.id)} className={`min-h-16 rounded-2xl px-2 py-3 text-center touch-manipulation ${active ? 'bg-blue-700 text-white' : 'text-slate-500'}`}>
                   <Icon className="mx-auto h-5 w-5" />
                   <div className="mt-1 text-[11px] font-semibold">{item.label}</div>
                 </button>
@@ -2471,7 +2531,7 @@ function SinglePurposeScreen({ title, subtitle, onBack, t, children }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 active:scale-[0.98]">
+        <button type="button" aria-label={pickText(t, 'common_back', 'Back')} onClick={onBack} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 active:scale-[0.98]">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>

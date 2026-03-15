@@ -149,6 +149,51 @@ export function createPhotoBatchPhoto({
   };
 }
 
+function normalizeBatchPhotoItem(photo, fallbackTimestamp = Date.now()) {
+  if (!photo) return null;
+  if (typeof photo === 'string') {
+    return createPhotoBatchPhoto({
+      imageData: photo,
+      timestamp: fallbackTimestamp,
+    });
+  }
+  if (!photo.imageData) return null;
+
+  return {
+    id: photo.id || createLocalId('photo_item'),
+    imageData: photo.imageData,
+    imageMeta: photo.imageMeta || photo.imageStats || {},
+    originalName: photo.originalName || '',
+    capturedAt: Number(photo.capturedAt || photo.timestamp || fallbackTimestamp),
+  };
+}
+
+function normalizeBatchVoiceNote(voiceNote, fallbackTimestamp = Date.now()) {
+  if (!voiceNote) return null;
+  if (typeof voiceNote === 'string') {
+    return {
+      id: createLocalId('batch_voice'),
+      audioData: voiceNote,
+      durationMs: 0,
+      mimeType: 'audio/webm',
+      recordedAt: fallbackTimestamp,
+      source: 'inline',
+    };
+  }
+
+  const audioData = voiceNote.audioData || voiceNote.audioUrl || '';
+  if (!audioData) return null;
+
+  return {
+    id: voiceNote.id || createLocalId('batch_voice'),
+    audioData,
+    durationMs: Number(voiceNote.durationMs || voiceNote.duration || 0),
+    mimeType: voiceNote.mimeType || 'audio/webm',
+    recordedAt: Number(voiceNote.recordedAt || voiceNote.updatedAt || voiceNote.createdAt || fallbackTimestamp),
+    source: voiceNote.source || 'inline',
+  };
+}
+
 export function createPhotoSubmissionBatch({
   workerId,
   workerName,
@@ -192,21 +237,13 @@ export function createPhotoSubmissionBatch({
 export function normalizePhotoSubmissionBatch(entry) {
   if (!entry) return null;
 
-  const normalizedPhotos = Array.isArray(entry.photos) ? entry.photos.filter(Boolean) : null;
-
-  const normalizedVoiceNote = entry.voiceNote
-    ? {
-        id: entry.voiceNote.id || createLocalId('batch_voice'),
-        audioData: entry.voiceNote.audioData || '',
-        durationMs: Number(entry.voiceNote.durationMs || 0),
-        mimeType: entry.voiceNote.mimeType || 'audio/webm',
-        recordedAt: Number(entry.voiceNote.recordedAt || entry.updatedAt || entry.createdAt || Date.now()),
-        source: entry.voiceNote.source || 'inline',
-      }
+  const timestamp = Number(entry.submittedAt || entry.updatedAt || entry.createdAt || Date.now());
+  const normalizedPhotos = Array.isArray(entry.photos)
+    ? entry.photos.map((photo) => normalizeBatchPhotoItem(photo, timestamp)).filter(Boolean)
     : null;
+  const normalizedVoiceNote = normalizeBatchVoiceNote(entry.voiceNote, timestamp);
 
   if (normalizedPhotos) {
-    const timestamp = Number(entry.submittedAt || entry.updatedAt || entry.createdAt || Date.now());
     const normalizedStatus = entry.status === 'draft' ? 'draft' : 'submitted';
     return {
       ...entry,
@@ -233,7 +270,6 @@ export function normalizePhotoSubmissionBatch(entry) {
 
   if (!entry.imageData) return null;
 
-  const timestamp = Number(entry.submittedAt || entry.updatedAt || entry.createdAt || Date.now());
   const normalizedStatus = entry.status === 'submitted' ? 'submitted' : 'draft';
   return {
     id: entry.id || createLocalId('photo_batch'),

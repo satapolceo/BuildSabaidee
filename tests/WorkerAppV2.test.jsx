@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WorkerAppV2 from '../src/WorkerAppV2.jsx';
 
@@ -38,12 +38,10 @@ vi.mock('../src/imageDataSaver.js', () => ({
 }));
 
 const featureResults = [];
-
 const projectsList = [
   { id: 'p1', name: 'Sky Tower' },
   { id: 'p2', name: 'Garden Villa' },
 ];
-
 const workersList = [
   { id: 'w1', name: 'Somchai', assignedSiteId: 'p1' },
 ];
@@ -78,7 +76,6 @@ class MockMediaRecorder {
 }
 
 const t = (key) => key;
-
 const onNavigate = vi.fn();
 
 function renderWorkerApp(language = 'EN') {
@@ -93,18 +90,36 @@ function renderWorkerApp(language = 'EN') {
   );
 }
 
-async function checkInAndOpenPhoto(user) {
-  await user.click(screen.getByRole('button', { name: /Check In/i }));
-  expect(screen.getByRole('button', { name: /Check In/i })).toBeDisabled();
-  await waitFor(() => expect(screen.getByRole('button', { name: /Check Out/i })).toBeEnabled());
-  const photoButton = screen.getAllByRole('button', { name: /Upload Photo/i })[0];
+function getQuickActionButton(pattern) {
+  return screen.getAllByRole('button').find((button) => pattern.test(button.textContent || ''));
+}
+
+function getProjectSelect() {
+  return screen.getAllByRole('combobox').find((element) => element.querySelector('option[value="p1"]'));
+}
+
+async function openPhotoScreen(user) {
+  const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
+  if (!photoButton) throw new Error('Photo quick action not found');
   await waitFor(() => expect(photoButton).toBeEnabled());
   await user.click(photoButton);
-  await waitFor(() => expect(screen.getByText('Work Submission Batch')).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText('Submit Work Photo')).toBeInTheDocument());
+}
+
+async function checkInAndOpenPhoto(user) {
+  const checkInButton = getQuickActionButton(/Check In/i);
+  const checkOutButton = getQuickActionButton(/Check Out/i);
+  if (!checkInButton || !checkOutButton) throw new Error('Attendance quick actions not found');
+
+  await user.click(checkInButton);
+  expect(checkInButton).toBeDisabled();
+  await waitFor(() => expect(checkOutButton).toBeEnabled());
+  await openPhotoScreen(user);
 }
 
 async function selectTowerBatch(user) {
-  const projectSelect = screen.getByRole('combobox');
+  const projectSelect = getProjectSelect();
+  if (!projectSelect) throw new Error('Project select not found');
   await user.selectOptions(projectSelect, 'p1');
   await waitFor(() => expect(screen.getByRole('button', { name: 'MEP' })).toBeInTheDocument());
   await user.click(screen.getByRole('button', { name: 'MEP' }));
@@ -129,17 +144,24 @@ async function uploadBatchPhotos(user, container, files) {
 
 async function recordInlineVoice(user) {
   await user.click(screen.getByRole('button', { name: /Record in batch/i }));
-  expect(screen.getByText('Recording inside this batch...')).toBeInTheDocument();
+  expect(screen.getAllByText('Recording inside this batch...').length).toBeGreaterThan(0);
   await user.click(screen.getByRole('button', { name: /Stop recording/i }));
   await waitFor(() => expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0));
+}
+
+function printResult(feature, status, details) {
+  console.log(`[${status}] ${feature}${details ? `: ${details}` : ''}`);
 }
 
 async function withFeature(name, fn) {
   try {
     const details = await fn();
     featureResults.push({ feature: name, status: 'PASS', details: details || '' });
+    printResult(name, 'PASS', details || '');
   } catch (error) {
-    featureResults.push({ feature: name, status: 'FAIL', details: error instanceof Error ? error.message : String(error) });
+    const details = error instanceof Error ? error.message : String(error);
+    featureResults.push({ feature: name, status: 'FAIL', details });
+    printResult(name, 'FAIL', details);
     throw error;
   }
 }
@@ -192,11 +214,15 @@ describe('WorkerAppV2 mobile automation', () => {
     const user = userEvent.setup();
     renderWorkerApp('EN');
 
-    const checkInButton = screen.getByRole('button', { name: /Check In/i });
-    const checkOutButton = screen.getByRole('button', { name: /Check Out/i });
-    const uploadPhotoButton = screen.getAllByRole('button', { name: /Upload Photo/i })[0];
-    const voiceButton = screen.getAllByRole('button', { name: /Voice Notes/i })[0];
+    const checkInButton = getQuickActionButton(/Check In/i);
+    const checkOutButton = getQuickActionButton(/Check Out/i);
+    const uploadPhotoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo/i);
+    const voiceButton = getQuickActionButton(/Voice Notes|Voice/i);
 
+    expect(checkInButton).toBeDefined();
+    expect(checkOutButton).toBeDefined();
+    expect(uploadPhotoButton).toBeDefined();
+    expect(voiceButton).toBeDefined();
     expect(checkInButton).toBeEnabled();
     expect(checkOutButton).toBeDisabled();
     expect(uploadPhotoButton).toBeDisabled();
@@ -204,7 +230,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await user.click(checkInButton);
     expect(checkInButton).toBeDisabled();
-    expect(checkOutButton).toBeEnabled();
+    await waitFor(() => expect(checkOutButton).toBeEnabled());
     await waitFor(() => expect(uploadPhotoButton).toBeEnabled());
     await waitFor(() => expect(voiceButton).toBeEnabled());
 
@@ -220,13 +246,16 @@ describe('WorkerAppV2 mobile automation', () => {
     renderWorkerApp('EN');
 
     await checkInAndOpenPhoto(user);
-    expect(screen.getAllByRole('combobox')[0]).toHaveValue('p1');
+    expect(getProjectSelect()).toHaveValue('p1');
+    expect(screen.getByRole('button', { name: 'Structure' })).toHaveClass('bg-blue-700');
+    expect(screen.getByRole('button', { name: 'Concrete Team' })).toHaveClass('bg-blue-700');
+    expect(screen.getByRole('button', { name: 'Core Level 12' })).toHaveClass('bg-blue-700');
     expect(screen.getByRole('button', { name: /Save draft/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Take or choose photo/i })).toBeEnabled();
 
     await selectTowerBatch(user);
 
-    expect(screen.getAllByRole('combobox')[0]).toHaveValue('p1');
+    expect(getProjectSelect()).toHaveValue('p1');
     expect(screen.getByRole('button', { name: 'MEP Rough-in Team' })).toHaveClass('bg-blue-700');
     expect(screen.getByRole('button', { name: 'Level 12 Corridor' })).toHaveClass('bg-blue-700');
     expect(screen.queryByRole('button', { name: 'Footing Team' })).not.toBeInTheDocument();
@@ -275,6 +304,7 @@ describe('WorkerAppV2 mobile automation', () => {
     await recordInlineVoice(user);
 
     expect(view.container.querySelector('audio')).toBeInTheDocument();
+    expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Delete batch voice/i })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: /Delete batch voice/i }));
@@ -290,7 +320,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await checkInAndOpenPhoto(user);
     await selectTowerBatch(user);
-    await user.type(screen.getByPlaceholderText('Batch title'), 'Corridor MEP inspection');
+    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Corridor MEP inspection');
     await user.type(screen.getByPlaceholderText('Details'), 'Ceiling rough-in complete and ready for review');
     await uploadBatchPhotos(user, view.container, [createImageFile('draft.jpg', 1800)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
@@ -305,9 +335,10 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(screen.getAllByText('MEP Rough-in Team').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Level 12 Corridor').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Draft').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0);
 
     await selectTowerBatch(user);
-    await user.type(screen.getByPlaceholderText('Batch title'), 'Corridor MEP handover');
+    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Corridor MEP handover');
     await uploadBatchPhotos(user, view.container, [createImageFile('submit.jpg', 2200)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /Submit batch/i }));
@@ -361,6 +392,36 @@ describe('WorkerAppV2 mobile automation', () => {
 
     return 'Verified EN / TH / LA labels for the inline batch voice module';
   }));
-});
 
+  it('supports voice screen recording and batch submission from the mobile shell', async () => withFeature('Voice screen and submit flow', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+
+    const checkInButton = getQuickActionButton(/Check In/i);
+    const voiceAction = getQuickActionButton(/Voice Notes|Voice/i);
+    expect(checkInButton).toBeDefined();
+    expect(voiceAction).toBeDefined();
+
+    await user.click(checkInButton);
+    await waitFor(() => expect(voiceAction).toBeEnabled());
+    await user.click(voiceAction);
+    await waitFor(() => expect(screen.getByRole('button', { name: /Start recording/i })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: /Start recording/i }));
+    expect(screen.getByText('Recording...')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Stop recording/i }));
+    await waitFor(() => expect(view.container.querySelector('audio')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /Back/i }));
+    await openPhotoScreen(user);
+    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Mobile shell submit');
+    await uploadBatchPhotos(user, view.container, [createImageFile('mobile-shell.jpg', 2200)]);
+    await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Submit batch/i }));
+    await waitFor(() => expect(screen.getByText('Photo batch submitted')).toBeInTheDocument());
+
+    const recentCards = screen.getAllByText('Mobile shell submit');
+    expect(recentCards.length).toBeGreaterThan(0);
+    return 'Recorded from the voice screen, returned through the mobile shell, and submitted a batch';
+  }), 15000);
+});
 

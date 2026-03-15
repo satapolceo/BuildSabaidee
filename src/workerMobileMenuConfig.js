@@ -91,6 +91,7 @@ export function createWorkerActionButtons({
     todayPhotoCount,
     todayVoiceCount,
     activeScreen,
+    isVoiceProcessing,
     isRecordingVoice,
     busyAction,
     screenPhoto,
@@ -108,7 +109,7 @@ export function createWorkerActionButtons({
   return [
     {
       id: 'checkin',
-      label: 'Check-in',
+      label: 'Check In',
       helper: isCheckedIn ? localCopy.done : localCopy.ready,
       icon: icons.checkin,
       tone: 'blue',
@@ -119,7 +120,7 @@ export function createWorkerActionButtons({
     },
     {
       id: 'checkout',
-      label: 'Check-out',
+      label: 'Check Out',
       helper: isCheckedOut ? localCopy.done : isCheckedIn ? localCopy.active : localCopy.disabled,
       icon: icons.checkout,
       tone: 'emerald',
@@ -146,6 +147,27 @@ export function createWorkerActionButtons({
       loading: busyAction === 'photo-upload' || busyAction === 'photo-submit' || busyAction === 'photo-draft',
       active: activeScreen === screenPhoto || photoHistoryHighlight,
       onClick: handlers.onPhoto,
+    },
+    {
+      id: 'voice',
+      label: 'Voice Notes',
+      helper: isRecordingVoice
+        ? localCopy.recording
+        : todayVoiceCount > 0
+          ? `${todayVoiceCount} ${localCopy.done}`
+          : !canUseWorkActions
+            ? localCopy.disabled
+            : isProjectBatchOptionsLoading
+              ? localCopy.batchProjectDataLoading
+              : hasBatchRoomSelection
+                ? `${localCopy.active} • ${roomName}`
+                : localCopy.batchFilterRoom,
+      icon: icons.voice,
+      tone: 'slate',
+      disabled: !canOpenWorkerTools,
+      loading: isVoiceProcessing,
+      active: activeScreen === screenVoice || isRecordingVoice || todayVoiceCount > 0,
+      onClick: handlers.onVoice,
     },
     {
       id: 'issue',
