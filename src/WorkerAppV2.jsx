@@ -34,20 +34,22 @@ import {
   updateWorkerTaskStatus,
 } from './workerStorage';
 import { compressImageFile, DATA_SAVER_DEFAULTS, formatBytes } from './imageDataSaver';
-
-const TAB_HOME = 'home';
-const TAB_TASKS = 'tasks';
-const TAB_ACTIVITY = 'activity';
-const TAB_PROFILE = 'profile';
-
-const SCREEN_HOME = 'home';
-const SCREEN_TASKS = 'tasks';
-const SCREEN_ACTIVITY = 'activity';
-const SCREEN_PROFILE = 'profile';
-const SCREEN_PHOTO = 'photo';
-const SCREEN_VOICE = 'voice';
-const SCREEN_REQUEST = 'request';
-const SCREEN_ISSUE = 'issue';
+import {
+  TAB_HOME,
+  TAB_TASKS,
+  TAB_ACTIVITY,
+  TAB_PROFILE,
+  SCREEN_HOME,
+  SCREEN_TASKS,
+  SCREEN_ACTIVITY,
+  SCREEN_PROFILE,
+  SCREEN_PHOTO,
+  SCREEN_VOICE,
+  SCREEN_REQUEST,
+  SCREEN_ISSUE,
+  createWorkerNavItems,
+  createWorkerActionButtons,
+} from './workerMobileMenuConfig';
 
 const defaultPhotoBatch = {
   projectId: '',
@@ -1113,77 +1115,52 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setValidationError('');
   };
 
-  const navItems = [
-    { id: TAB_HOME, label: pickText(t, 'worker_nav_home', 'Home'), icon: Home },
-    { id: TAB_TASKS, label: pickText(t, 'worker_nav_tasks', 'My Tasks'), icon: ClipboardList },
-    { id: TAB_ACTIVITY, label: pickText(t, 'worker_activity_title', 'Recent Activity'), icon: Clock3 },
-    { id: TAB_PROFILE, label: pickText(t, 'worker_nav_chat', 'Profile'), icon: UserCircle2 },
-  ];
+  const navItems = createWorkerNavItems({
+    t,
+    pickText,
+    iconMap: {
+      home: Home,
+      tasks: ClipboardList,
+      activity: Clock3,
+      profile: UserCircle2,
+    },
+  });
 
-  const actionButtons = [
-    {
-      id: 'checkin',
-      label: pickText(t, 'worker_checkin_cta', 'Check In'),
-      helper: isCheckedIn ? localCopy.done : localCopy.ready,
-      icon: CheckCircle2,
-      tone: 'blue',
-      disabled: isCheckedIn,
-      loading: busyAction === 'checkin',
-      active: !isCheckedIn,
-      onClick: () => handleAttendance('checkin'),
+  const actionButtons = createWorkerActionButtons({
+    t,
+    pickText,
+    localCopy,
+    state: {
+      isCheckedIn,
+      isCheckedOut,
+      canUseWorkActions,
+      canOpenWorkerTools,
+      isProjectBatchOptionsLoading,
+      hasBatchRoomSelection,
+      todayBatchCount,
+      todayPhotoCount,
+      todayVoiceCount,
+      activeScreen,
+      isRecordingVoice,
+      isVoiceProcessing,
+      busyAction,
+      screenPhoto: SCREEN_PHOTO,
+      screenVoice: SCREEN_VOICE,
+      roomName: photoBatchForm.roomName,
     },
-    {
-      id: 'checkout',
-      label: pickText(t, 'worker_checkout_cta', 'Check Out'),
-      helper: isCheckedOut ? localCopy.done : isCheckedIn ? localCopy.active : localCopy.disabled,
-      icon: Clock3,
-      tone: 'emerald',
-      disabled: !isCheckedIn || isCheckedOut,
-      loading: busyAction === 'checkout',
-      active: isCheckedIn && !isCheckedOut,
-      onClick: () => handleAttendance('checkout'),
+    handlers: {
+      onCheckIn: () => handleAttendance('checkin'),
+      onCheckOut: () => handleAttendance('checkout'),
+      onPhoto: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
+      onVoice: () => openScreen(SCREEN_VOICE, localCopy.openVoice),
     },
-    {
-      id: 'photo',
-      label: pickText(t, 'worker_photo', 'Upload Photo'),
-      helper: todayPhotoCount > 0
-        ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}`
-        : !canUseWorkActions
-          ? localCopy.disabled
-          : isProjectBatchOptionsLoading
-            ? localCopy.batchProjectDataLoading
-            : hasBatchRoomSelection
-              ? `${localCopy.active} • ${photoBatchForm.roomName}`
-              : localCopy.batchFilterRoom,
-      icon: Camera,
-      tone: 'slate',
-      disabled: !canOpenWorkerTools,
-      loading: busyAction === 'photo-upload' || busyAction === 'photo-submit' || busyAction === 'photo-draft',
-      active: activeScreen === SCREEN_PHOTO || todayPhotoCount > 0,
-      onClick: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
+    icons: {
+      checkin: CheckCircle2,
+      checkout: Clock3,
+      photo: Camera,
+      voice: Mic,
     },
-    {
-      id: 'voice',
-      label: localCopy.voiceTitle,
-      helper: isRecordingVoice
-        ? localCopy.recording
-        : todayVoiceCount > 0
-          ? `${todayVoiceCount} ${localCopy.done}`
-          : !canUseWorkActions
-            ? localCopy.disabled
-            : isProjectBatchOptionsLoading
-              ? localCopy.batchProjectDataLoading
-              : hasBatchRoomSelection
-                ? `${localCopy.active} • ${photoBatchForm.roomName}`
-                : localCopy.batchFilterRoom,
-      icon: Mic,
-      tone: 'amber',
-      disabled: !canOpenWorkerTools,
-      loading: isVoiceProcessing,
-      active: activeScreen === SCREEN_VOICE || isRecordingVoice || todayVoiceCount > 0,
-      onClick: () => openScreen(SCREEN_VOICE, localCopy.openVoice),
-    },
-  ];
+  });
 
   const renderHome = () => (
     <div className="space-y-4">
