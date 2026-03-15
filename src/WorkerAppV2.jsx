@@ -2905,13 +2905,14 @@ function MobileSelectField({
               type="button"
               role="option"
               aria-selected={!value}
+              data-selected={!value ? 'true' : 'false'}
               onClick={() => {
                 onChange('');
                 setOpen(false);
               }}
-              className={`worker-locale-safe worker-mobile-dropdown-option ${!value ? 'bg-blue-50 text-blue-700' : ''}`}
+              className="worker-locale-safe worker-mobile-dropdown-option"
             >
-              {placeholder}
+              <span className="worker-mobile-dropdown-option-label">{placeholder}</span>
             </button>
           ) : null}
           {options.map((option) => {
@@ -2922,13 +2923,14 @@ function MobileSelectField({
                 type="button"
                 role="option"
                 aria-selected={active}
+                data-selected={active ? 'true' : 'false'}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
                 }}
-                className={`worker-locale-safe worker-mobile-dropdown-option ${active ? 'bg-blue-50 text-blue-700' : ''}`}
+                className="worker-locale-safe worker-mobile-dropdown-option"
               >
-                {option.label}
+                <span className="worker-mobile-dropdown-option-label">{option.label}</span>
               </button>
             );
           })}

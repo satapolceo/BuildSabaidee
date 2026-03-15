@@ -157,6 +157,11 @@ async function selectDropdownOption(user, combobox, label) {
   await user.click(screen.getByRole('option', { name: label }));
 }
 
+async function openDropdown(user, combobox) {
+  await user.click(combobox);
+  return screen.getByRole('listbox');
+}
+
 
 async function openCompactAdd(user, label) {
   await user.click(screen.getByRole('button', { name: `Add ${label}` }));
@@ -400,6 +405,29 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Thai dropdown options and selected values keep upper vowels and tone marks across task, zone, subcategory, and standard-note fields';
   }), 15000);
 
+  it('renders full-row dropdown option backgrounds and selected states', async () => withFeature('Dropdown option row background', async () => {
+    const user = userEvent.setup();
+    renderWorkerApp('TH');
+
+    await checkInAndOpenPhoto(user);
+
+    const selects = getPhotoFormSelects();
+    const listbox = await openDropdown(user, selects.standardPhrase);
+    const option = within(listbox).getByRole('option', { name: 'พื้นที่ยังไม่พร้อม' });
+
+    expect(option).toHaveClass('worker-mobile-dropdown-option');
+    expect(option).toHaveAttribute('data-selected', 'false');
+
+    await user.click(option);
+    expect(getSelectedComboboxValue(selects.standardPhrase)).toBe('พื้นที่ยังไม่พร้อม');
+
+    const reopenedListbox = await openDropdown(user, selects.standardPhrase);
+    const selectedOption = within(reopenedListbox).getByRole('option', { name: 'พื้นที่ยังไม่พร้อม' });
+    expect(selectedOption).toHaveClass('worker-mobile-dropdown-option');
+    expect(selectedOption).toHaveAttribute('data-selected', 'true');
+
+    return 'Dropdown options use a full-row container for the background and keep the selected state on the main option row';
+  }), 15000);
   it('preserves Thai, Lao, and English labels with the new compact controls', async () => withFeature('Three-language labels', async () => {
     const user = userEvent.setup();
     const { rerender } = renderWorkerApp('EN');

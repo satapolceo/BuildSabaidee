@@ -109,15 +109,50 @@ textarea {
 
 .worker-mobile-dropdown-option {
   width: 100%;
-  min-height: 3rem;
-  display: block;
-  padding: 0.78rem 0.9rem;
+  min-height: 3.25rem;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
   border-radius: 1rem;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  background-clip: padding-box;
   text-align: left;
   font-size: 0.95rem;
   line-height: 1.65;
   color: rgb(15 23 42);
   overflow: visible;
+  cursor: pointer;
+}
+
+.worker-mobile-dropdown-option-label {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0.78rem 0.9rem;
+  border-radius: inherit;
+  box-sizing: border-box;
+}
+
+.worker-mobile-dropdown-option:hover,
+.worker-mobile-dropdown-option:focus-visible,
+.worker-mobile-dropdown-option:active {
+  background: rgb(239 246 255);
+}
+
+.worker-mobile-dropdown-option[data-selected='true'] {
+  background: rgb(239 246 255);
+  color: rgb(29 78 216);
+}
+
+.worker-mobile-dropdown-option[data-selected='true'] .worker-mobile-dropdown-option-label {
+  font-weight: 600;
 }
 
 .worker-mobile-input {
