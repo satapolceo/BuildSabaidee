@@ -117,11 +117,16 @@ async function openPhotoScreen(user) {
   await waitFor(() => expect(screen.getByText('Submit Work Photo')).toBeInTheDocument());
 }
 
+async function settleUi(delay = 450) {
+  await new Promise((resolve) => setTimeout(resolve, delay));
+}
+
 async function checkIn(user) {
   const checkInButton = getQuickActionButton(/Check In/i);
   if (!checkInButton) throw new Error('Check In quick action not found');
   await user.click(checkInButton);
   await waitFor(() => expect(checkInButton).toBeDisabled());
+  await settleUi();
 }
 
 async function checkInAndOpenPhoto(user) {
@@ -132,11 +137,10 @@ async function checkInAndOpenPhoto(user) {
 function getPhotoFormSelects() {
   const selects = screen.getAllByRole('combobox');
   return {
-    project: selects[0],
-    taskCategory: selects[1],
-    workSubcategory: selects[2],
-    areaZone: selects[3],
-    standardPhrase: selects[4],
+    taskCategory: selects[0],
+    workSubcategory: selects[1],
+    areaZone: selects[2],
+    standardPhrase: selects[3],
   };
 }
 
@@ -272,6 +276,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await user.click(checkOutButton);
     await waitFor(() => expect(checkOutButton).toBeDisabled());
+    await settleUi();
     expect(photoButton).toBeDisabled();
     expect(voiceButton).toBeDisabled();
 
@@ -322,26 +327,50 @@ describe('WorkerAppV2 mobile automation', () => {
     await saveCompactAdd(user, 'Zone / Area', 'Showroom Entry');
     await saveCompactAdd(user, 'Standard Notes', 'Waiting for inspection sign-off');
 
-    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Compact UI batch');
+    await user.type(screen.getByPlaceholderText('Details'), 'Draft note for simplified flow');
     await uploadBatchPhotos(user, view.container, [createImageFile('draft.jpg', 2200)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
     await recordInlineVoice(user);
 
     await user.click(screen.getByRole('button', { name: /Save draft/i }));
     await waitFor(() => expect(screen.getByText('Photo batch saved')).toBeInTheDocument());
-    expect(screen.getAllByText('Compact UI batch').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Draft').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Mobile QA Category/).length).toBeGreaterThan(0);
 
-    await user.type(screen.getByPlaceholderText('Short title (optional)'), 'Compact UI submit');
+    await user.type(screen.getByPlaceholderText('Details'), 'Submit note for simplified flow');
     await uploadBatchPhotos(user, view.container, [createImageFile('submit.jpg', 2400)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /Submit batch/i }));
     await waitFor(() => expect(screen.getByText('Photo batch submitted')).toBeInTheDocument());
-    expect(screen.getAllByText('Compact UI submit').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Submitted').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Showroom Entry/).length).toBeGreaterThan(0);
 
     return 'Photo draft and submit still work with the shorter form layout and compact add controls';
   }), 15000);
+
+
+  it('simplifies the submit screen to the short worker flow', async () => withFeature('Simplified submit flow', async () => {
+    const user = userEvent.setup();
+    renderWorkerApp('EN');
+
+    await checkInAndOpenPhoto(user);
+
+    expect(screen.queryByText('Work Submission Batch')).not.toBeInTheDocument();
+    expect(screen.queryByText('Batch Preview')).not.toBeInTheDocument();
+    expect(screen.queryByText('Work Type')).not.toBeInTheDocument();
+    expect(screen.queryByText('Team')).not.toBeInTheDocument();
+    expect(screen.queryByText('Room')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Short title (optional)')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('combobox')).toHaveLength(4);
+    expect(screen.getByText('Inline batch voice')).toBeInTheDocument();
+
+    const photosCard = screen.getByText('Photos').closest('div');
+    const voiceCard = screen.getByText('Inline batch voice').closest('div');
+    expect(photosCard).toBeTruthy();
+    expect(voiceCard).toBeTruthy();
+
+    return 'Submit screen removes work-type/team/room and keeps a shorter photo-to-voice-to-submit flow';
+  }));
 
   it('keeps inline voice and mobile shell navigation working', async () => withFeature('Inline voice and mobile shell', async () => {
     const user = userEvent.setup();

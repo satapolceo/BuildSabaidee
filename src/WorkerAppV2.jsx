@@ -1975,7 +1975,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       : isBatchVoiceProcessing
         ? localCopy.batchVoiceProcessing
         : photoBatchForm.voiceNote
-          ? `${localCopy.batchVoiceAttachedCount} • ${formatDuration(photoBatchForm.voiceNote.durationMs || 0)}`
+          ? `${localCopy.batchVoiceAttachedCount}: ${formatDuration(photoBatchForm.voiceNote.durationMs || 0)}`
           : localCopy.batchVoiceMissing;
 
     return (
@@ -1985,56 +1985,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         onBack={goBack}
         t={t}
       >
-        <DataSaverCard settings={settings} setSettings={setSettings} t={t} compact />
-        <FormCard title={pickText(t, 'worker_photo_batch_setup', 'Work Submission Batch')}>
+        <FormCard>
           <div className={`rounded-[1.3rem] border px-4 py-3 text-sm ${isProjectBatchOptionsLoading ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-blue-200 bg-blue-50 text-blue-900'}`}>
             {isProjectBatchOptionsLoading ? localCopy.batchProjectDataLoading : localCopy.photoFlowHelper}
           </div>
-          {(photoBatchForm.taskCategory || photoBatchForm.areaZone) ? (
-            <div className="mt-3 rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              {photoBatchForm.projectName || '-'} • {photoBatchForm.taskCategory || '-'} • {photoBatchForm.areaZone || '-'}
-            </div>
-          ) : null}
+          <div className="mt-3 rounded-[1.3rem] border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{pickText(t, 'label_name', 'Project')}</div>
+            <div className="mt-1 text-sm font-semibold text-slate-900">{photoBatchForm.projectName || siteName}</div>
+          </div>
           <div className="mt-4 space-y-4">
-            <div className="rounded-[1.4rem] border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{pickText(t, 'label_name', 'Project')}</div>
-              <div className="mt-2 text-base font-semibold text-slate-900">{photoBatchForm.projectName || siteName}</div>
-              <div className="mt-1 text-sm text-slate-500">{localCopy.projectAutoSelected}</div>
-            </div>
-            <div>
-              <div className="mb-2 text-sm font-semibold text-slate-700">{pickText(t, 'label_name', 'Project')}</div>
-              <MobileSelectField
-                value={photoBatchForm.projectId}
-                onChange={handleBatchProjectChange}
-                options={projectsList.map((project) => ({ value: String(project.id), label: project.name }))}
-                placeholder={pickText(t, 'worker_site_name_fallback', 'Project not assigned')}
-                allowEmpty={false}
-              />
-            </div>
-            <SelectorPillGroup
-              label={pickText(t, 'worker_work_type', 'Work Type')}
-              options={workTypeOptions}
-              value={photoBatchForm.workType}
-              onChange={(value) => handleBatchOptionChange('workType', value)}
-              emptyLabel={localCopy.batchNoProjectData}
-              disabled={isProjectBatchOptionsLoading}
-            />
-            <SelectorPillGroup
-              label={pickText(t, 'worker_trade_team', 'Team')}
-              options={tradeTeamOptions}
-              value={photoBatchForm.tradeTeam}
-              onChange={(value) => handleBatchOptionChange('tradeTeam', value)}
-              emptyLabel={photoBatchForm.workType ? localCopy.batchNoProjectData : localCopy.batchFilterTrade}
-              disabled={isProjectBatchOptionsLoading || !photoBatchForm.workType}
-            />
-            <SelectorPillGroup
-              label={pickText(t, 'worker_room', 'Room')}
-              options={roomOptions}
-              value={photoBatchForm.roomId}
-              onChange={(value) => handleBatchOptionChange('roomId', value)}
-              emptyLabel={photoBatchForm.tradeTeam ? localCopy.batchNoProjectData : localCopy.batchFilterRoom}
-              disabled={isProjectBatchOptionsLoading || !photoBatchForm.tradeTeam}
-            />
             <CompactSelectCreateField
               label={localCopy.taskCategoryLabel}
               value={photoBatchForm.taskCategory}
@@ -2108,127 +2067,93 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               addOpen={openAddField === 'photo-standard-phrase'}
               onToggleAdd={() => toggleCompactAdd('photo-standard-phrase')}
             />
-            <input
-              value={photoBatchForm.batchTitle}
-              onChange={(event) => setPhotoBatchField('batchTitle', event.target.value)}
-              placeholder={pickText(t, 'worker_batch_title', 'Short title (optional)')}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
-            />
             <textarea
               value={photoBatchForm.notes}
               onChange={(event) => setPhotoBatchField('notes', event.target.value)}
               placeholder={pickText(t, 'worker_report_details', 'Details')}
-              rows={4}
+              rows={3}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
             />
-          </div>
-        </FormCard>
-
-        <FormCard title={pickText(t, 'worker_report_photo', 'Photos')}>
-          <MultiPhotoPicker
-            photos={photoBatchForm.photos}
-            onChange={handleBatchPhotoChange}
-            onRemove={removeBatchPhoto}
-            label={pickText(t, 'worker_report_photo', 'Photos')}
-            helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
-            cameraLabel={localCopy.photoTakeAction}
-            galleryLabel={localCopy.photoChooseAction}
-            removeLabel={localCopy.photoRemove}
-            countLabel={localCopy.photoBatchCount}
-            loading={busyAction === 'photo-upload'}
-            disabled={!batchReadyForPhotos}
-          />
-          {photoBatchForm.photos.length ? (
-            <div className="mt-3 rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
-              <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
-              <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
-                <div className="rounded-xl bg-white px-3 py-2">
-                  <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
-                  <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalOriginalBytes)}</div>
-                </div>
-                <div className="rounded-xl bg-white px-3 py-2">
-                  <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
-                  <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalCompressedBytes)}</div>
+            <MultiPhotoPicker
+              photos={photoBatchForm.photos}
+              onChange={handleBatchPhotoChange}
+              onRemove={removeBatchPhoto}
+              label={pickText(t, 'worker_report_photo', 'Photos')}
+              helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
+              cameraLabel={localCopy.photoTakeAction}
+              galleryLabel={localCopy.photoChooseAction}
+              removeLabel={localCopy.photoRemove}
+              countLabel={localCopy.photoBatchCount}
+              loading={busyAction === 'photo-upload'}
+              disabled={!batchReadyForPhotos}
+            />
+            {photoBatchForm.photos.length ? (
+              <div className="rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
+                <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
+                <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
+                    <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalOriginalBytes)}</div>
+                  </div>
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
+                    <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalCompressedBytes)}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
-          <div className={`mt-3 rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_1px_rgba(244,63,94,0.14)]' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
-            <div className="flex items-start gap-3">
-              <div className={`rounded-2xl p-3 ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-                <Mic className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-slate-900">{localCopy.batchInlineVoice}</div>
-                <div className="mt-1 text-sm text-slate-600">{batchStatusLabel}</div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : isBatchVoiceProcessing ? 'bg-amber-100 text-amber-800' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                    {isBatchRecordingVoice ? localCopy.recording : isBatchVoiceProcessing ? localCopy.batchVoiceProcessing : photoBatchForm.voiceNote ? localCopy.batchVoiceAttachedCount : localCopy.batchVoiceReady}
-                  </span>
-                  {photoBatchForm.voiceNote?.durationMs ? (
-                    <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
-                      {formatDuration(photoBatchForm.voiceNote.durationMs)}
+            ) : null}
+            <div className={`rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_1px_rgba(244,63,94,0.14)]' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+              <div className="flex items-start gap-3">
+                <div className={`rounded-2xl p-3 ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                  <Mic className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-slate-900">{localCopy.batchInlineVoice}</div>
+                  <div className="mt-1 text-sm text-slate-600">{batchStatusLabel}</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : isBatchVoiceProcessing ? 'bg-amber-100 text-amber-800' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                      {isBatchRecordingVoice ? localCopy.recording : isBatchVoiceProcessing ? localCopy.batchVoiceProcessing : photoBatchForm.voiceNote ? localCopy.batchVoiceAttachedCount : localCopy.batchVoiceReady}
                     </span>
-                  ) : null}
+                    {photoBatchForm.voiceNote?.durationMs ? (
+                      <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
+                        {formatDuration(photoBatchForm.voiceNote.durationMs)}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button onClick={startBatchVoiceRecording} disabled={!canOpenWorkerTools || !canRecordVoice || isBatchRecordingVoice || isBatchVoiceProcessing} className={`inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed ${isBatchRecordingVoice ? 'bg-rose-500' : 'bg-slate-900'} disabled:bg-slate-300`}>
-                <Mic className="h-4 w-4" />
-                {localCopy.batchVoiceStart}
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button onClick={startBatchVoiceRecording} disabled={!canOpenWorkerTools || !canRecordVoice || isBatchRecordingVoice || isBatchVoiceProcessing} className={`inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed ${isBatchRecordingVoice ? 'bg-rose-500' : 'bg-slate-900'} disabled:bg-slate-300`}>
+                  <Mic className="h-4 w-4" />
+                  {localCopy.batchVoiceStart}
+                </button>
+                <button onClick={stopVoiceRecording} disabled={!isBatchRecordingVoice} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
+                  <Square className="h-4 w-4" />
+                  {localCopy.batchVoiceStop}
+                </button>
+              </div>
+              {photoBatchForm.voiceNote ? <audio controls src={photoBatchForm.voiceNote.audioData} className="mt-3 w-full" /> : null}
+              <button onClick={deleteBatchVoiceNote} disabled={!photoBatchForm.voiceNote || isBatchRecordingVoice || isBatchVoiceProcessing} className="mt-3 inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+                <Trash2 className="h-4 w-4" />
+                {localCopy.batchVoiceDelete}
               </button>
-              <button onClick={stopVoiceRecording} disabled={!isBatchRecordingVoice} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
-                <Square className="h-4 w-4" />
-                {localCopy.batchVoiceStop}
+              {batchVoiceError ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{batchVoiceError}</div> : null}
+            </div>
+            {(isBatchRecordingVoice || isBatchVoiceProcessing) ? (
+              <div className={`rounded-[1.2rem] border px-4 py-3 text-sm ${isBatchRecordingVoice ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                {isBatchRecordingVoice ? localCopy.batchVoiceRecording : localCopy.batchVoiceProcessing}
+              </div>
+            ) : null}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button onClick={() => submitPhotoBatch('draft')} disabled={!batchReadyForPhotos || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+                {busyAction === 'photo-draft' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileImage className="h-4 w-4" />}
+                {localCopy.batchDraftAction}
+              </button>
+              <button onClick={() => submitPhotoBatch('submitted')} disabled={!batchReadyForPhotos || !photoBatchForm.photos.length || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300">
+                {busyAction === 'photo-submit' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {localCopy.batchSubmitAction}
               </button>
             </div>
-            {photoBatchForm.voiceNote ? <audio controls src={photoBatchForm.voiceNote.audioData} className="mt-3 w-full" /> : null}
-            <button onClick={deleteBatchVoiceNote} disabled={!photoBatchForm.voiceNote || isBatchRecordingVoice || isBatchVoiceProcessing} className="mt-3 inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
-              <Trash2 className="h-4 w-4" />
-              {localCopy.batchVoiceDelete}
-            </button>
-            {batchVoiceError ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{batchVoiceError}</div> : null}
-          </div>
-        </FormCard>
-
-        <FormCard title={pickText(t, 'worker_batch_preview', 'Batch Preview')}>
-          <PhotoBatchCard
-            item={{
-              id: 'draft-preview',
-              batchTitle: photoBatchForm.batchTitle || `${localCopy.batchTitleAuto} • ${photoBatchForm.taskCategory || '-'}`,
-              projectName: photoBatchForm.projectName || getProjectNameById(projectsList, photoBatchForm.projectId) || '-',
-              workType: photoBatchForm.taskCategory,
-              workSubcategory: photoBatchForm.workSubcategory,
-              tradeTeam: photoBatchForm.tradeTeam || 'General Crew',
-              roomName: photoBatchForm.areaZone,
-              notes: photoBatchForm.notes,
-              photoCount: photoBatchForm.photos.length,
-              status: photoBatchForm.status,
-              voiceNote: photoBatchForm.voiceNote,
-              updatedAt: Date.now(),
-            }}
-            updatedLabel={localCopy.batchUpdated}
-            statusLabel={formatBatchStatusLabel(photoBatchForm.status, language)}
-            emptyNoteLabel={pickText(t, 'worker_no_data', 'No data yet')}
-            locale={locale}
-            countLabel={localCopy.photoBatchCount}
-            voiceLabel={localCopy.batchVoiceAttachedCount}
-          />
-          {(isBatchRecordingVoice || isBatchVoiceProcessing) ? (
-            <div className={`mt-3 rounded-[1.2rem] border px-4 py-3 text-sm ${isBatchRecordingVoice ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-              {isBatchRecordingVoice ? localCopy.batchVoiceRecording : localCopy.batchVoiceProcessing}
-            </div>
-          ) : null}
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button onClick={() => submitPhotoBatch('draft')} disabled={!batchReadyForPhotos || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
-              {busyAction === 'photo-draft' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileImage className="h-4 w-4" />}
-              {localCopy.batchDraftAction}
-            </button>
-            <button onClick={() => submitPhotoBatch('submitted')} disabled={!batchReadyForPhotos || !photoBatchForm.photos.length || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-blue-700 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-blue-300">
-              {busyAction === 'photo-submit' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-              {localCopy.batchSubmitAction}
-            </button>
           </div>
         </FormCard>
 
@@ -2832,7 +2757,7 @@ function ScreenHeader({ title, subtitle }) {
 function FormCard({ title, children }) {
   return (
     <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-      <div className="mb-3 text-base font-semibold text-slate-900">{title}</div>
+      {title ? <div className="mb-3 text-base font-semibold text-slate-900">{title}</div> : null}
       {children}
     </div>
   );
