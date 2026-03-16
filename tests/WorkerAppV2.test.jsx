@@ -186,6 +186,12 @@ function getBatchPhotoInputs(container) {
   return { camera, gallery };
 }
 
+function getVisiblePhotoActionButtons() {
+  const cameraButton = screen.getByRole('button', { name: 'ถ่ายรูป' });
+  const galleryButton = screen.getByRole('button', { name: 'เลือกรูป' });
+  return { cameraButton, galleryButton };
+}
+
 async function uploadBatchPhotos(user, container, files) {
   await user.upload(getBatchPhotoInputs(container).gallery, files);
 }
@@ -365,7 +371,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await checkInAndOpenPhoto(user);
 
-    expect(screen.getByText('หมายเหตมาตรฐาน')).toBeInTheDocument();
+    expect(screen.getByText('\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38\u0e21\u0e32\u0e15\u0e23\u0e10\u0e32\u0e19')).toBeInTheDocument();
 
     const selects = getPhotoFormSelects();
     expect(selects.taskCategory).toHaveClass('worker-mobile-dropdown-trigger');
@@ -403,6 +409,38 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(screen.getByPlaceholderText('Details')).toHaveValue('พื้นที่ยังไม่พร้อม');
 
     return 'Thai dropdown options and selected values keep upper vowels and tone marks across task, zone, subcategory, and standard-note fields';
+  }), 15000);
+
+
+  it('uses separate Thai camera and gallery actions with the existing batch workflow', async () => withFeature('Thai camera and gallery flow', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('TH');
+
+    await checkInAndOpenPhoto(user);
+
+    const { cameraButton, galleryButton } = getVisiblePhotoActionButtons();
+    expect(cameraButton).toBeInTheDocument();
+    expect(galleryButton).toBeInTheDocument();
+
+    const { camera, gallery } = getBatchPhotoInputs(view.container);
+    expect(camera).toHaveAttribute('accept', 'image/*');
+    expect(camera).toHaveAttribute('capture', 'environment');
+    expect(gallery).toHaveAttribute('accept', 'image/*');
+    expect(gallery).not.toHaveAttribute('capture');
+
+    await uploadBatchCameraPhoto(user, view.container, createImageFile('camera-shot.jpg', 2100));
+    await waitFor(() => expect(screen.getByText('จำนวนรูป: 1')).toBeInTheDocument());
+    expect(view.container.querySelector('img')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'ลบรูป' }));
+    await waitFor(() => expect(screen.queryByText('จำนวนรูป: 1')).not.toBeInTheDocument());
+
+    await uploadBatchPhotos(user, view.container, [createImageFile('gallery-shot.jpg', 2200)]);
+    await waitFor(() => expect(screen.getByText('จำนวนรูป: 1')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'บันทึกฉบับร่าง' }));
+    await waitFor(() => expect(screen.getByText('บันทึกชุดรูปแล้ว')).toBeInTheDocument());
+
+    return 'Thai camera and gallery buttons stay separate, keep dedicated inputs, and preserve preview, remove, and draft save flow';
   }), 15000);
 
   it('renders full-row dropdown option backgrounds and selected states', async () => withFeature('Dropdown option row background', async () => {
@@ -458,7 +496,9 @@ describe('WorkerAppV2 mobile automation', () => {
         projectsList={projectsList}
       />
     );
-    await waitFor(() => expect(screen.getByText('หมายเหตมาตรฐาน')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38\u0e21\u0e32\u0e15\u0e23\u0e10\u0e32\u0e19')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: '\u0e16\u0e48\u0e32\u0e22\u0e23\u0e39\u0e1b' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e23\u0e39\u0e1b' })).toBeInTheDocument();
 
     rerender(
       <WorkerAppV2

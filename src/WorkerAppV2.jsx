@@ -306,11 +306,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         voicePermission: 'ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาอนุญาตการใช้งาน',
         voiceProcessing: 'กำลังเตรียมไฟล์เสียง...',
         duration: 'ความยาว',
-        photoTakeAction: 'ถายรป',
-        photoChooseAction: 'เลอกรป',
+        photoTakeAction: 'ถ่ายรูป',
+        photoChooseAction: 'เลือกรูป',
         photoRetake: 'ถ่ายใหม่',
         photoRemove: 'ลบรูป',
-        photoHelp: 'แตะ ถายรป เพื่อเปิดกล้อง หรือ เลอกรป เพื่อเปิดแกลเลอรี',
+        photoHelp: 'แตะ ถ่ายรูป เพื่อเปิดกล้อง หรือ เลือกรูป เพื่อเปิดแกลเลอรี',
         photoCaptured: 'บันทึกรูปแล้ว',
         photoRemoved: 'ลบรูปแล้ว',
         checkinSaved: 'เช็กอินแล้ว',
@@ -359,11 +359,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         taskCategoryLabel: 'หมวดงาน',
         workSubcategoryLabel: 'หมวดย่อย',
         areaZoneLabel: 'พื้นที่ / โซน',
-        standardPhrasesLabel: 'หมายเหตมาตรฐาน',
+        standardPhrasesLabel: 'หมายเหตุมาตรฐาน',
         taskCategoryPlaceholder: 'เลือกหมวดงาน',
         workSubcategoryPlaceholder: 'เลือกหมวดย่อย',
         areaZonePlaceholder: 'เลือกพื้นที่ / โซน',
-        standardPhrasesPlaceholder: 'เลือกหมายเหตมาตรฐาน',
+        standardPhrasesPlaceholder: 'เลือกหมายเหตุมาตรฐาน',
         addTaskCategoryLabel: 'เพิ่มหมวดงานเอง',
         addWorkSubcategoryLabel: 'เพิ่มหมวดย่อยเอง',
         addAreaZoneLabel: 'เพิ่มพื้นที่เอง',
@@ -3182,14 +3182,14 @@ function DataSaverCard({ settings, setSettings, t, compact = false }) {
   );
 }
 
-function FilePicker({ imageData, onChange, onRemove, label, helperText, cameraLabel, galleryLabel, removeLabel, loading = false, optional = false, t }) {
+function FilePicker({ imageData, onChange, onRemove, label, helperText, cameraLabel, galleryLabel, removeLabel, loading = false, optional = false, t, testIdPrefix = 'file-picker' }) {
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
   return (
     <div className="mt-3 rounded-[1.3rem] border border-dashed border-slate-300 bg-slate-50 p-4">
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" />
-      <input ref={galleryInputRef} type="file" accept="image/*" onChange={onChange} className="hidden" />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={onChange} className="hidden" data-testid={`${testIdPrefix}-camera-input`} />
+      <input ref={galleryInputRef} type="file" accept="image/*" onChange={onChange} className="hidden" data-testid={`${testIdPrefix}-gallery-input`} />
       {imageData ? <img src={imageData} alt={label} className="mx-auto mb-3 max-h-44 w-full rounded-2xl object-cover" /> : <Camera className="mx-auto h-8 w-8 text-slate-400" />}
       <div className="worker-locale-safe text-center text-sm font-medium text-slate-700">{label}</div>
       <div className="worker-locale-safe mt-1 text-center text-xs text-slate-500">{helperText || (optional ? pickText(t, 'worker_optional_label', 'Optional') : pickText(t, 'worker_required_label', 'Required'))}</div>
