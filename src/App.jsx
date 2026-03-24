@@ -185,6 +185,26 @@ const translations = {
     overview_daily_issues_action_update: 'ອັບເດດສະຖານະ',
     overview_daily_issues_action_notify: 'ແຈ້ງເຕືອນຜູ້ກ່ຽວຂ້ອງ',
     overview_daily_issues_empty: 'ຍັງບໍ່ມີບັນຫາສຳລັບມື້ນີ້',
+    overview_exec_title: 'ສະຫຼຸບຜູ້ບໍລິຫານ',
+    overview_exec_desc: 'ເບິ່ງຄວາມສ່ຽງ ແລະ ສຸຂະພາບຂອງທຸລະກິດໄດ້ໄວໃນແຖວດຽວ',
+    overview_operations_title: 'ພາບລວມການດຳເນີນງານ',
+    overview_operations_desc: 'ຈັບຕາງານອະນຸມັດ, ຈັດຊື້, ຊັບພະຍາກອນ ແລະ ຜູ້ສະໜອງທີ່ຕ້ອງຕາມ',
+    overview_support_title: 'ລາຍການຕິດຕາມຕໍ່',
+    overview_support_desc: 'ລາຍການທີ່ຄວນເຂົ້າໄປຈັດການຕໍ່ທັນທີ',
+    overview_filter_all_sites: 'ທຸກໄຊຕ໌ງານ',
+    overview_stat_delayed_projects: 'ງານລ່າຊ້າ',
+    overview_stat_low_stock: 'ວັດສະດຸສ່ຽງຂາດ',
+    overview_stat_pending_procurement: 'ຈັດຊື້ / ເບີກຈ່າຍຄ້າງ',
+    overview_ops_documents_title: 'ເອກະສານ & ການອະນຸມັດ',
+    overview_ops_procurement_title: 'ຈັດຊື້ & ຕິດຕາມຄຳສັ່ງຊື້',
+    overview_ops_inventory_title: 'ຄວາມສ່ຽງຄັງວັດສະດຸ',
+    overview_ops_suppliers_title: 'ຜູ້ສະໜອງທີ່ຕ້ອງຕາມ',
+    overview_ops_material_requests_title: 'ຄຳຂໍເບີກທີ່ຕ້ອງຕາມ',
+    overview_ops_recent_updates_title: 'ອັບເດດຫຼ້າສຸດ',
+    overview_ops_empty: 'ບໍ່ມີຂໍ້ມູນຕິດຕາມ',
+    overview_open_tab: 'ເປີດສ່ວນນີ້',
+    overview_supplier_status_active: 'ພ້ອມຮ່ວມງານ',
+    overview_supplier_status_inactive: 'ຕ້ອງຕິດຕາມ',
     daily_issue_severity_critical: 'ເລັ່ງດ່ວນຫຼາຍ',
     daily_issue_severity_high: 'ເລັ່ງດ່ວນ',
     daily_issue_severity_medium: 'ປານກາງ',
@@ -288,6 +308,26 @@ const translations = {
     overview_daily_issues_action_update: 'อัปเดตสถานะ',
     overview_daily_issues_action_notify: 'แจ้งเตือนผู้เกี่ยวข้อง',
     overview_daily_issues_empty: 'ยังไม่มีปัญหาสำหรับวันนี้',
+    overview_exec_title: 'Executive Summary',
+    overview_exec_desc: 'เห็นความเสี่ยงและสุขภาพธุรกิจได้เร็วในแถวเดียว',
+    overview_operations_title: 'Business Operations Overview',
+    overview_operations_desc: 'มองงานอนุมัติ จัดซื้อ ทรัพยากร และซัพพลายเออร์ที่ต้องติดตามในมุมเดียว',
+    overview_support_title: 'Secondary Monitoring',
+    overview_support_desc: 'รายการที่ควรเข้าไปติดตามต่อทันที',
+    overview_filter_all_sites: 'ทุกไซต์งาน',
+    overview_stat_delayed_projects: 'งานล่าช้า',
+    overview_stat_low_stock: 'วัสดุเสี่ยงขาด',
+    overview_stat_pending_procurement: 'จัดซื้อ / เบิกจ่ายค้าง',
+    overview_ops_documents_title: 'เอกสาร & การอนุมัติ',
+    overview_ops_procurement_title: 'จัดซื้อ & ติดตามคำสั่งซื้อ',
+    overview_ops_inventory_title: 'ความเสี่ยงคลังวัสดุ',
+    overview_ops_suppliers_title: 'ซัพพลายเออร์ที่ต้องติดตาม',
+    overview_ops_material_requests_title: 'คำขอเบิกที่ต้องติดตาม',
+    overview_ops_recent_updates_title: 'อัปเดตล่าสุด',
+    overview_ops_empty: 'ไม่มีข้อมูลติดตาม',
+    overview_open_tab: 'เปิดส่วนนี้',
+    overview_supplier_status_active: 'พร้อมทำงาน',
+    overview_supplier_status_inactive: 'ต้องติดตาม',
     daily_issue_severity_critical: 'เร่งด่วนมาก',
     daily_issue_severity_high: 'เร่งด่วน',
     daily_issue_severity_medium: 'ปานกลาง',
@@ -391,6 +431,26 @@ const translations = {
     overview_daily_issues_action_update: 'Update Status',
     overview_daily_issues_action_notify: 'Notify Team',
     overview_daily_issues_empty: 'No issues logged for today',
+    overview_exec_title: 'Executive Summary',
+    overview_exec_desc: 'Scan business health and active risk signals from one clean top row.',
+    overview_operations_title: 'Business Operations Overview',
+    overview_operations_desc: 'Track approvals, procurement, resources, and supplier follow-ups without losing focus on critical issues.',
+    overview_support_title: 'Secondary Monitoring',
+    overview_support_desc: 'Supporting panels for the next actions that still need attention.',
+    overview_filter_all_sites: 'All Sites',
+    overview_stat_delayed_projects: 'Delayed Projects',
+    overview_stat_low_stock: 'Low Stock Risks',
+    overview_stat_pending_procurement: 'Pending Procurement',
+    overview_ops_documents_title: 'Documents & Approvals',
+    overview_ops_procurement_title: 'Procurement & Purchase Orders',
+    overview_ops_inventory_title: 'Inventory Risk',
+    overview_ops_suppliers_title: 'Suppliers to Follow Up',
+    overview_ops_material_requests_title: 'Material Requests to Watch',
+    overview_ops_recent_updates_title: 'Recent Updates',
+    overview_ops_empty: 'No monitoring items',
+    overview_open_tab: 'Open Section',
+    overview_supplier_status_active: 'Ready',
+    overview_supplier_status_inactive: 'Follow up',
     daily_issue_severity_critical: 'Critical',
     daily_issue_severity_high: 'Urgent',
     daily_issue_severity_medium: 'Medium',
@@ -6815,6 +6875,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   const [editingPricingPackageId, setEditingPricingPackageId] = useState(null);
   const [pricingPackageFormData, setPricingPackageFormData] = useState(createPricingPackageEntry());
   const [dailyIssueStatusOverrides, setDailyIssueStatusOverrides] = useState({});
+  const [dailyIssueSiteFilter, setDailyIssueSiteFilter] = useState('all');
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState('');
   const [purchaseOrderForm, setPurchaseOrderForm] = useState(createPurchaseOrderEntry());
   const [orderStatusSearchQuery, setOrderStatusSearchQuery] = useState('');
@@ -8791,6 +8852,12 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
     }
   }, [filteredSettlementRecords, selectedSettlementId]);
 
+  useEffect(() => {
+    if (!dailyIssueSiteOptions.some((option) => option.value === dailyIssueSiteFilter)) {
+      setDailyIssueSiteFilter('all');
+    }
+  }, [dailyIssueSiteFilter, dailyIssueSiteOptions]);
+
   const dailyIssuesDashboardItems = useMemo(() => {
     const resolveSupervisorName = (projectId, fallbackName) => {
       const assignedSupervisor = workersList.find((worker) => {
@@ -8856,15 +8923,72 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
       .slice(0, 6);
   }, [dailyIssueStatusOverrides, globalIssues, language, projectsList, t, todayDate, workersList]);
 
+  const dailyIssueSiteOptions = useMemo(() => {
+    const projectSiteOptions = projectsList.slice(0, 10).map((project) => ({
+      value: String(project.id),
+      label: project.name || t('overview_daily_issues_site_fallback'),
+    }));
+    const issueSiteOptions = dailyIssuesDashboardItems
+      .filter((issue) => issue.projectId && issue.siteName)
+      .map((issue) => ({ value: String(issue.projectId), label: issue.siteName }))
+      .filter((option, index, arr) => arr.findIndex((item) => item.value === option.value) === index);
+    return [
+      { value: 'all', label: t('overview_filter_all_sites') },
+      ...[...projectSiteOptions, ...issueSiteOptions]
+        .filter((option, index, arr) => arr.findIndex((item) => item.value === option.value) === index)
+        .slice(0, 10),
+    ];
+  }, [dailyIssuesDashboardItems, projectsList, t]);
+
+  const filteredDailyIssuesDashboardItems = useMemo(() => (
+    dailyIssueSiteFilter === 'all'
+      ? dailyIssuesDashboardItems
+      : dailyIssuesDashboardItems.filter((issue) => String(issue.projectId || '') === String(dailyIssueSiteFilter))
+  ), [dailyIssueSiteFilter, dailyIssuesDashboardItems]);
+
   const dailyIssueSummary = useMemo(() => ({
-    total: dailyIssuesDashboardItems.length,
-    urgent: dailyIssuesDashboardItems.filter((issue) => ['critical', 'high'].includes(issue.severity)).length,
-    inProgress: dailyIssuesDashboardItems.filter((issue) => issue.status === 'in_progress').length,
-    waiting: dailyIssuesDashboardItems.filter((issue) => ['pending', 'waiting_approval'].includes(issue.status)).length,
-  }), [dailyIssuesDashboardItems]);
+    total: filteredDailyIssuesDashboardItems.length,
+    urgent: filteredDailyIssuesDashboardItems.filter((issue) => ['critical', 'high'].includes(issue.severity)).length,
+    inProgress: filteredDailyIssuesDashboardItems.filter((issue) => issue.status === 'in_progress').length,
+    waiting: filteredDailyIssuesDashboardItems.filter((issue) => ['pending', 'waiting_approval'].includes(issue.status)).length,
+  }), [filteredDailyIssuesDashboardItems]);
 
   const pendingReqsCount = globalRequests.filter(r => r.status === 'pending').length;
   const pendingIssuesCount = globalIssues.filter(i => i.status === 'pending').length;
+  const delayedProjectsCount = projectsList.filter((project) => project.status === 'delayed').length;
+  const lowStockRiskItems = inventoryList.filter((item) => Number(item.quantity || 0) <= 5);
+  const lowStockRiskCount = lowStockRiskItems.length;
+  const pendingDocsCount = docsList.filter((doc) => doc.status === 'pending').length;
+  const pendingProcurementCount = purchaseOrders.filter((order) => ['draft', 'submitted', 'confirmed', 'processing'].includes(order.status)).length + pendingReqsCount;
+  const supplierFollowUpEntries = supplierDirectory
+    .map((supplier) => normalizeSupplierEntry(supplier))
+    .sort((a, b) => String(a.publicProfile?.supplierName || '').localeCompare(String(b.publicProfile?.supplierName || '')))
+    .slice(0, 5);
+  const urgentIssuesOverallCount = dailyIssuesDashboardItems.filter((issue) => ['critical', 'high'].includes(issue.severity)).length;
+  const recentPendingDocs = docsList.filter((doc) => doc.status === 'pending').slice(0, 3);
+  const recentPurchaseOrders = purchaseOrders
+    .map((order) => ({
+      ...order,
+      supplierName: supplierDirectory.find((item) => item.id === order.supplierId)?.publicProfile?.supplierName || '-',
+      total: order.items.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)), 0),
+    }))
+    .sort((a, b) => String(b.orderDate || '').localeCompare(String(a.orderDate || '')))
+    .slice(0, 3);
+  const recentMaterialRequests = globalRequests
+    .filter((request) => request.status === 'pending')
+    .slice(0, 3);
+  const recentInventoryRisks = lowStockRiskItems
+    .sort((a, b) => Number(a.quantity || 0) - Number(b.quantity || 0))
+    .slice(0, 4);
+
+  const executiveSummaryCards = [
+    { key: 'activeSites', title: t('overview_stat_active_sites'), value: projectsList.filter((p) => p.status === 'active').length, accent: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-100', icon: Building },
+    { key: 'urgentIssues', title: t('overview_daily_issues_urgent'), value: urgentIssuesOverallCount, accent: 'text-red-700', bg: 'bg-red-50', border: 'border-red-100', icon: AlertTriangle },
+    { key: 'pendingDocs', title: t('overview_pending_docs'), value: pendingDocsCount, accent: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100', icon: FileText },
+    { key: 'delayedProjects', title: t('overview_stat_delayed_projects'), value: delayedProjectsCount, accent: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-100', icon: Clock },
+    { key: 'lowStock', title: t('overview_stat_low_stock'), value: lowStockRiskCount, accent: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-100', icon: Package },
+    { key: 'procurement', title: t('overview_stat_pending_procurement'), value: pendingProcurementCount, accent: 'text-violet-700', bg: 'bg-violet-50', border: 'border-violet-100', icon: Inbox },
+  ];
 
   const openDailyIssueDetails = (issue) => {
     if (issue?.projectId) {
@@ -9198,6 +9322,37 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
             {navGroups.map((group) => {
               const GroupIcon = group.icon;
               const isExpanded = expandedNavGroups[group.id];
+              const isStandaloneGroup = group.id === 'overview' && group.items.length === 1;
+
+              if (isStandaloneGroup) {
+                const overviewItem = group.items[0];
+                const OverviewIcon = overviewItem.icon;
+                const isActive = activeTab === overviewItem.tab;
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => setActiveTab(overviewItem.tab)}
+                    className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      isActive
+                        ? 'border-blue-500 bg-blue-600 text-white shadow-sm'
+                        : 'border-slate-800 bg-slate-950/40 text-slate-100 hover:bg-slate-800/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center space-x-3">
+                        <OverviewIcon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-300'}`} />
+                        <span className="text-sm font-semibold">{t(overviewItem.labelKey)}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {overviewItem.showDot && <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>}
+                        {overviewItem.count > 0 && (
+                          <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">{overviewItem.count}</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
 
               return (
                 <div key={group.id} className="rounded-xl border border-slate-800 bg-slate-950/40 overflow-hidden">
@@ -9354,101 +9509,100 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
 
           {/* ----- TAB: OVERVIEW ----- */}
           {!adminNavOnly && activeTab === 'overview' && (
-            <>
-              {/* Top Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <StatCard title={t('overview_stat_active_sites')} value={projectsList.filter(p => p.status === 'active').length} icon={<Building />} color="text-blue-600" bg="bg-blue-100" />
-                <StatCard title={t('overview_stat_attendance')} value={`${humanWorkers.filter((w) => w.attendanceRate > 0).length}/${humanWorkers.length}`} icon={<Users />} color="text-green-600" bg="bg-green-100" />
-                <StatCard title={t('overview_stat_sos')} value={pendingIssuesCount} icon={<AlertTriangle />} color={pendingIssuesCount > 0 ? "text-red-600" : "text-slate-400"} bg={pendingIssuesCount > 0 ? "bg-red-100" : "bg-slate-200"} />
-                <StatCard title={t('overview_stat_requests')} value={pendingReqsCount} icon={<Inbox />} color={pendingReqsCount > 0 ? "text-orange-600" : "text-slate-400"} bg={pendingReqsCount > 0 ? "bg-orange-100" : "bg-slate-200"} />
-              </div>
-
-              {/* SOS Alerts Area (if any) */}
-              {pendingIssuesCount > 0 && (
-                 <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-5 shadow-sm">
-                    <h3 className="font-bold text-red-700 mb-3 flex items-center"><AlertTriangle className="h-5 w-5 mr-2" /> {t('overview_sos_title')}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {globalIssues.filter(i => i.status === 'pending').map(issue => (
-                          <div key={issue.id} className="bg-white p-4 rounded-lg border border-red-100 shadow-sm flex justify-between items-center">
-                             <div>
-                                <div className="font-bold text-slate-800">{issue.title}</div>
-                                <div className="text-sm text-slate-600">{issue.desc}</div>
-                                <div className="text-xs text-slate-400 mt-1">{t('overview_by')} {issue.requestedBy} | {t('overview_site')}: {projectsList.find(p=>String(p.id)===String(issue.projectId))?.name}</div>
-                             </div>
-                             <button onClick={() => resolveIssue(issue.id)} className="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200 transition whitespace-nowrap">{t('overview_acknowledge')}</button>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_40%,#eef4ff_100%)] p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-3xl">
+                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('overview_exec_title')}</div>
+                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{t('manager_overview')}</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{t('overview_exec_desc')}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                      <Building className="h-4 w-4" />
+                      {t('manager_menu_projects')}
+                    </button>
+                    <button onClick={() => setActiveTab('docs')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                      <FileText className="h-4 w-4" />
+                      {t('manager_menu_docs')}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
+                  {executiveSummaryCards.map((card) => {
+                    const CardIcon = card.icon;
+                    return (
+                      <div key={card.key} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-4`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-400">{card.title}</div>
+                            <div className={`mt-2 text-[1.85rem] font-bold leading-none ${card.accent}`}>{card.value}</div>
                           </div>
-                       ))}
-                    </div>
-                 </div>
-              )}
+                          <div className="rounded-xl bg-white/80 p-2.5 text-slate-500">
+                            <CardIcon className="h-4.5 w-4.5" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
 
-              <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+              <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)] px-5 py-5 sm:px-6">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div className="max-w-3xl">
                       <div className="flex items-center gap-3">
                         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
                           <AlertTriangle className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold tracking-tight text-slate-900">{t('overview_daily_issues_title')}</h3>
-                          <p className="mt-1 text-sm leading-6 text-slate-600">{t('overview_daily_issues_desc')}</p>
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_daily_issues_title')}</div>
+                          <h3 className="mt-1 text-xl font-bold tracking-tight text-slate-900">{t('overview_daily_issues_desc')}</h3>
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                      <Eye className="h-4 w-4" />
-                      {t('dashboard_view_all')}
-                    </button>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <div className="hidden gap-2 overflow-x-auto pb-1 xl:flex xl:max-w-[34rem]">
+                        {dailyIssueSiteOptions.map((option) => (
+                          <button key={option.value} onClick={() => setDailyIssueSiteFilter(option.value)} className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${dailyIssueSiteFilter === option.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`} title={option.label}>
+                            <span className="max-w-[10rem] truncate">{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <select value={dailyIssueSiteFilter} onChange={(e) => setDailyIssueSiteFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 xl:hidden">
+                        {dailyIssueSiteOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                        <Eye className="h-4 w-4" />
+                        {t('dashboard_view_all')}
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-4">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('overview_daily_issues_total_today')}</div>
-                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-slate-900">{dailyIssueSummary.total}</div>
-                    </div>
-                    <div className="rounded-2xl border border-red-100 bg-red-50/80 px-4 py-4">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-red-400">{t('overview_daily_issues_urgent')}</div>
-                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-red-700">{dailyIssueSummary.urgent}</div>
-                    </div>
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-4">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-400">{t('overview_daily_issues_in_progress')}</div>
-                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-blue-700">{dailyIssueSummary.inProgress}</div>
-                    </div>
-                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div>
-                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-amber-700">{dailyIssueSummary.waiting}</div>
-                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('overview_daily_issues_total_today')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-slate-900">{dailyIssueSummary.total}</div></div>
+                    <div className="rounded-2xl border border-red-100 bg-red-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-red-400">{t('overview_daily_issues_urgent')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-red-700">{dailyIssueSummary.urgent}</div></div>
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-400">{t('overview_daily_issues_in_progress')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-blue-700">{dailyIssueSummary.inProgress}</div></div>
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-amber-700">{dailyIssueSummary.waiting}</div></div>
                   </div>
                 </div>
-
                 <div className="px-5 py-5 sm:px-6">
-                  {dailyIssuesDashboardItems.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                      {dailyIssuesDashboardItems.map((issue) => {
+                  {filteredDailyIssuesDashboardItems.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                      {filteredDailyIssuesDashboardItems.map((issue) => {
                         const severityTone = getDailyIssueSeverityTone(issue.severity);
                         return (
                           <div key={issue.id} className={`rounded-[1.35rem] border px-4 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:px-5 sm:py-5 ${severityTone.card}`}>
                             <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
-                              <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br ${severityTone.thumbnail} sm:h-[188px] sm:w-[176px] sm:min-w-[176px] sm:shrink-0 sm:aspect-auto`}>
-                                {issue.hasImage ? (
-                                  <img src={issue.imageUrl} alt={issue.title} className="h-full w-full object-cover" />
-                                ) : (
-                                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/70 shadow-sm">
-                                      <ImageIcon className="h-6 w-6" />
-                                    </div>
-                                    <span className="text-xs font-medium">{t('overview_daily_issues_no_photo')}</span>
-                                  </div>
-                                )}
+                              <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br ${severityTone.thumbnail} sm:h-[168px] sm:w-[168px] sm:min-w-[168px] sm:shrink-0 sm:aspect-auto`}>
+                                {issue.hasImage ? <img src={issue.imageUrl} alt={issue.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400"><div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/70 shadow-sm"><ImageIcon className="h-6 w-6" /></div><span className="text-xs font-medium">{t('overview_daily_issues_no_photo')}</span></div>}
                                 <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/92 px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur">
                                   <span className={`h-2 w-2 rounded-full ${severityTone.dot}`}></span>
                                   {t(getDailyIssueSeverityKey(issue.severity))}
                                 </div>
-                                <div className="absolute bottom-3 right-3 rounded-full bg-slate-900/78 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur">
-                                  {issue.hasImage ? t('overview_daily_issues_has_photo') : t('overview_daily_issues_no_photo')}
-                                </div>
                               </div>
-
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <div className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${severityTone.badge}`}>
@@ -9459,45 +9613,16 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                                   </div>
                                 </div>
 
-                                <h4 className="mt-3 text-lg font-bold leading-7 text-slate-900 sm:text-[1.12rem]">{issue.title}</h4>
-
+                                <h4 className="mt-3 text-lg font-bold leading-7 text-slate-900">{issue.title}</h4>
                                 <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80">
-                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                      <Building className="h-3.5 w-3.5" />
-                                      {t('overview_site')}
-                                    </div>
-                                    <div className="mt-1.5 text-sm font-medium text-slate-700">{issue.siteName || t('overview_daily_issues_site_fallback')}</div>
-                                  </div>
-                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80">
-                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                      <Users className="h-3.5 w-3.5" />
-                                      {t('overview_daily_issues_supervisor')}
-                                    </div>
-                                    <div className="mt-1.5 text-sm font-medium text-slate-700">{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div>
-                                  </div>
-                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80">
-                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                                      <Clock className="h-3.5 w-3.5" />
-                                      {t('overview_daily_issues_reported_at')}
-                                    </div>
-                                    <div className="mt-1.5 text-sm font-medium text-slate-700">{formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</div>
-                                  </div>
+                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_site')}</div><div className="mt-1.5 truncate text-sm font-medium text-slate-700" title={issue.siteName || t('overview_daily_issues_site_fallback')}>{issue.siteName || t('overview_daily_issues_site_fallback')}</div></div>
+                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_supervisor')}</div><div className="mt-1.5 truncate text-sm font-medium text-slate-700" title={issue.supervisor || t('overview_daily_issues_supervisor_fallback')}>{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div></div>
+                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_reported_at')}</div><div className="mt-1.5 text-sm font-medium text-slate-700">{formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</div></div>
                                 </div>
-
                                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
-                                    <CheckCircle className="h-4 w-4" />
-                                    {t('overview_daily_issues_action_update')}
-                                  </button>
-                                  <button onClick={() => openDailyIssueDetails(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                                    <Eye className="h-4 w-4" />
-                                    {t('overview_daily_issues_action_details')}
-                                  </button>
-                                  <button onClick={() => setActiveTab('chat')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
-                                    <Send className="h-4 w-4" />
-                                    {t('overview_daily_issues_action_notify')}
-                                  </button>
+                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"><CheckCircle className="h-4 w-4" />{t('overview_daily_issues_action_update')}</button>
+                                  <button onClick={() => openDailyIssueDetails(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><Eye className="h-4 w-4" />{t('overview_daily_issues_action_details')}</button>
+                                  <button onClick={() => setActiveTab('chat')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"><Send className="h-4 w-4" />{t('overview_daily_issues_action_notify')}</button>
                                 </div>
                               </div>
                             </div>
@@ -9511,45 +9636,39 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                    <h3 className="font-bold text-slate-800">{t('overview_current_sites')}</h3>
-                    <button onClick={() => setActiveTab('projects')} className="text-blue-600 text-sm font-medium hover:underline">{t('dashboard_view_all')}</button>
-                  </div>
-                  <div className="p-0">
-                    {projectsList.slice(0, 3).map(p => (
-                      <ProjectRow key={p.id} name={p.name} progress={p.progress} status={p.status} workers={p.workers} hasAlert={p.status === 'delayed'} t={t} />
-                    ))}
-                    {projectsList.length === 0 && <div className="p-6 text-center text-slate-500">{t('overview_no_sites')}</div>}
+              <section className="grid grid-cols-1 gap-6 2xl:grid-cols-[1.35fr_1fr]">
+                <div className="space-y-6">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                    <div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_operations_title')}</div><h3 className="mt-2 text-xl font-bold text-slate-900">{t('overview_operations_desc')}</h3></div>
+                    <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_documents_title')}</h4><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{doc.title}</div><div className="mt-1 text-xs text-slate-500">{t('overview_by')} {doc.submittedBy} {Number(doc.amount) > 0 && `• ${formatMoneyByLanguage(doc.amount, language)}`}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_procurement_title')}</h4><button onClick={() => setActiveTab('purchase_orders')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPurchaseOrders.length > 0 ? recentPurchaseOrders.map((order) => <div key={order.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-sm font-semibold text-slate-800">{order.poNumber || '-'}</div><div className="mt-1 truncate text-xs text-slate-500" title={order.supplierName}>{order.supplierName}</div></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{t(`order_status_${order.status}`)}</span></div><div className="mt-2 text-xs font-medium text-slate-600">{formatMoneyByLanguage(order.total, language)}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_inventory_title')}</h4><button onClick={() => setActiveTab('inventory')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentInventoryRisks.length > 0 ? recentInventoryRisks.map((item) => { const statusKey = getMaterialStockStatusKey(item); return <div key={item.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-800" title={item.name}>{item.name}</div><div className="mt-1 text-xs text-slate-500">{item.category || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{t(statusKey)}</span></div><div className="mt-2 text-xs font-medium text-slate-600">{t('label_qty')}: {item.quantity || 0}</div></div>; }) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_suppliers_title')}</h4><button onClick={() => setActiveTab('supplier_directory')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{supplierFollowUpEntries.length > 0 ? supplierFollowUpEntries.map((supplier) => <div key={supplier.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-800" title={supplier.publicProfile?.supplierName || '-'}>{supplier.publicProfile?.supplierName || '-'}</div><div className="mt-1 truncate text-xs text-slate-500" title={supplier.publicProfile?.productCategory || supplier.publicProfile?.serviceArea || '-'}>{supplier.publicProfile?.productCategory || supplier.publicProfile?.serviceArea || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${supplier.publicProfile?.status === 'inactive' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{supplier.publicProfile?.status === 'inactive' ? t('overview_supplier_status_inactive') : t('overview_supplier_status_active')}</span></div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                    <h3 className="font-bold text-slate-800 mb-4 flex items-center"><CheckCircle className="h-5 w-5 mr-2 text-orange-500" /> {t('overview_pending_docs')} ({docsList.filter(d => d.status === 'pending').length})</h3>
-                    <div className="space-y-3">
-                      {docsList.filter(d => d.status === 'pending').slice(0, 2).map(doc => (
-                        <div key={doc.id} className="bg-orange-50 p-3 rounded-lg border border-orange-100">
-                          <div className="text-sm font-bold text-slate-800">{doc.title}</div>
-                          <div className="text-xs text-slate-500 mt-1 mb-2">{t('overview_by')} {doc.submittedBy} {Number(doc.amount) > 0 && `| ${t('overview_amount')} ${formatMoneyByLanguage(doc.amount, language)}`}</div>
-                          <div className="flex space-x-2">
-                            <button onClick={() => handleUpdateDocStatus(doc.id, 'approved')} className="flex-1 bg-green-500 text-white text-xs py-1.5 rounded font-medium">{t('btn_approve')}</button>
-                            <button onClick={() => handleUpdateDocStatus(doc.id, 'rejected')} className="flex-1 bg-white border border-slate-300 text-slate-600 text-xs py-1.5 rounded font-medium">{t('btn_reject')}</button>
-                          </div>
-                        </div>
-                      ))}
-                      {docsList.filter(d => d.status === 'pending').length === 0 && (
-                        <div className="text-sm text-slate-500 text-center py-2">{t('overview_no_pending_docs')}</div>
-                      )}
-                    </div>
-                    <button onClick={() => setActiveTab('docs')} className="w-full mt-3 text-sm text-center text-blue-600 font-medium">{t('overview_manage_all_docs')}</button>
+                  <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-100 px-5 py-4"><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_support_title')}</div><h3 className="mt-1 text-lg font-bold text-slate-900">{t('overview_current_sites')}</h3></div><button onClick={() => setActiveTab('projects')} className="text-sm font-semibold text-blue-600">{t('dashboard_view_all')}</button></div></div>
+                    <div>{projectsList.slice(0, 4).map((p) => <ProjectRow key={p.id} name={p.name} progress={p.progress} status={p.status} workers={p.workers} hasAlert={p.status === 'delayed'} t={t} />)}{projectsList.length === 0 && <div className="p-6 text-center text-slate-500">{t('overview_no_sites')}</div>}</div>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_ops_material_requests_title')}</div><h3 className="mt-1 text-lg font-bold text-slate-900">{t('overview_support_desc')}</h3></div><button onClick={() => setActiveTab('chat')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div>
+                    <div className="mt-4 space-y-3">{recentMaterialRequests.length > 0 ? recentMaterialRequests.map((request) => { const project = projectsList.find((item) => String(item.id) === String(request.projectId)); return <div key={request.id} className="rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{request.title || '-'}</div><div className="mt-1 text-xs text-slate-500">{project?.name || t('overview_daily_issues_site_fallback')}</div><div className="mt-2 text-xs font-medium text-slate-600">{t('overview_by')} {request.requestedBy || '-'}</div></div>; }) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_ops_recent_updates_title')}</div><h3 className="mt-1 text-lg font-bold text-slate-900">{t('overview_pending_docs')}</h3></div><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div>
+                    <div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className="rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{doc.title}</div><div className="mt-1 text-xs text-slate-500">{t('overview_by')} {doc.submittedBy}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_no_pending_docs')}</div>}</div>
                   </div>
                 </div>
-              </div>
-            </>
+              </section>
+            </div>
           )}
 
           {/* ----- TAB: PROJECTS ----- */}
