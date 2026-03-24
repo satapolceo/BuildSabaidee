@@ -45,6 +45,13 @@ import {
   subscribeToAiReviewItems,
   updateAiReviewItem,
 } from './services/aiImprovementService';
+import {
+  createAdminAiChatMessage,
+  createAdminAiConversationId,
+  logAdminAiChatMessage,
+  seedAdminAiMonitoringData,
+  syncAdminAiReviewItem,
+} from './services/adminAiMonitoringService';
 import { 
   CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
   BarChart3, Users, FileText, MessageSquare, Clock, 
@@ -1513,8 +1520,8 @@ Object.assign(translations.LA, {
   manager_menu_admin_chat_monitoring: 'ຕິດຕາມຄຸນນະພາບແຊທ',
   manager_menu_admin_chat_review: 'ກວດທົບບົດສົນທະນາ',
   manager_menu_admin_ai_improvement: 'AI น้องสบายดี',
-  admin_chat_monitoring_title: 'Chat Monitoring',
-  admin_chat_monitoring_desc: 'dashboard ສຳລັບວິເຄາະປະລິມານແຊທ, quality, sentiment ແລະ ເຄສທີ່ຕ້ອງຕິດຕາມ.',
+  admin_chat_monitoring_title: 'ຕິດຕາມຄຸນນະພາບແຊທ',
+  admin_chat_monitoring_desc: 'dashboard ສຳລັບຕິດຕາມປະລິມານແຊທ, ຄຸນນະພາບ, sentiment ແລະ ເຄສທີ່ຕ້ອງກວດຕໍ່.',
   admin_chat_review_title: 'ຣີວິວ AI น้องสบายดี',
   admin_chat_review_desc: 'ກວດສອບຄຸນນະພາບບົດສົນທະນາ',
   admin_ai_improvement_title: 'AI น้องสบายดี',
@@ -1524,38 +1531,38 @@ Object.assign(translations.LA, {
   ai_range_14d: '14 ມື້',
   ai_range_30d: '30 ມື້',
   ai_metric_total_chats: 'ແຊທທັງໝົດ',
-  ai_metric_conversations: 'Conversations',
-  ai_metric_total_messages: 'Messages',
-  ai_metric_voice_messages: 'Voice messages',
-  ai_metric_ai_messages: 'AI messages',
-  ai_metric_human_messages: 'Human messages',
-  ai_metric_ai_handled: 'AI ຮັບມືໄດ້',
+  ai_metric_conversations: 'ບົດສົນທະນາ',
+  ai_metric_total_messages: 'ຂໍ້ຄວາມ',
+  ai_metric_voice_messages: 'ຂໍ້ຄວາມສຽງ',
+  ai_metric_ai_messages: 'ຂໍ້ຄວາມ AI',
+  ai_metric_human_messages: 'ຂໍ້ຄວາມຈາກຄົນ',
+  ai_metric_ai_handled: 'AI ຈັດການໄດ້',
   ai_metric_human_needed: 'ຕ້ອງໃຫ້ຄົນຊ່ວຍ',
   ai_metric_satisfaction: 'ຄວາມພໍໃຈໂດຍປະມານ',
   ai_metric_avg_response: 'ເວລາຕອບສະເລ່ຍ',
-  ai_metric_estimated: 'Estimated',
+  ai_metric_estimated: 'ຄ່າຄາດຄະເນ',
   ai_sentiment_positive: 'ບວກ',
   ai_sentiment_neutral: 'ກາງ',
   ai_sentiment_negative: 'ລົບ',
-  ai_top_topics: 'Top topics',
-  ai_problem_categories: 'Top problem categories',
+  ai_top_topics: 'ຫົວຂໍ້ພົບບ່ອຍ',
+  ai_problem_categories: 'ໝວດບັນຫາຫຼັກ',
   ai_interesting_chats: 'ແຊທທີ່ນ່າສົນໃຈ',
   ai_review_needed: 'ແຊທທີ່ຄວນກວດ',
-  ai_recommendations: 'Recommendations',
+  ai_recommendations: 'ຄຳແນະນຳ',
   ai_quality_score: 'Quality score',
   ai_business_value_score: 'Business value',
   ai_satisfaction_estimate: 'Satisfaction estimate',
   ai_risk_score: 'Risk score',
-  ai_resolution_ai: 'AI resolved',
-  ai_resolution_human: 'Human needed',
-  ai_resolution_resolved: 'Resolved',
-  ai_resolution_pending: 'Pending',
+  ai_resolution_ai: 'AI ຈັດການໄດ້',
+  ai_resolution_human: 'ຕ້ອງໃຫ້ຄົນຊ່ວຍ',
+  ai_resolution_resolved: 'ຈົບແລ້ວ',
+  ai_resolution_pending: 'ລໍຖ້າ',
   ai_badge_good: 'ຕົວຢ່າງທີ່ດີ',
   ai_badge_improve: 'ຄວນປັບປຸງ',
   ai_badge_risk: 'ຄວາມສ່ຽງ',
   ai_badge_review: 'ຕ້ອງ review',
-  ai_review_queue: 'Review queue',
-  ai_conversation_thread: 'Conversation thread',
+  ai_review_queue: 'ຄິວກວດ',
+  ai_conversation_thread: 'ລຳດັບບົດສົນທະນາ',
   ai_quality_analysis: 'ຜົນວິເຄາະຄຸນນະພາບ',
   ai_improvement_recommendations: 'ຄຳແນະນຳການພັດທະນາ',
   ai_mark_good_example: 'Mark as good example',
@@ -1578,16 +1585,18 @@ Object.assign(translations.LA, {
   ai_mock_backend_note: 'ໜ້ານີ້ເປັນ mock workflow ສຳລັບ admin ແລະ ກຽມ schema ໄວ້ເພື່ອຕໍ່ backend / fine-tuning pipeline ໃນພາຍຫຼັງ.',
   ai_message_count: 'ຈຳນວນຂໍ້ຄວາມ',
   ai_participants: 'Participants',
-  ai_data_source: 'Chat source',
-  ai_source_firestore: 'Firestore chats',
-  ai_source_local: 'Local in-app chat fallback',
+  ai_data_source: 'ແຫຼ່ງຂໍ້ມູນແຊທ',
+  ai_source_firestore: 'ແຊທຈາກ Firestore',
+  ai_source_local: 'ແຊທສຳຮອງໃນແອັບ',
   ai_estimated_metrics_note: 'ບາງ metric ເປັນຄ່າຄາດຄະເນຈາກ timestamp ແລະ ການ grouping ຂໍ້ຄວາມຈິງ',
   ai_category_procurement_delay: 'ຈັດຊື້ລ່າຊ້າ',
   ai_category_site_safety: 'ຄວາມປອດໄພໜ້າງານ',
   ai_category_daily_reporting: 'ລາຍງານປະຈຳວັນ',
   ai_category_document_followup: 'ຕິດຕາມເອກະສານ',
   ai_category_external_approval: 'ອະນຸມັດຈາກພາຍນອກ',
-  ai_panel_executive_view: 'Executive chat quality overview',
+  ai_panel_executive_view: 'ພາບລວມຄຸນນະພາບແຊທ',
+  ai_monitoring_seed_button: 'ສ້າງຂໍ້ມູນເລີ່ມຕົ້ນ',
+  ai_monitoring_seed_desc: 'ສ້າງບົດສົນທະນາຕົວຢ່າງຈິງເຂົ້າ dashboard ແລະ review queue',
   ai_panel_recommendation_hint: 'ເນັ້ນເຄສທີ່ຄວນເພີ່ມ knowledge, prompt ແລະ human handoff',
   ai_detail_actions: 'Review actions',
   ai_dataset_candidates_hint: 'ເຄສທີ່ຄະແນນດີ ຫຼື admin ເລືອກໄວ້ ສາມາດນຳໄປກຽມ dataset ຕໍ່ໄດ້',
@@ -1945,8 +1954,8 @@ Object.assign(translations.TH, {
   manager_menu_admin_chat_monitoring: 'ติดตามคุณภาพแชท',
   manager_menu_admin_chat_review: 'ตรวจบทสนทนา',
   manager_menu_admin_ai_improvement: 'AI น้องสบายดี',
-  admin_chat_monitoring_title: 'Chat Monitoring',
-  admin_chat_monitoring_desc: 'dashboard สำหรับวิเคราะห์ปริมาณแชท, quality, sentiment และเคสที่ควรติดตามต่อ.',
+  admin_chat_monitoring_title: 'ติดตามคุณภาพแชท',
+  admin_chat_monitoring_desc: 'แดชบอร์ดสำหรับติดตามปริมาณแชท คุณภาพ ความรู้สึกของบทสนทนา และเคสที่ควรตรวจต่อ',
   admin_chat_review_title: 'รีวิว AI น้องสบายดี',
   admin_chat_review_desc: 'ตรวจคุณภาพบทสนทนา',
   admin_ai_improvement_title: 'AI น้องสบายดี',
@@ -1956,38 +1965,38 @@ Object.assign(translations.TH, {
   ai_range_14d: '14 วัน',
   ai_range_30d: '30 วัน',
   ai_metric_total_chats: 'แชททั้งหมด',
-  ai_metric_conversations: 'Conversations',
-  ai_metric_total_messages: 'Messages',
-  ai_metric_voice_messages: 'Voice messages',
-  ai_metric_ai_messages: 'AI messages',
-  ai_metric_human_messages: 'Human messages',
-  ai_metric_ai_handled: 'AI รับมือได้',
+  ai_metric_conversations: 'บทสนทนา',
+  ai_metric_total_messages: 'ข้อความ',
+  ai_metric_voice_messages: 'ข้อความเสียง',
+  ai_metric_ai_messages: 'ข้อความจาก AI',
+  ai_metric_human_messages: 'ข้อความจากคน',
+  ai_metric_ai_handled: 'AI จัดการได้',
   ai_metric_human_needed: 'ต้องให้คนช่วย',
   ai_metric_satisfaction: 'ความพึงพอใจโดยประมาณ',
   ai_metric_avg_response: 'เวลาตอบเฉลี่ย',
-  ai_metric_estimated: 'Estimated',
+  ai_metric_estimated: 'ค่าประมาณ',
   ai_sentiment_positive: 'บวก',
   ai_sentiment_neutral: 'กลาง',
   ai_sentiment_negative: 'ลบ',
-  ai_top_topics: 'Top topics',
-  ai_problem_categories: 'Top problem categories',
+  ai_top_topics: 'หัวข้อที่พบบ่อย',
+  ai_problem_categories: 'หมวดปัญหาหลัก',
   ai_interesting_chats: 'แชทที่น่าสนใจ',
   ai_review_needed: 'แชทที่ควรตรวจ',
-  ai_recommendations: 'Recommendations',
+  ai_recommendations: 'คำแนะนำ',
   ai_quality_score: 'Quality score',
   ai_business_value_score: 'Business value',
   ai_satisfaction_estimate: 'Satisfaction estimate',
   ai_risk_score: 'Risk score',
-  ai_resolution_ai: 'AI resolved',
-  ai_resolution_human: 'Human needed',
-  ai_resolution_resolved: 'Resolved',
-  ai_resolution_pending: 'Pending',
+  ai_resolution_ai: 'AI จัดการได้',
+  ai_resolution_human: 'ต้องให้คนช่วย',
+  ai_resolution_resolved: 'จบแล้ว',
+  ai_resolution_pending: 'รอดำเนินการ',
   ai_badge_good: 'ตัวอย่างที่ดี',
   ai_badge_improve: 'ควรปรับปรุง',
   ai_badge_risk: 'ความเสี่ยง',
   ai_badge_review: 'ต้อง review',
-  ai_review_queue: 'Review queue',
-  ai_conversation_thread: 'Conversation thread',
+  ai_review_queue: 'คิวตรวจ',
+  ai_conversation_thread: 'ลำดับบทสนทนา',
   ai_quality_analysis: 'ผลวิเคราะห์คุณภาพ',
   ai_improvement_recommendations: 'คำแนะนำการพัฒนา',
   ai_mark_good_example: 'Mark as good example',
@@ -2010,16 +2019,18 @@ Object.assign(translations.TH, {
   ai_mock_backend_note: 'หน้านี้เป็น mock workflow สำหรับ admin และเตรียม schema ไว้เพื่อต่อ backend / fine-tuning pipeline ในรอบถัดไป.',
   ai_message_count: 'จำนวนข้อความ',
   ai_participants: 'Participants',
-  ai_data_source: 'Chat source',
-  ai_source_firestore: 'Firestore chats',
-  ai_source_local: 'Local in-app chat fallback',
+  ai_data_source: 'แหล่งข้อมูลแชท',
+  ai_source_firestore: 'แชทจาก Firestore',
+  ai_source_local: 'แชทสำรองในแอป',
   ai_estimated_metrics_note: 'บาง metric เป็นค่าประมาณจาก timestamp และการ grouping ข้อความจริง',
   ai_category_procurement_delay: 'จัดซื้อล่าช้า',
   ai_category_site_safety: 'ความปลอดภัยหน้างาน',
   ai_category_daily_reporting: 'รายงานประจำวัน',
   ai_category_document_followup: 'ติดตามเอกสาร',
   ai_category_external_approval: 'อนุมัติภายนอก',
-  ai_panel_executive_view: 'Executive chat quality overview',
+  ai_panel_executive_view: 'ภาพรวมคุณภาพแชท',
+  ai_monitoring_seed_button: 'สร้างข้อมูลเริ่มต้น',
+  ai_monitoring_seed_desc: 'สร้างบทสนทนาตัวอย่างจริงเข้า dashboard และ review queue',
   ai_panel_recommendation_hint: 'เน้นเคสที่ควรเพิ่ม knowledge, prompt และ human handoff',
   ai_detail_actions: 'Review actions',
   ai_dataset_candidates_hint: 'เคสที่คะแนนดีหรือ admin เลือกไว้ สามารถนำไปเตรียม dataset ต่อได้',
@@ -2452,6 +2463,8 @@ Object.assign(translations.EN, {
   ai_category_document_followup: 'Document Follow-up',
   ai_category_external_approval: 'External Approval',
   ai_panel_executive_view: 'Executive chat quality overview',
+  ai_monitoring_seed_button: 'Create starter data',
+  ai_monitoring_seed_desc: 'Create real sample conversations for the dashboard and review queue.',
   ai_panel_recommendation_hint: 'Focuses on cases that need more knowledge, stronger prompts, or faster human handoff',
   ai_detail_actions: 'Review actions',
   ai_dataset_candidates_hint: 'High-quality examples or admin-selected conversations can be prepared as dataset candidates next.',
@@ -6735,6 +6748,7 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
   const aiReady = isAiChatReady(adminPlatformSettings);
   const [messages, setMessages] = useState([]);
   const messagesContainerRef = useRef(null);
+  const conversationIdRef = useRef(createAdminAiConversationId());
 
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -6757,6 +6771,7 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
     setMessages([]);
     setChatInput('');
     setCopyStatus(false);
+    conversationIdRef.current = createAdminAiConversationId();
   };
 
   const handleCopyResponse = async () => {
@@ -6774,8 +6789,18 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
     const trimmedInput = String(chatInput || '').trim();
     if (!trimmedInput || isSending) return;
 
+    const conversationId = conversationIdRef.current;
+    const userCreatedAt = Date.now();
+    const previousLoggedMessages = messages.map((message, index) => createAdminAiChatMessage({
+      conversationId,
+      senderRole: message.role === 'assistant' ? 'ai' : 'user',
+      sender: message.role === 'assistant' ? t('ai_chat_title') : (language === 'TH' ? 'ผู้ใช้เว็บไซต์' : language === 'LA' ? 'ຜູ້ໃຊ້ເວັບໄຊຕ໌' : 'Website user'),
+      text: message.text,
+      createdAt: userCreatedAt - ((messages.length - index) * 1000),
+    }));
+
     const userMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${userCreatedAt}`,
       role: 'user',
       text: trimmedInput,
     };
@@ -6783,15 +6808,47 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
     setMessages(nextMessages);
     setChatInput('');
 
+    const loggedUserMessage = createAdminAiChatMessage({
+      conversationId,
+      senderRole: 'user',
+      sender: language === 'TH' ? 'ผู้ใช้เว็บไซต์' : language === 'LA' ? 'ຜູ້ໃຊ້ເວັບໄຊຕ໌' : 'Website user',
+      text: trimmedInput,
+      createdAt: userCreatedAt,
+    });
+
+    if (db) {
+      try {
+        await logAdminAiChatMessage(db, loggedUserMessage);
+      } catch (error) {
+        console.error('Failed to log AI user message:', error);
+      }
+    }
+
     if (!aiReady) {
+      const notReadyCreatedAt = Date.now();
       setMessages((prev) => [
         ...prev,
         {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${notReadyCreatedAt}`,
           role: 'assistant',
           text: t('ai_chat_not_ready_detail'),
         },
       ]);
+      if (db) {
+        const notReadyMessage = createAdminAiChatMessage({
+          conversationId,
+          senderRole: 'ai',
+          sender: t('ai_chat_title'),
+          text: t('ai_chat_not_ready_detail'),
+          createdAt: notReadyCreatedAt,
+        });
+        try {
+          await logAdminAiChatMessage(db, notReadyMessage);
+          await syncAdminAiReviewItem(db, [...previousLoggedMessages, loggedUserMessage, notReadyMessage]);
+        } catch (error) {
+          console.error('Failed to log AI not-ready message:', error);
+        }
+      }
       return;
     }
 
@@ -6808,24 +6865,60 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
           })),
       });
 
+      const assistantCreatedAt = Date.now();
+      const assistantText = result.text || t('ai_chat_missing_response');
+
       setMessages((prev) => [
         ...prev,
         {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${assistantCreatedAt}`,
           role: 'assistant',
-          text: result.text || t('ai_chat_missing_response'),
+          text: assistantText,
         },
       ]);
+
+      if (db) {
+        const assistantMessage = createAdminAiChatMessage({
+          conversationId,
+          senderRole: 'ai',
+          sender: t('ai_chat_title'),
+          text: assistantText,
+          createdAt: assistantCreatedAt,
+        });
+        try {
+          await logAdminAiChatMessage(db, assistantMessage);
+          await syncAdminAiReviewItem(db, [...previousLoggedMessages, loggedUserMessage, assistantMessage]);
+        } catch (error) {
+          console.error('Failed to sync AI monitoring data:', error);
+        }
+      }
     } catch (error) {
       const errorMessage = String(error?.message || '').trim() || `${t('ai_chat_error_prefix')}.`;
+      const assistantCreatedAt = Date.now();
+      const assistantText = `${t('ai_chat_error_prefix')}: ${errorMessage}`;
       setMessages((prev) => [
         ...prev,
         {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${assistantCreatedAt}`,
           role: 'assistant',
-          text: `${t('ai_chat_error_prefix')}: ${errorMessage}`,
+          text: assistantText,
         },
       ]);
+      if (db) {
+        const assistantMessage = createAdminAiChatMessage({
+          conversationId,
+          senderRole: 'ai',
+          sender: t('ai_chat_title'),
+          text: assistantText,
+          createdAt: assistantCreatedAt,
+        });
+        try {
+          await logAdminAiChatMessage(db, assistantMessage);
+          await syncAdminAiReviewItem(db, [...previousLoggedMessages, loggedUserMessage, assistantMessage]);
+        } catch (loggingError) {
+          console.error('Failed to log AI error message:', loggingError);
+        }
+      }
     } finally {
       setIsSending(false);
     }
@@ -10947,6 +11040,18 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       setAiRecommendationsMode('rules');
     } finally {
       setAiEnhancedRecommendationsLoading(false);
+    }
+  };
+
+  const handleSeedAiMonitoring = async () => {
+    if (!db) return;
+    setAiReviewSavingId('monitoring-seed');
+    try {
+      await seedAdminAiMonitoringData(db);
+    } catch (error) {
+      setAiReviewErrorKey('ai_error_load');
+    } finally {
+      setAiReviewSavingId('');
     }
   };
 
@@ -15687,6 +15792,15 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_chat_monitoring_desc')}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {aiAnalytics.totalConversations === 0 ? (
+                      <button
+                        onClick={handleSeedAiMonitoring}
+                        disabled={aiReviewSavingId === 'monitoring-seed'}
+                        className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {t('ai_monitoring_seed_button')}
+                      </button>
+                    ) : null}
                     {aiRangeOptions.map((option) => (
                       <button
                         key={option.value}
@@ -15703,6 +15817,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   </div>
                 </div>
               </div>
+
+              {aiAnalytics.totalConversations === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+                  {t('ai_monitoring_seed_desc')}
+                </div>
+              ) : null}
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <StatCard title={t('ai_metric_conversations')} value={formatNumberByLanguage(aiAnalytics.totalConversations, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
