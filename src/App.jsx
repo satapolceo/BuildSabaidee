@@ -9382,7 +9382,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                  </div>
               )}
 
-              <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
                 <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)] px-5 py-5 sm:px-6">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-3xl">
@@ -9391,102 +9391,110 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                           <AlertTriangle className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-slate-900">{t('overview_daily_issues_title')}</h3>
+                          <h3 className="text-lg font-bold tracking-tight text-slate-900">{t('overview_daily_issues_title')}</h3>
                           <p className="mt-1 text-sm leading-6 text-slate-600">{t('overview_daily_issues_desc')}</p>
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                       <Eye className="h-4 w-4" />
                       {t('dashboard_view_all')}
                     </button>
                   </div>
                   <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{t('overview_daily_issues_total_today')}</div>
-                      <div className="mt-2 text-2xl font-bold text-slate-900">{dailyIssueSummary.total}</div>
+                    <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('overview_daily_issues_total_today')}</div>
+                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-slate-900">{dailyIssueSummary.total}</div>
                     </div>
-                    <div className="rounded-2xl border border-red-100 bg-red-50/80 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-red-400">{t('overview_daily_issues_urgent')}</div>
-                      <div className="mt-2 text-2xl font-bold text-red-700">{dailyIssueSummary.urgent}</div>
+                    <div className="rounded-2xl border border-red-100 bg-red-50/80 px-4 py-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-red-400">{t('overview_daily_issues_urgent')}</div>
+                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-red-700">{dailyIssueSummary.urgent}</div>
                     </div>
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-400">{t('overview_daily_issues_in_progress')}</div>
-                      <div className="mt-2 text-2xl font-bold text-blue-700">{dailyIssueSummary.inProgress}</div>
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-400">{t('overview_daily_issues_in_progress')}</div>
+                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-blue-700">{dailyIssueSummary.inProgress}</div>
                     </div>
-                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-4">
-                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div>
-                      <div className="mt-2 text-2xl font-bold text-amber-700">{dailyIssueSummary.waiting}</div>
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4">
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div>
+                      <div className="mt-2 text-[1.85rem] font-bold leading-none text-amber-700">{dailyIssueSummary.waiting}</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="px-5 py-5 sm:px-6">
                   {dailyIssuesDashboardItems.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
                       {dailyIssuesDashboardItems.map((issue) => {
                         const severityTone = getDailyIssueSeverityTone(issue.severity);
                         return (
-                          <div key={issue.id} className={`rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${severityTone.card}`}>
-                            <div className="flex flex-col gap-4 sm:flex-row">
-                              <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${severityTone.thumbnail} sm:w-[168px] sm:min-w-[168px]`}>
+                          <div key={issue.id} className={`rounded-[1.35rem] border px-4 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:px-5 sm:py-5 ${severityTone.card}`}>
+                            <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
+                              <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br ${severityTone.thumbnail} sm:h-[188px] sm:w-[176px] sm:min-w-[176px] sm:shrink-0 sm:aspect-auto`}>
                                 {issue.hasImage ? (
-                                  <img src={issue.imageUrl} alt={issue.title} className="h-44 w-full object-cover sm:h-full" />
+                                  <img src={issue.imageUrl} alt={issue.title} className="h-full w-full object-cover" />
                                 ) : (
-                                  <div className="flex h-44 w-full flex-col items-center justify-center gap-2 text-slate-400 sm:h-full">
-                                    <ImageIcon className="h-8 w-8" />
+                                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/70 shadow-sm">
+                                      <ImageIcon className="h-6 w-6" />
+                                    </div>
                                     <span className="text-xs font-medium">{t('overview_daily_issues_no_photo')}</span>
                                   </div>
                                 )}
-                                <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur">
+                                <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/92 px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur">
                                   <span className={`h-2 w-2 rounded-full ${severityTone.dot}`}></span>
                                   {t(getDailyIssueSeverityKey(issue.severity))}
                                 </div>
-                                <div className="absolute bottom-3 left-3 rounded-full bg-slate-900/80 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
+                                <div className="absolute bottom-3 right-3 rounded-full bg-slate-900/78 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur">
                                   {issue.hasImage ? t('overview_daily_issues_has_photo') : t('overview_daily_issues_no_photo')}
                                 </div>
                               </div>
 
                               <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <h4 className="text-base font-bold leading-6 text-slate-900">{issue.title}</h4>
-                                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                                      <span className="inline-flex items-center gap-1.5"><Building className="h-3.5 w-3.5" /> {issue.siteName || t('overview_daily_issues_site_fallback')}</span>
-                                      <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> {issue.supervisor}</span>
-                                      <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</span>
-                                    </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${severityTone.badge}`}>
+                                    {t(getDailyIssueSeverityKey(issue.severity))}
                                   </div>
-                                  <div className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getDailyIssueStatusTone(issue.status)}`}>
+                                  <div className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${getDailyIssueStatusTone(issue.status)}`}>
                                     {t(getDailyIssueStatusKey(issue.status))}
                                   </div>
                                 </div>
 
-                                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                                  <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5">
-                                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_priority')}</div>
-                                    <div className={`mt-1 text-sm font-semibold ${severityTone.accent}`}>{t(getDailyIssueSeverityKey(issue.severity))}</div>
+                                <h4 className="mt-3 text-lg font-bold leading-7 text-slate-900 sm:text-[1.12rem]">{issue.title}</h4>
+
+                                <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80">
+                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                      <Building className="h-3.5 w-3.5" />
+                                      {t('overview_site')}
+                                    </div>
+                                    <div className="mt-1.5 text-sm font-medium text-slate-700">{issue.siteName || t('overview_daily_issues_site_fallback')}</div>
                                   </div>
-                                  <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5">
-                                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_supervisor')}</div>
-                                    <div className="mt-1 text-sm font-semibold text-slate-700">{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div>
+                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80">
+                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                      <Users className="h-3.5 w-3.5" />
+                                      {t('overview_daily_issues_supervisor')}
+                                    </div>
+                                    <div className="mt-1.5 text-sm font-medium text-slate-700">{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div>
                                   </div>
-                                  <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5">
-                                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_reported_at')}</div>
-                                    <div className="mt-1 text-sm font-semibold text-slate-700">{issue.reportedTime || '-'}</div>
+                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80">
+                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                      <Clock className="h-3.5 w-3.5" />
+                                      {t('overview_daily_issues_reported_at')}
+                                    </div>
+                                    <div className="mt-1.5 text-sm font-medium text-slate-700">{formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</div>
                                   </div>
                                 </div>
 
-                                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                                  <button onClick={() => openDailyIssueDetails(issue)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                                    <Eye className="h-4 w-4" />
-                                    {t('overview_daily_issues_action_details')}
-                                  </button>
-                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+                                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
                                     <CheckCircle className="h-4 w-4" />
                                     {t('overview_daily_issues_action_update')}
                                   </button>
-                                  <button onClick={() => setActiveTab('chat')} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                                  <button onClick={() => openDailyIssueDetails(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    <Eye className="h-4 w-4" />
+                                    {t('overview_daily_issues_action_details')}
+                                  </button>
+                                  <button onClick={() => setActiveTab('chat')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
                                     <Send className="h-4 w-4" />
                                     {t('overview_daily_issues_action_notify')}
                                   </button>
