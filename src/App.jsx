@@ -3041,27 +3041,47 @@ function createDefaultPricingPackages() {
     createPricingPackageEntry({
       code: 'BASIC',
       name: 'Basic Plan',
-      description: 'Simple starter plan for teams getting started with daily site work.',
-      price: 59,
+      description: 'Starter plan for essential project and site work tracking.',
+      price: 299000,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
-      features: ['Easy start for new teams', 'Core daily site workflow', 'Photo and task updates', 'No advanced AI included'],
+      features: [
+        'Manage core projects in one place',
+        'Track site work with ease',
+        'Store photos, tasks, and daily logs',
+        'AI helps answer basic questions',
+      ],
       localizedContent: {
         LA: {
           name: 'ແຜນ Basic',
-          description: 'ແພັກເກດເລີ່ມຕົ້ນທີ່ເຂົ້າໃຈງ່າຍ ສຳລັບທີມທີ່ຕ້ອງການເລີ່ມໃຊ້ງານໄວ',
-          features: ['ເໝາະສຳລັບເລີ່ມໃຊ້ງານ', 'ຄຸ້ມຄອງວຽກປະຈຳວັນໜ້າວຽກ', 'ອັບໂຫຼດຮູບ ແລະ ອັບເດດວຽກ', 'ບໍ່ລວມ AI ຂັ້ນສູງ'],
+          description: 'ແຜນເລີ່ມຕົ້ນສຳລັບການຄຸ້ມໂຄງການ ແລະ ວຽກໜ້າງານພື້ນຖານ',
+          features: [
+            'ຈັດການໂຄງການພື້ນຖານໃນບ່ອນດຽວ',
+            'ຕິດຕາມວຽກໜ້າງານໄດ້ງ່າຍ',
+            'ເກັບຮູບ ວຽກ ແລະ ບັນທຶກປະຈຳວັນ',
+            'AI ຊ່ວຍຕອບຄຳຖາມເບື້ອງຕົ້ນ',
+          ],
         },
         TH: {
           name: 'แผน Basic',
-          description: 'แพ็กเกจเริ่มต้นที่ใช้งานง่าย เหมาะกับทีมที่ต้องการเริ่มระบบหน้างานอย่างมั่นใจ',
-          features: ['เหมาะสำหรับเริ่มต้นใช้งาน', 'ดูแลงานประจำวันในไซต์', 'อัปโหลดรูปและอัปเดตงาน', 'ไม่มี AI ขั้นสูง'],
+          description: 'แผนเริ่มต้นสำหรับการจัดการโครงการและงานหน้างานพื้นฐาน',
+          features: [
+            'จัดการโครงการพื้นฐานในที่เดียว',
+            'ติดตามงานหน้างานได้ง่าย',
+            'เก็บรูป งาน และบันทึกประจำวัน',
+            'AI ช่วยตอบคำถามเบื้องต้น',
+          ],
         },
         EN: {
           name: 'Basic Plan',
-          description: 'A clean starter package for teams beginning their day-to-day site operations.',
-          features: ['Easy for teams to get started', 'Core daily site workflow', 'Photo and work updates', 'No advanced AI features'],
+          description: 'Starter plan for essential project and site work tracking.',
+          features: [
+            'Manage core projects in one place',
+            'Track site work with ease',
+            'Store photos, tasks, and daily logs',
+            'AI helps answer basic questions',
+          ],
         },
       },
       displayOrder: 1,
@@ -3069,27 +3089,55 @@ function createDefaultPricingPackages() {
     createPricingPackageEntry({
       code: 'PRO',
       name: 'Pro Plan',
-      description: 'AI-assisted plan for teams that want faster daily operations.',
-      price: 100,
+      description: 'Operational plan for growing teams handling multiple jobs.',
+      price: 699000,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: true,
-      features: ['AI for routine questions', 'AI first-draft project support', 'AI for basic calculations', 'Save daily working time'],
+      features: [
+        'Manage multiple jobs more efficiently',
+        'Track progress in more detail',
+        'Organize teams, tasks, and site data',
+        'Keep documents and job photos together',
+        'Create reports faster',
+        'AI helps draft and summarize work',
+      ],
       localizedContent: {
         LA: {
           name: 'ແຜນ Pro',
-          description: 'ແພັກເກດສຳລັບທີມທີ່ຕ້ອງການ AI ມາຊ່ວຍວຽກປະຈຳວັນໃຫ້ໄວຂຶ້ນ',
-          features: ['AI ຊ່ວຍຕອບຄຳຖາມເບື້ອງຕົ້ນໃນລະບົບ', 'AI ຊ່ວຍຮ່າງຂໍ້ມູນວຽກ ຫຼື ຮ່າງໂຄງການເບື້ອງຕົ້ນ', 'AI ຊ່ວຍຄຳນວນປະລິມານ ລາຄາ ແລະ ສະຫຼຸບຕົວເລກເບື້ອງຕົ້ນ', 'AI ຊ່ວຍປະຢັດເວລາໃນວຽກປະຈຳວັນ'],
+          description: 'ແຜນສຳລັບທີມທີ່ເຕີບໂຕ ແລະ ບໍລິຫານຫຼາຍວຽກໜ້າງານ',
+          features: [
+            'ບໍລິຫານຫຼາຍວຽກໄດ້ເປັນລະບົບ',
+            'ຕິດຕາມຄວາມຄືບໜ້າໄດ້ລະອຽດຂຶ້ນ',
+            'ຈັດການທີມ ວຽກ ແລະ ຂໍ້ມູນໜ້າງານ',
+            'ເກັບເອກະສານ ແລະ ຮູບວຽກໄດ້ສະດວກ',
+            'ສະຫຼຸບລາຍງານໄດ້ໄວຂຶ້ນ',
+            'AI ຊ່ວຍຮ່າງ ແລະ ສະຫຼຸບວຽກເບື້ອງຕົ້ນ',
+          ],
         },
         TH: {
           name: 'แผน Pro',
-          description: 'แพ็กเกจสำหรับทีมที่ต้องการใช้ AI ช่วยงานประจำวันให้เร็วและลื่นขึ้น',
-          features: ['AI ช่วยตอบคำถามเบื้องต้นในระบบ', 'AI ช่วยร่างข้อมูลงานหรือร่างโครงการเบื้องต้น', 'AI ช่วยคำนวณปริมาณ ราคา และสรุปตัวเลขเบื้องต้น', 'AI ช่วยประหยัดเวลาในการทำงานประจำวัน'],
+          description: 'แผนสำหรับทีมที่เติบโตและบริหารหลายงานหน้างานได้เป็นระบบ',
+          features: [
+            'บริหารหลายงานได้เป็นระบบ',
+            'ติดตามความคืบหน้าได้ละเอียดขึ้น',
+            'จัดการทีม งาน และข้อมูลหน้างาน',
+            'เก็บเอกสารและรูปงานได้สะดวก',
+            'สรุปรายงานได้เร็วขึ้น',
+            'AI ช่วยร่างและสรุปงานเบื้องต้น',
+          ],
         },
         EN: {
           name: 'Pro Plan',
-          description: 'An AI-assisted package for teams that want faster execution in everyday work.',
-          features: ['AI answers routine questions inside the system', 'AI drafts early project or task content', 'AI calculates quantities, prices, and basic totals', 'AI saves time across daily operations'],
+          description: 'Operational plan for growing teams handling multiple jobs.',
+          features: [
+            'Manage multiple jobs more efficiently',
+            'Track progress in more detail',
+            'Organize teams, tasks, and site data',
+            'Keep documents and job photos together',
+            'Create reports faster',
+            'AI helps draft and summarize work',
+          ],
         },
       },
       displayOrder: 2,
@@ -3097,27 +3145,63 @@ function createDefaultPricingPackages() {
     createPricingPackageEntry({
       code: 'ENTERPRISE',
       name: 'Enterprise',
-      description: 'Advanced AI plan for operational analysis, planning, and real decision support.',
-      price: 299,
+      description: 'Advanced plan for large operations across projects, teams, and reporting.',
+      price: 1499000,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
-      features: ['Deeper AI answers', 'Detailed planning drafts', 'Analysis beyond Pro', 'Enterprise decision support'],
+      features: [
+        'Control multiple projects and teams',
+        'Connect site and back-office data',
+        'Track documents, materials, and key tasks',
+        'See the full project picture clearly',
+        'Support multiple roles across teams',
+        'Reduce repeated work and missed communication',
+        'Speed up reporting for decisions',
+        'AI helps analyze and summarize deeper insights',
+      ],
       localizedContent: {
         LA: {
           name: 'ແຜນ Enterprise',
-          description: 'ແພັກເກດ AI ຂັ້ນສູງ ສຳລັບການວິເຄາະ ການວາງແຜນ ແລະ ການຕັດສິນໃຈໃນອົງກອນ',
-          features: ['AI ຊ່ວຍຕອບຄຳຖາມເຊິ່ງລຶກໄດ້ຫຼາຍຂຶ້ນ', 'AI ຊ່ວຍຮ່າງໂຄງການ ແຜນງານ ແລະ ລາຍລະອຽດວຽກໄດ້ລະອຽດກວ່າ Package 2', 'AI ຊ່ວຍຄຳນວນ ວິເຄາະ ປຽບທຽບ ແລະ ສະຫຼຸບຂໍ້ມູນໄດ້ຫຼາຍກວ່າ Package 2', 'AI ເໝາະສຳລັບວຽກບໍລິຫານ ການຕັດສິນໃຈ ແລະ ການໃຊ້ງານຈິງໃນອົງກອນ'],
+          description: 'ແຜນຂັ້ນສູງສຳລັບອົງກອນທີ່ຄຸ້ມຫຼາຍໂຄງການ ຫຼາຍທີມ ແລະ ລາຍງານ',
+          features: [
+            'ຄວບຄຸມຫຼາຍໂຄງການຫຼາຍທີມ',
+            'ເຊື່ອມຂໍ້ມູນໜ້າງານ ແລະ ຫຼັງບ້ານ',
+            'ຕິດຕາມເອກະສານ ວັດສະດຸ ແລະ ວຽກສຳຄັນ',
+            'ເຫັນພາບລວມໂຄງການໄດ້ຊັດເຈນ',
+            'ຮອງຮັບການເຮັດວຽກຫຼາຍບົດບາດ',
+            'ຊ່ວຍຫຼຸດວຽກຊ້ຳ ແລະ ການສື່ສານທີ່ຕົກຫຼົ່ນ',
+            'ສະຫຼຸບລາຍງານເພື່ອການຕັດສິນໃຈໄດ້ໄວ',
+            'AI ຊ່ວຍວິເຄາະ ແລະ ສະຫຼຸບຂໍ້ມູນຂັ້ນສູງ',
+          ],
         },
         TH: {
           name: 'แผน Enterprise',
-          description: 'แพ็กเกจ AI ขั้นสูงสำหรับการวิเคราะห์ วางแผน และช่วยตัดสินใจในการใช้งานจริงระดับองค์กร',
-          features: ['AI ช่วยตอบคำถามเชิงลึกมากขึ้น', 'AI ช่วยร่างโครงการ แผนงาน และรายละเอียดงานได้ละเอียดกว่า Package 2', 'AI ช่วยคำนวณ วิเคราะห์ เปรียบเทียบ และสรุปข้อมูลได้มากกว่า Package 2', 'AI เหมาะสำหรับงานบริหาร การตัดสินใจ และการใช้งานจริงจังในองค์กร'],
+          description: 'แผนขั้นสูงสำหรับองค์กรที่ดูแลหลายโครงการ หลายทีม และการสรุปรายงาน',
+          features: [
+            'ควบคุมหลายโครงการหลายทีม',
+            'เชื่อมข้อมูลหน้างานและหลังบ้าน',
+            'ติดตามเอกสาร วัสดุ และงานสำคัญ',
+            'เห็นภาพรวมโครงการได้ชัดเจน',
+            'รองรับการทำงานหลายบทบาท',
+            'ช่วยลดงานซ้ำและการสื่อสารตกหล่น',
+            'สรุปรายงานเพื่อการตัดสินใจได้เร็ว',
+            'AI ช่วยวิเคราะห์และสรุปข้อมูลขั้นสูง',
+          ],
         },
         EN: {
           name: 'Enterprise Plan',
-          description: 'An advanced AI package for analysis, planning, and decision support at scale.',
-          features: ['AI handles deeper operational questions', 'AI drafts projects, plans, and work details beyond Package 2', 'AI calculates, analyzes, compares, and summarizes more than Package 2', 'Built for management, decision-making, and serious organizational use'],
+          description: 'Advanced plan for large operations across projects, teams, and reporting.',
+          features: [
+            'Control multiple projects and teams',
+            'Connect site and back-office data',
+            'Track documents, materials, and key tasks',
+            'See the full project picture clearly',
+            'Support multiple roles across teams',
+            'Reduce repeated work and missed communication',
+            'Speed up reporting for decisions',
+            'AI helps analyze and summarize deeper insights',
+          ],
         },
       },
       displayOrder: 3,
@@ -5717,7 +5801,7 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages,
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t('pricing_subtitle')}</p>
             <p className="mt-3 text-sm text-slate-500">{t('pricing_currency_hint')}</p>
           </div>
-          <div className="grid max-w-5xl gap-5 mx-auto md:grid-cols-2 xl:grid-cols-3">
+          <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-2 md:[grid-auto-rows:1fr] xl:grid-cols-3">
             {landingPricingPackages.map((entry, index) => {
               const localizedPackage = getLocalizedPricingPackageContent(entry, language);
               const pricingAmounts = getPricingPackageAmounts(entry.code, language);
@@ -5764,9 +5848,9 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages,
                     </div>
                   </div>
                   <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_modules_title')}</div>
-                  <ul className="space-y-2">
+                  <ul className="flex flex-1 flex-col space-y-2">
                     {featureList.map((feature, featureIndex) => (
-                      <li key={`${entry.id}-feature-${featureIndex}`} className="flex items-start rounded-xl bg-white/70 px-3 py-2.5 text-sm text-slate-600">
+                      <li key={`${entry.id}-feature-${featureIndex}`} className="flex min-h-[3.25rem] items-start rounded-xl bg-white/70 px-3 py-2.5 text-sm text-slate-600">
                         <Check className={`mr-2 mt-0.5 h-4 w-4 ${tone.icon}`} />
                         <span>{feature}</span>
                       </li>
