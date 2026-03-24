@@ -9353,11 +9353,11 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const aiSettingsReady = isAiChatReady(adminSettingsForm);
 
   return (
-    <div className={`min-h-dvh md:min-h-screen flex relative ${isKioskMode ? 'bg-[radial-gradient(circle_at_top_left,_#dbeafe_0%,_#eff6ff_34%,_#f8fbff_65%,_#eef4ff_100%)] text-slate-900' : 'bg-slate-200/60'}`}>
+    <div className={`min-h-dvh md:min-h-screen flex relative ${isKioskMode ? 'bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12)_0%,_rgba(11,31,58,0.96)_26%,_#0F172A_72%,_#13315C_100%)] text-[#EAF2FF]' : 'bg-slate-200/60'}`}>
       {/* Sidebar */}
-      <div className={`hidden shrink-0 md:sticky md:top-0 md:flex md:h-dvh md:flex-col ${isKioskMode ? 'w-64 border-r border-blue-100/80 bg-white/78 text-slate-800 shadow-[0_18px_60px_rgba(37,99,235,0.08)] backdrop-blur-xl xl:w-72' : 'w-72 bg-slate-950 text-white xl:w-80'}`}>
-        <div className={`flex items-center space-x-3 px-5 py-5 ${isKioskMode ? 'border-b border-blue-100/80' : 'border-b border-slate-800'}`}>
-          <HardHat className={`h-8 w-8 ${isKioskMode ? 'text-blue-600' : 'text-blue-400'}`} />
+      <div className={`hidden shrink-0 md:sticky md:top-0 md:flex md:h-dvh md:flex-col ${isKioskMode ? 'w-64 border-r border-[#2B4C7E] bg-[linear-gradient(180deg,rgba(22,36,58,0.98)_0%,rgba(15,23,42,0.96)_100%)] text-[#EAF2FF] shadow-[0_24px_70px_rgba(8,15,30,0.45)] backdrop-blur-xl xl:w-72' : 'w-72 bg-slate-950 text-white xl:w-80'}`}>
+        <div className={`flex items-center space-x-3 px-5 py-5 ${isKioskMode ? 'border-b border-[#2B4C7E]' : 'border-b border-slate-800'}`}>
+          <HardHat className={`h-8 w-8 ${isKioskMode ? 'text-[#60A5FA]' : 'text-blue-400'}`} />
           <span className="font-bold text-xl">BuildSabaidee</span>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-5 xl:px-5">
@@ -9379,16 +9379,16 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                     className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                       isActive
                         ? isKioskMode
-                          ? 'border-blue-600 bg-blue-600 text-white shadow-[0_16px_35px_rgba(37,99,235,0.2)]'
+                          ? 'border-[#60A5FA] bg-[linear-gradient(135deg,#2563EB_0%,#3B82F6_58%,#60A5FA_100%)] text-white shadow-[0_18px_38px_rgba(59,130,246,0.35)]'
                           : 'border-blue-500 bg-blue-600 text-white shadow-sm'
                         : isKioskMode
-                          ? 'border-blue-100 bg-white/78 text-slate-700 hover:border-blue-200 hover:bg-blue-50/80'
+                          ? 'border-[#2B4C7E] bg-[#16243A]/88 text-[#EAF2FF] hover:border-[#60A5FA] hover:bg-[#1B2C46]'
                           : 'border-slate-800 bg-slate-950/40 text-slate-100 hover:bg-slate-800/70'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center space-x-3">
-                        <OverviewIcon className={`h-5 w-5 ${isActive ? 'text-white' : isKioskMode ? 'text-blue-600' : 'text-slate-300'}`} />
+                        <OverviewIcon className={`h-5 w-5 ${isActive ? 'text-white' : isKioskMode ? 'text-[#60A5FA]' : 'text-slate-300'}`} />
                         <span className="text-sm font-semibold">{t(overviewItem.labelKey)}</span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -9403,16 +9403,16 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
               }
 
               return (
-                <div key={group.id} className={`overflow-hidden rounded-xl border ${isKioskMode ? 'border-blue-100 bg-white/72 shadow-[0_10px_30px_rgba(59,130,246,0.08)]' : 'border-slate-800 bg-slate-950/40'}`}>
-                  <button onClick={() => toggleNavGroup(group.id)} className={`w-full flex items-center justify-between px-4 py-3 text-left transition ${isKioskMode ? 'hover:bg-blue-50/80' : 'hover:bg-slate-800/70'}`}>
+                <div key={group.id} className={`overflow-hidden rounded-xl border ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/84 shadow-[0_14px_34px_rgba(8,15,30,0.28)]' : 'border-slate-800 bg-slate-950/40'}`}>
+                  <button onClick={() => toggleNavGroup(group.id)} className={`w-full flex items-center justify-between px-4 py-3 text-left transition ${isKioskMode ? 'hover:bg-[#1B2C46]' : 'hover:bg-slate-800/70'}`}>
                     <div className="flex items-center space-x-3">
-                      <GroupIcon className={`h-5 w-5 ${isKioskMode ? 'text-blue-600' : 'text-slate-300'}`} />
-                      <span className={`text-sm font-semibold ${isKioskMode ? 'text-slate-800' : 'text-slate-100'}`}>{t(group.labelKey)}</span>
+                      <GroupIcon className={`h-5 w-5 ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-300'}`} />
+                      <span className={`text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-100'}`}>{t(group.labelKey)}</span>
                     </div>
-                    {isExpanded ? <ChevronDown className={`h-4 w-4 ${isKioskMode ? 'text-slate-400' : 'text-slate-400'}`} /> : <ChevronRight className={`h-4 w-4 ${isKioskMode ? 'text-slate-400' : 'text-slate-400'}`} />}
+                    {isExpanded ? <ChevronDown className={`h-4 w-4 ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`} /> : <ChevronRight className={`h-4 w-4 ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`} />}
                   </button>
                   {isExpanded && (
-                    <div className={`space-y-1 px-2 pb-2 ${isKioskMode ? 'border-t border-blue-100/90 bg-[linear-gradient(180deg,rgba(239,246,255,0.72),rgba(255,255,255,0.9))]' : 'border-t border-slate-800/80'}`}>
+                    <div className={`space-y-1 px-2 pb-2 ${isKioskMode ? 'border-t border-[#2B4C7E] bg-[linear-gradient(180deg,rgba(27,44,70,0.95),rgba(22,36,58,0.92))]' : 'border-t border-slate-800/80'}`}>
                       {group.items.map((item) => {
                         const ItemIcon = item.icon;
                         const isActive = activeTab === item.tab;
@@ -9425,7 +9425,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                               isActive
                                 ? 'bg-blue-600 text-white'
                                 : isKioskMode
-                                  ? 'text-slate-600 hover:bg-blue-50 hover:text-slate-800'
+                                  ? 'text-[#B6C4DA] hover:bg-[#1B2C46] hover:text-[#EAF2FF]'
                                   : 'text-slate-300 hover:bg-slate-800'
                             }`}
                           >
@@ -9459,12 +9459,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden ${isKioskMode ? 'bg-[linear-gradient(180deg,rgba(248,251,255,0.98)_0%,rgba(239,246,255,0.92)_52%,rgba(255,255,255,0.96)_100%)]' : 'bg-slate-100/70'}`}>
+      <div className={`flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden ${isKioskMode ? 'bg-[linear-gradient(180deg,rgba(11,31,58,0.7)_0%,rgba(15,23,42,0.2)_22%,rgba(19,49,92,0.14)_100%)]' : 'bg-slate-100/70'}`}>
         {/* Header */}
-        <header className={`z-10 flex shrink-0 items-center justify-between px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10 ${isKioskMode ? 'h-16 border-b border-blue-100/80 bg-white/72 shadow-[0_8px_32px_rgba(37,99,235,0.08)]' : 'h-[4.5rem] border-b border-slate-200 bg-white/92'}`}>
+        <header className={`z-10 flex shrink-0 items-center justify-between px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10 ${isKioskMode ? 'h-16 border-b border-[#2B4C7E] bg-[#16243A]/88 shadow-[0_10px_34px_rgba(7,14,28,0.35)]' : 'h-[4.5rem] border-b border-slate-200 bg-white/92'}`}>
           <div className="flex items-center gap-3">
-            {isKioskMode && <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700 shadow-sm">{t('dashboard_kiosk_badge')}</div>}
-            <h1 className={`text-xl font-bold ${isKioskMode ? 'text-slate-900' : 'text-slate-800'}`}>
+            {isKioskMode && <div className="rounded-full border border-[#2B4C7E] bg-[#1B2C46] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#60A5FA] shadow-sm">{t('dashboard_kiosk_badge')}</div>}
+            <h1 className={`text-xl font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`}>
             {sectionTitleMap[activeTab] || t('manager_menu_' + activeTab)}
             </h1>
           </div>
@@ -9478,7 +9478,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
             }`}>
               <CloudRain className="h-4 w-4 mr-2 shrink-0" /> {renderWeatherSummary()}
             </div>}
-            <button onClick={() => onToggleKioskMode?.(!isKioskMode)} className={`hidden rounded-full px-4 py-2 text-sm font-semibold transition md:inline-flex ${isKioskMode ? 'border border-blue-200 bg-white text-blue-700 shadow-sm hover:border-blue-300 hover:bg-blue-50' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+            <button onClick={() => onToggleKioskMode?.(!isKioskMode)} className={`hidden rounded-full px-4 py-2 text-sm font-semibold transition md:inline-flex ${isKioskMode ? 'border border-[#2B4C7E] bg-[#1B2C46] text-[#EAF2FF] shadow-sm hover:border-[#60A5FA] hover:bg-[#203554]' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
               {isKioskMode ? t('dashboard_kiosk_off') : t('dashboard_kiosk_on')}
             </button>
             {!isKioskMode && <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
@@ -9489,7 +9489,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
             </button>}
           </div>
         </header>
-        <div className={`border-b px-4 py-3 md:hidden ${isKioskMode ? 'border-blue-100/80 bg-white/85 text-slate-900 backdrop-blur' : 'border-slate-200 bg-white'}`}>
+        <div className={`border-b px-4 py-3 md:hidden ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/92 text-[#EAF2FF] backdrop-blur' : 'border-slate-200 bg-white'}`}>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {mobileNavItems.map((item) => {
               const ItemIcon = item.icon;
@@ -9502,7 +9502,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                     isActive
                       ? 'border-blue-600 bg-blue-600 text-white'
                       : isKioskMode
-                        ? 'border-blue-100 bg-blue-50/80 text-slate-700'
+                        ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#EAF2FF]'
                         : 'border-slate-200 bg-slate-50 text-slate-600'
                   }`}
                 >
@@ -9515,7 +9515,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         </div>
 
         {/* Dashboard Content */}
-        <div className={`flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10 ${isKioskMode ? 'bg-transparent text-slate-900 2xl:px-8 2xl:py-5' : 'bg-slate-100/70'}`}>
+        <div className={`flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10 ${isKioskMode ? 'bg-transparent text-[#EAF2FF] 2xl:px-8 2xl:py-5' : 'bg-slate-100/70'}`}>
           
           {isFirebaseConfigured && projectsList.length === 0 && activeTab === 'overview' && (
              <button onClick={seedDatabase} className="w-full bg-blue-100 text-blue-700 p-4 rounded-xl border border-blue-200 mb-6 font-bold hover:bg-blue-200 transition shadow-sm flex justify-center items-center">
@@ -9570,19 +9570,19 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
           {/* ----- TAB: OVERVIEW ----- */}
           {!adminNavOnly && activeTab === 'overview' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <section className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_40%,#eef4ff_100%)] p-5 shadow-sm sm:p-6 xl:p-7">
+              <section className={`rounded-[1.75rem] border p-5 shadow-sm sm:p-6 xl:p-7 ${isKioskMode ? 'border-[#2B4C7E] bg-[linear-gradient(135deg,rgba(22,36,58,0.96)_0%,rgba(27,44,70,0.98)_58%,rgba(19,49,92,0.92)_100%)] shadow-[0_24px_70px_rgba(8,15,30,0.34)]' : 'border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_40%,#eef4ff_100%)]'}`}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div className="max-w-3xl">
-                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('overview_exec_title')}</div>
-                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{t('manager_overview')}</h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{t('overview_exec_desc')}</p>
+                    <div className={`text-xs font-semibold uppercase tracking-[0.2em] ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-400'}`}>{t('overview_exec_title')}</div>
+                    <h2 className={`mt-2 text-2xl font-bold tracking-tight ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('manager_overview')}</h2>
+                    <p className={`mt-2 text-sm leading-6 ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-600'}`}>{t('overview_exec_desc')}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                    <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    <button onClick={() => setActiveTab('projects')} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#EAF2FF] hover:border-[#60A5FA] hover:bg-[#203554]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
                       <Building className="h-4 w-4" />
                       {t('manager_menu_projects')}
                     </button>
-                    <button onClick={() => setActiveTab('docs')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    <button onClick={() => setActiveTab('docs')} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#EAF2FF] hover:border-[#60A5FA] hover:bg-[#203554]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
                       <FileText className="h-4 w-4" />
                       {t('manager_menu_docs')}
                     </button>
@@ -9592,13 +9592,13 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   {executiveSummaryCards.map((card) => {
                     const CardIcon = card.icon;
                     return (
-                      <div key={card.key} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-4`}>
+                      <div key={card.key} className={`rounded-2xl border px-4 py-4 ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/92' : `${card.border} ${card.bg}`}`}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-[11px] font-semibold uppercase tracking-[0.15em] text-slate-400">{card.title}</div>
+                            <div className={`text-[11px] font-semibold uppercase tracking-[0.15em] ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`}>{card.title}</div>
                             <div className={`mt-2 text-[1.85rem] font-bold leading-none ${card.accent}`}>{card.value}</div>
                           </div>
-                          <div className="rounded-xl bg-white/80 p-2.5 text-slate-500">
+                          <div className={`rounded-xl p-2.5 ${isKioskMode ? 'bg-[#1B2C46] text-[#60A5FA]' : 'bg-white/80 text-slate-500'}`}>
                             <CardIcon className="h-4.5 w-4.5" />
                           </div>
                         </div>
@@ -9608,44 +9608,44 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                 </div>
               </section>
 
-              <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-                <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)] px-5 py-5 sm:px-6 xl:px-7 xl:py-6">
+              <section className={`overflow-hidden rounded-[1.75rem] border shadow-sm ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/96 shadow-[0_24px_70px_rgba(8,15,30,0.32)]' : 'border-slate-200 bg-white'}`}>
+                <div className={`px-5 py-5 sm:px-6 xl:px-7 xl:py-6 ${isKioskMode ? 'border-b border-[#2B4C7E] bg-[linear-gradient(135deg,rgba(27,44,70,0.98)_0%,rgba(22,36,58,0.98)_52%,rgba(19,49,92,0.9)_100%)]' : 'border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)]'}`}>
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div className="max-w-3xl">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm ${isKioskMode ? 'bg-[linear-gradient(135deg,#2563EB_0%,#3B82F6_60%,#22D3EE_100%)] text-white' : 'bg-slate-900 text-white'}`}>
                           <AlertTriangle className="h-5 w-5" />
                         </div>
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_daily_issues_title')}</div>
-                          <h3 className="mt-1 text-xl font-bold tracking-tight text-slate-900">{t('overview_daily_issues_desc')}</h3>
+                          <div className={`text-xs font-semibold uppercase tracking-[0.18em] ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-400'}`}>{t('overview_daily_issues_title')}</div>
+                          <h3 className={`mt-1 text-xl font-bold tracking-tight ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_daily_issues_desc')}</h3>
                         </div>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                       <div className="hidden gap-2 overflow-x-auto pb-1 xl:flex xl:max-w-[34rem]">
                         {dailyIssueSiteOptions.map((option) => (
-                          <button key={option.value} onClick={() => setDailyIssueSiteFilter(option.value)} className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${dailyIssueSiteFilter === option.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`} title={option.label}>
+                          <button key={option.value} onClick={() => setDailyIssueSiteFilter(option.value)} className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition ${dailyIssueSiteFilter === option.value ? (isKioskMode ? 'border-[#60A5FA] bg-[#3B82F6] text-white shadow-[0_12px_24px_rgba(59,130,246,0.24)]' : 'border-slate-900 bg-slate-900 text-white') : (isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#B6C4DA] hover:border-[#60A5FA] hover:text-[#EAF2FF]' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50')}`} title={option.label}>
                             <span className="max-w-[10rem] truncate">{option.label}</span>
                           </button>
                         ))}
                       </div>
-                      <select value={dailyIssueSiteFilter} onChange={(e) => setDailyIssueSiteFilter(e.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 xl:hidden">
+                      <select value={dailyIssueSiteFilter} onChange={(e) => setDailyIssueSiteFilter(e.target.value)} className={`rounded-xl border px-3 py-2 text-sm xl:hidden ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#EAF2FF]' : 'border-slate-200 bg-white text-slate-700'}`}>
                         {dailyIssueSiteOptions.map((option) => (
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </select>
-                      <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                      <button onClick={() => setActiveTab('projects')} className={`inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#EAF2FF] hover:border-[#60A5FA] hover:bg-[#203554]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
                         <Eye className="h-4 w-4" />
                         {t('dashboard_view_all')}
                       </button>
                     </div>
                   </div>
                   <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('overview_daily_issues_total_today')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-slate-900">{dailyIssueSummary.total}</div></div>
-                    <div className="rounded-2xl border border-red-100 bg-red-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-red-400">{t('overview_daily_issues_urgent')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-red-700">{dailyIssueSummary.urgent}</div></div>
-                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-400">{t('overview_daily_issues_in_progress')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-blue-700">{dailyIssueSummary.inProgress}</div></div>
-                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-amber-700">{dailyIssueSummary.waiting}</div></div>
+                    <div className={`rounded-2xl border px-4 py-4 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]/92' : 'border-slate-200 bg-white/85'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`}>{t('overview_daily_issues_total_today')}</div><div className={`mt-2 text-[1.85rem] font-bold leading-none ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{dailyIssueSummary.total}</div></div>
+                    <div className={`rounded-2xl border px-4 py-4 ${isKioskMode ? 'border-red-400/40 bg-red-500/10' : 'border-red-100 bg-red-50/80'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isKioskMode ? 'text-red-200' : 'text-red-400'}`}>{t('overview_daily_issues_urgent')}</div><div className={`mt-2 text-[1.85rem] font-bold leading-none ${isKioskMode ? 'text-red-100' : 'text-red-700'}`}>{dailyIssueSummary.urgent}</div></div>
+                    <div className={`rounded-2xl border px-4 py-4 ${isKioskMode ? 'border-[#3B82F6]/50 bg-[#3B82F6]/12' : 'border-blue-100 bg-blue-50/80'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isKioskMode ? 'text-blue-200' : 'text-blue-400'}`}>{t('overview_daily_issues_in_progress')}</div><div className={`mt-2 text-[1.85rem] font-bold leading-none ${isKioskMode ? 'text-[#EAF2FF]' : 'text-blue-700'}`}>{dailyIssueSummary.inProgress}</div></div>
+                    <div className={`rounded-2xl border px-4 py-4 ${isKioskMode ? 'border-amber-300/35 bg-amber-400/10' : 'border-amber-100 bg-amber-50/80'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isKioskMode ? 'text-amber-200' : 'text-amber-500'}`}>{t('overview_daily_issues_waiting')}</div><div className={`mt-2 text-[1.85rem] font-bold leading-none ${isKioskMode ? 'text-amber-100' : 'text-amber-700'}`}>{dailyIssueSummary.waiting}</div></div>
                   </div>
                 </div>
                 <div className="px-5 py-5 sm:px-6 xl:px-7 xl:py-6">
@@ -9654,11 +9654,11 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                       {filteredDailyIssuesDashboardItems.map((issue) => {
                         const severityTone = getDailyIssueSeverityTone(issue.severity);
                         return (
-                          <div key={issue.id} className={`rounded-[1.35rem] border px-4 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:px-5 sm:py-5 ${severityTone.card}`}>
+                          <div key={issue.id} className={`rounded-[1.35rem] border px-4 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:px-5 sm:py-5 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]/94 shadow-[0_18px_38px_rgba(7,14,28,0.28)]' : severityTone.card}`}>
                             <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
-                              <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br ${severityTone.thumbnail} sm:h-[168px] sm:w-[168px] sm:min-w-[168px] sm:shrink-0 sm:aspect-auto`}>
-                                {issue.hasImage ? <img src={issue.imageUrl} alt={issue.title} className="h-full w-full object-cover" /> : <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400"><div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/80 bg-white/70 shadow-sm"><ImageIcon className="h-6 w-6" /></div><span className="text-xs font-medium">{t('overview_daily_issues_no_photo')}</span></div>}
-                                <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/92 px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur">
+                              <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br ${isKioskMode ? 'from-[#203554] via-[#1B2C46] to-[#13315C]' : severityTone.thumbnail} sm:h-[168px] sm:w-[168px] sm:min-w-[168px] sm:shrink-0 sm:aspect-auto`}>
+                                {issue.hasImage ? <img src={issue.imageUrl} alt={issue.title} className="h-full w-full object-cover" /> : <div className={`flex h-full w-full flex-col items-center justify-center gap-3 ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`}><div className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ${isKioskMode ? 'border border-[#2B4C7E] bg-[#16243A]' : 'border border-white/80 bg-white/70'}`}><ImageIcon className="h-6 w-6" /></div><span className="text-xs font-medium">{t('overview_daily_issues_no_photo')}</span></div>}
+                                <div className={`absolute left-3 top-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold shadow-sm backdrop-blur ${isKioskMode ? 'border border-[#2B4C7E] bg-[#16243A]/92 text-[#EAF2FF]' : 'border border-white/70 bg-white/92 text-slate-700'}`}>
                                   <span className={`h-2 w-2 rounded-full ${severityTone.dot}`}></span>
                                   {t(getDailyIssueSeverityKey(issue.severity))}
                                 </div>
@@ -9673,16 +9673,16 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                                   </div>
                                 </div>
 
-                                <h4 className="mt-3 text-lg font-bold leading-7 text-slate-900">{issue.title}</h4>
+                                <h4 className={`mt-3 text-lg font-bold leading-7 ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{issue.title}</h4>
                                 <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_site')}</div><div className="mt-1.5 truncate text-sm font-medium text-slate-700" title={issue.siteName || t('overview_daily_issues_site_fallback')}>{issue.siteName || t('overview_daily_issues_site_fallback')}</div></div>
-                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_supervisor')}</div><div className="mt-1.5 truncate text-sm font-medium text-slate-700" title={issue.supervisor || t('overview_daily_issues_supervisor_fallback')}>{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div></div>
-                                  <div className="rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-slate-200/80"><div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_reported_at')}</div><div className="mt-1.5 text-sm font-medium text-slate-700">{formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</div></div>
+                                  <div className={`rounded-xl px-3 py-2.5 ${isKioskMode ? 'bg-[#16243A] ring-1 ring-[#2B4C7E]' : 'bg-white/80 ring-1 ring-slate-200/80'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`}>{t('overview_site')}</div><div className={`mt-1.5 truncate text-sm font-medium ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-700'}`} title={issue.siteName || t('overview_daily_issues_site_fallback')}>{issue.siteName || t('overview_daily_issues_site_fallback')}</div></div>
+                                  <div className={`rounded-xl px-3 py-2.5 ${isKioskMode ? 'bg-[#16243A] ring-1 ring-[#2B4C7E]' : 'bg-white/80 ring-1 ring-slate-200/80'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`}>{t('overview_daily_issues_supervisor')}</div><div className={`mt-1.5 truncate text-sm font-medium ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-700'}`} title={issue.supervisor || t('overview_daily_issues_supervisor_fallback')}>{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div></div>
+                                  <div className={`rounded-xl px-3 py-2.5 ${isKioskMode ? 'bg-[#16243A] ring-1 ring-[#2B4C7E]' : 'bg-white/80 ring-1 ring-slate-200/80'}`}><div className={`text-[11px] font-semibold uppercase tracking-[0.14em] ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-400'}`}>{t('overview_daily_issues_reported_at')}</div><div className={`mt-1.5 text-sm font-medium ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-700'}`}>{formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</div></div>
                                 </div>
                                 <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"><CheckCircle className="h-4 w-4" />{t('overview_daily_issues_action_update')}</button>
-                                  <button onClick={() => openDailyIssueDetails(issue)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"><Eye className="h-4 w-4" />{t('overview_daily_issues_action_details')}</button>
-                                  <button onClick={() => setActiveTab('chat')} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"><Send className="h-4 w-4" />{t('overview_daily_issues_action_notify')}</button>
+                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition ${isKioskMode ? 'bg-[linear-gradient(135deg,#2563EB_0%,#3B82F6_58%,#60A5FA_100%)] text-white shadow-[0_14px_28px_rgba(59,130,246,0.28)] hover:brightness-105' : 'bg-slate-900 text-white hover:bg-slate-800'}`}><CheckCircle className="h-4 w-4" />{t('overview_daily_issues_action_update')}</button>
+                                  <button onClick={() => openDailyIssueDetails(issue)} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold transition ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A] text-[#EAF2FF] hover:border-[#60A5FA] hover:bg-[#1B2C46]' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}><Eye className="h-4 w-4" />{t('overview_daily_issues_action_details')}</button>
+                                  <button onClick={() => setActiveTab('chat')} className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46] text-[#B6C4DA] hover:border-[#60A5FA] hover:text-[#EAF2FF]' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}><Send className="h-4 w-4" />{t('overview_daily_issues_action_notify')}</button>
                                 </div>
                               </div>
                             </div>
@@ -9691,7 +9691,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                       })}
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                    <div className={`rounded-2xl border px-4 py-8 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#16243A] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-slate-50 text-slate-500'}`}>
                       {t('overview_daily_issues_empty')}
                     </div>
                   )}
@@ -9700,31 +9700,31 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
               <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_1fr] 2xl:gap-7">
                 <div className="space-y-6">
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 xl:p-7">
-                    <div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_operations_title')}</div><h3 className="mt-2 text-xl font-bold text-slate-900">{t('overview_operations_desc')}</h3></div>
+                  <div className={`rounded-[1.5rem] border p-5 shadow-sm sm:p-6 xl:p-7 ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/94 shadow-[0_18px_48px_rgba(8,15,30,0.28)]' : 'border-slate-200 bg-white'}`}>
+                    <div><div className={`text-xs font-semibold uppercase tracking-[0.18em] ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-400'}`}>{t('overview_operations_title')}</div><h3 className={`mt-2 text-xl font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_operations_desc')}</h3></div>
                     <div className="mt-5 grid grid-cols-1 gap-4 2xl:grid-cols-2">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_documents_title')}</h4><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{doc.title}</div><div className="mt-1 text-xs text-slate-500">{t('overview_by')} {doc.submittedBy} {Number(doc.amount) > 0 && `• ${formatMoneyByLanguage(doc.amount, language)}`}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_procurement_title')}</h4><button onClick={() => setActiveTab('purchase_orders')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPurchaseOrders.length > 0 ? recentPurchaseOrders.map((order) => <div key={order.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-sm font-semibold text-slate-800">{order.poNumber || '-'}</div><div className="mt-1 truncate text-xs text-slate-500" title={order.supplierName}>{order.supplierName}</div></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{t(`order_status_${order.status}`)}</span></div><div className="mt-2 text-xs font-medium text-slate-600">{formatMoneyByLanguage(order.total, language)}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_inventory_title')}</h4><button onClick={() => setActiveTab('inventory')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentInventoryRisks.length > 0 ? recentInventoryRisks.map((item) => { const statusKey = getMaterialStockStatusKey(item); return <div key={item.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-800" title={item.name}>{item.name}</div><div className="mt-1 text-xs text-slate-500">{item.category || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{t(statusKey)}</span></div><div className="mt-2 text-xs font-medium text-slate-600">{t('label_qty')}: {item.quantity || 0}</div></div>; }) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_suppliers_title')}</h4><button onClick={() => setActiveTab('supplier_directory')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{supplierFollowUpEntries.length > 0 ? supplierFollowUpEntries.map((supplier) => <div key={supplier.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-800" title={supplier.publicProfile?.supplierName || '-'}>{supplier.publicProfile?.supplierName || '-'}</div><div className="mt-1 truncate text-xs text-slate-500" title={supplier.publicProfile?.productCategory || supplier.publicProfile?.serviceArea || '-'}>{supplier.publicProfile?.productCategory || supplier.publicProfile?.serviceArea || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${supplier.publicProfile?.status === 'inactive' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{supplier.publicProfile?.status === 'inactive' ? t('overview_supplier_status_inactive') : t('overview_supplier_status_active')}</span></div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
+                      <div className={`rounded-2xl border p-4 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]/92' : 'border-slate-200 bg-slate-50/70'}`}><div className="flex items-center justify-between gap-3"><h4 className={`font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_ops_documents_title')}</h4><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-400">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className={`rounded-xl border px-3.5 py-3 ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]' : 'border-slate-200 bg-white'}`}><div className={`text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`}>{doc.title}</div><div className={`mt-1 text-xs ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`}>{t('overview_by')} {doc.submittedBy} {Number(doc.amount) > 0 && `• ${formatMoneyByLanguage(doc.amount, language)}`}</div></div>) : <div className={`rounded-xl border px-3.5 py-5 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#16243A] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-white text-slate-500'}`}>{t('overview_ops_empty')}</div>}</div></div>
+                      <div className={`rounded-2xl border p-4 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]/92' : 'border-slate-200 bg-slate-50/70'}`}><div className="flex items-center justify-between gap-3"><h4 className={`font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_ops_procurement_title')}</h4><button onClick={() => setActiveTab('purchase_orders')} className="text-sm font-semibold text-blue-400">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPurchaseOrders.length > 0 ? recentPurchaseOrders.map((order) => <div key={order.id} className={`rounded-xl border px-3.5 py-3 ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]' : 'border-slate-200 bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className={`text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`}>{order.poNumber || '-'}</div><div className={`mt-1 truncate text-xs ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`} title={order.supplierName}>{order.supplierName}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${isKioskMode ? 'bg-[#1B2C46] text-[#B6C4DA]' : 'bg-slate-100 text-slate-600'}`}>{t(`order_status_${order.status}`)}</span></div><div className={`mt-2 text-xs font-medium ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-600'}`}>{formatMoneyByLanguage(order.total, language)}</div></div>) : <div className={`rounded-xl border px-3.5 py-5 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#16243A] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-white text-slate-500'}`}>{t('overview_ops_empty')}</div>}</div></div>
+                      <div className={`rounded-2xl border p-4 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]/92' : 'border-slate-200 bg-slate-50/70'}`}><div className="flex items-center justify-between gap-3"><h4 className={`font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_ops_inventory_title')}</h4><button onClick={() => setActiveTab('inventory')} className="text-sm font-semibold text-blue-400">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentInventoryRisks.length > 0 ? recentInventoryRisks.map((item) => { const statusKey = getMaterialStockStatusKey(item); return <div key={item.id} className={`rounded-xl border px-3.5 py-3 ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]' : 'border-slate-200 bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className={`truncate text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`} title={item.name}>{item.name}</div><div className={`mt-1 text-xs ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`}>{item.category || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusKey === 'stock_status_out' ? 'bg-red-500/15 text-red-200' : isKioskMode ? 'bg-amber-400/15 text-amber-200' : 'bg-amber-100 text-amber-700'}`}>{t(statusKey)}</span></div><div className={`mt-2 text-xs font-medium ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-600'}`}>{t('label_qty')}: {item.quantity || 0}</div></div>; }) : <div className={`rounded-xl border px-3.5 py-5 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#16243A] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-white text-slate-500'}`}>{t('overview_ops_empty')}</div>}</div></div>
+                      <div className={`rounded-2xl border p-4 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]/92' : 'border-slate-200 bg-slate-50/70'}`}><div className="flex items-center justify-between gap-3"><h4 className={`font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_ops_suppliers_title')}</h4><button onClick={() => setActiveTab('supplier_directory')} className="text-sm font-semibold text-blue-400">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{supplierFollowUpEntries.length > 0 ? supplierFollowUpEntries.map((supplier) => <div key={supplier.id} className={`rounded-xl border px-3.5 py-3 ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]' : 'border-slate-200 bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className={`truncate text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`} title={supplier.publicProfile?.supplierName || '-'}>{supplier.publicProfile?.supplierName || '-'}</div><div className={`mt-1 truncate text-xs ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`} title={supplier.publicProfile?.productCategory || supplier.publicProfile?.serviceArea || '-'}>{supplier.publicProfile?.productCategory || supplier.publicProfile?.serviceArea || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${supplier.publicProfile?.status === 'inactive' ? 'bg-amber-400/15 text-amber-200' : isKioskMode ? 'bg-emerald-400/15 text-emerald-200' : 'bg-emerald-100 text-emerald-700'}`}>{supplier.publicProfile?.status === 'inactive' ? t('overview_supplier_status_inactive') : t('overview_supplier_status_active')}</span></div></div>) : <div className={`rounded-xl border px-3.5 py-5 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#16243A] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-white text-slate-500'}`}>{t('overview_ops_empty')}</div>}</div></div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                  <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
-                    <div className="border-b border-slate-100 px-5 py-4"><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_support_title')}</div><h3 className="mt-1 text-lg font-bold text-slate-900">{t('overview_current_sites')}</h3></div><button onClick={() => setActiveTab('projects')} className="text-sm font-semibold text-blue-600">{t('dashboard_view_all')}</button></div></div>
-                    <div>{projectsList.slice(0, 4).map((p) => <ProjectRow key={p.id} name={p.name} progress={p.progress} status={p.status} workers={p.workers} hasAlert={p.status === 'delayed'} t={t} />)}{projectsList.length === 0 && <div className="p-6 text-center text-slate-500">{t('overview_no_sites')}</div>}</div>
+                  <div className={`overflow-hidden rounded-[1.5rem] border shadow-sm ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/94 shadow-[0_18px_48px_rgba(8,15,30,0.28)]' : 'border-slate-200 bg-white'}`}>
+                    <div className={`px-5 py-4 ${isKioskMode ? 'border-b border-[#2B4C7E]' : 'border-b border-slate-100'}`}><div className="flex items-center justify-between gap-3"><div><div className={`text-xs font-semibold uppercase tracking-[0.18em] ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-400'}`}>{t('overview_support_title')}</div><h3 className={`mt-1 text-lg font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_current_sites')}</h3></div><button onClick={() => setActiveTab('projects')} className="text-sm font-semibold text-blue-400">{t('dashboard_view_all')}</button></div></div>
+                    <div>{projectsList.slice(0, 4).map((p) => <ProjectRow key={p.id} name={p.name} progress={p.progress} status={p.status} workers={p.workers} hasAlert={p.status === 'delayed'} t={t} />)}{projectsList.length === 0 && <div className={`p-6 text-center ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`}>{t('overview_no_sites')}</div>}</div>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_ops_material_requests_title')}</div><h3 className="mt-1 text-lg font-bold text-slate-900">{t('overview_support_desc')}</h3></div><button onClick={() => setActiveTab('chat')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div>
-                    <div className="mt-4 space-y-3">{recentMaterialRequests.length > 0 ? recentMaterialRequests.map((request) => { const project = projectsList.find((item) => String(item.id) === String(request.projectId)); return <div key={request.id} className="rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{request.title || '-'}</div><div className="mt-1 text-xs text-slate-500">{project?.name || t('overview_daily_issues_site_fallback')}</div><div className="mt-2 text-xs font-medium text-slate-600">{t('overview_by')} {request.requestedBy || '-'}</div></div>; }) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div>
+                  <div className={`rounded-[1.5rem] border p-5 shadow-sm ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/94 shadow-[0_18px_48px_rgba(8,15,30,0.28)]' : 'border-slate-200 bg-white'}`}>
+                    <div className="flex items-center justify-between gap-3"><div><div className={`text-xs font-semibold uppercase tracking-[0.18em] ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-400'}`}>{t('overview_ops_material_requests_title')}</div><h3 className={`mt-1 text-lg font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_support_desc')}</h3></div><button onClick={() => setActiveTab('chat')} className="text-sm font-semibold text-blue-400">{t('overview_open_tab')}</button></div>
+                    <div className="mt-4 space-y-3">{recentMaterialRequests.length > 0 ? recentMaterialRequests.map((request) => { const project = projectsList.find((item) => String(item.id) === String(request.projectId)); return <div key={request.id} className={`rounded-xl border px-3.5 py-3 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]' : 'border-slate-200 bg-slate-50/80'}`}><div className={`text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`}>{request.title || '-'}</div><div className={`mt-1 text-xs ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`}>{project?.name || t('overview_daily_issues_site_fallback')}</div><div className={`mt-2 text-xs font-medium ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-600'}`}>{t('overview_by')} {request.requestedBy || '-'}</div></div>; }) : <div className={`rounded-xl border px-3.5 py-5 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#1B2C46] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-slate-50 text-slate-500'}`}>{t('overview_ops_empty')}</div>}</div>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_ops_recent_updates_title')}</div><h3 className="mt-1 text-lg font-bold text-slate-900">{t('overview_pending_docs')}</h3></div><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div>
-                    <div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className="rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{doc.title}</div><div className="mt-1 text-xs text-slate-500">{t('overview_by')} {doc.submittedBy}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_no_pending_docs')}</div>}</div>
+                  <div className={`rounded-[1.5rem] border p-5 shadow-sm ${isKioskMode ? 'border-[#2B4C7E] bg-[#16243A]/94 shadow-[0_18px_48px_rgba(8,15,30,0.28)]' : 'border-slate-200 bg-white'}`}>
+                    <div className="flex items-center justify-between gap-3"><div><div className={`text-xs font-semibold uppercase tracking-[0.18em] ${isKioskMode ? 'text-[#60A5FA]' : 'text-slate-400'}`}>{t('overview_ops_recent_updates_title')}</div><h3 className={`mt-1 text-lg font-bold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-900'}`}>{t('overview_pending_docs')}</h3></div><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-400">{t('overview_open_tab')}</button></div>
+                    <div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className={`rounded-xl border px-3.5 py-3 ${isKioskMode ? 'border-[#2B4C7E] bg-[#1B2C46]' : 'border-slate-200 bg-slate-50/80'}`}><div className={`text-sm font-semibold ${isKioskMode ? 'text-[#EAF2FF]' : 'text-slate-800'}`}>{doc.title}</div><div className={`mt-1 text-xs ${isKioskMode ? 'text-[#B6C4DA]' : 'text-slate-500'}`}>{t('overview_by')} {doc.submittedBy}</div></div>) : <div className={`rounded-xl border px-3.5 py-5 text-center text-sm ${isKioskMode ? 'border-dashed border-[#2B4C7E] bg-[#1B2C46] text-[#B6C4DA]' : 'border-dashed border-slate-300 bg-slate-50 text-slate-500'}`}>{t('overview_no_pending_docs')}</div>}</div>
                   </div>
                 </div>
               </section>
