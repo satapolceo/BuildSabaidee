@@ -17,6 +17,16 @@ import {
 import WorkerAppV2 from './WorkerAppV2';
 import WorkerMobileTestPage from './WorkerMobileTestPage';
 import { buildChatAnalytics, buildChatConversations } from './chatAnalytics';
+import {
+  ADMIN_AI_PROVIDER_DEFAULTS,
+  DEFAULT_ADMIN_AI_SYSTEM_PROMPT,
+  buildAdminAiRequestPreview,
+  getAdminAiConfig,
+  isAdminAiReady,
+  normalizeAdminAiSettings,
+  sendAdminAiMessage,
+  testAdminAiConnection,
+} from './services/adminAiClient';
 import { 
   CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
   BarChart3, Users, FileText, MessageSquare, Clock, 
@@ -241,6 +251,18 @@ const translations = {
     ai_chat_not_ready_detail: 'AI chat ຈະເຮັດວຽກເມື່ອເປີດ enabled, ເລືອກ provider, ກຳນົດ model ແລະ ໃສ່ API key ໃນຝັ່ງ Admin.',
     ai_chat_demo_reply_intro: 'ລະບົບໄດ້ກຽມ request ສຳລັບ AI ໄວ້ແລ້ວ.',
     ai_chat_demo_reply_followup: 'ສຳລັບຄຳຖາມນີ້ AI ສາມາດຊ່ວຍຈັດໂຄງສ້າງຄຳຕອບ, ຮ່າງຂັ້ນຕອນ, ຄຳນວນເບື້ອງຕົ້ນ ແລະ ສະຫຼຸບປະເດັນໃຫ້.',
+    ai_chat_test_mode_notice: 'ໂໝດທົດສອບຝັ່ງ browser ສຳລັບ admin. ເກັບ key ໄວ້ໃນ browser ນີ້ເທົ່ານັ້ນ.',
+    ai_chat_prod_notice: 'ສຳລັບ production ຄວນຍ້າຍໄປໃຊ້ backend proxy ໃນຂັ້ນຕໍ່ໄປ.',
+    ai_chat_prompt_updates: 'ສະຫຼຸບອັບເດດມື້ນີ້',
+    ai_chat_prompt_owner: 'ຮ່າງອັບເດດຫາເຈົ້າຂອງ',
+    ai_chat_prompt_procurement: 'ສະຫຼຸບບັນຫາຈັດຊື້',
+    ai_chat_prompt_tasks: 'ປ່ຽນບັນທຶກເປັນ task list',
+    ai_chat_copy_response: 'ຄັດລອກຄຳຕອບ',
+    ai_chat_copied: 'ຄັດລອກແລ້ວ',
+    ai_chat_reset: 'ລ້າງແຊັດ',
+    ai_chat_error_prefix: 'AI error',
+    ai_chat_test_mode_badge: 'Admin Test Mode',
+    ai_chat_missing_response: 'AI ບໍ່ສົ່ງຂໍ້ຄວາມກັບຄືນ.',
     dashboard_main_menu: 'ເມນູຫຼັກ', dashboard_seed: 'ກົດທີ່ນີ້ເພື່ອຈຳລອງຂໍ້ມູນຕົວຢ່າງເຂົ້າ Firebase', dashboard_view_all: 'ເບິ່ງທັງໝົດ', dashboard_edit: 'ແກ້ໄຂ',
     weather_loading: 'ກຳລັງກວດຈັບຕຳແໜ່ງ ແລະ ດຶງຂໍ້ມູນອາກາດ...', weather_permission_denied: 'ບໍ່ໄດ້ອະນຸຍາດຕຳແໜ່ງ ຈຶ່ງບໍ່ສາມາດສະແດງອາກາດຈິງໄດ້', weather_unavailable: 'ດຶງຂໍ້ມູນອາກາດບໍ່ສຳເລັດ ກະລຸນາລອງໃໝ່', weather_not_supported: 'ອຸປະກອນນີ້ບໍ່ຮອງຮັບການລະບຸຕຳແໜ່ງ', weather_now: 'ຕອນນີ້', weather_tomorrow: 'ມື້ອື່ນ', weather_rain_chance: 'ໂອກາດຝົນ', weather_at_location: 'ຕຳແໜ່ງປັດຈຸບັນ', weather_clear: 'ແຈ້ງໃສ', weather_mainly_clear: 'ແຈ້ງສ່ວນໃຫຍ່', weather_partly_cloudy: 'ມີເມກບາງສ່ວນ', weather_overcast: 'ຟ້າປິດ', weather_fog: 'ໝອກ', weather_drizzle: 'ຝົນຝອຍ', weather_rain: 'ຝົນຕົກ', weather_snow: 'ຫິມະ', weather_thunderstorm: 'ພາຍຸຝົນຟ້າຄະນອງ', firebase_required: 'ກະລຸນາຕັ້ງຄ່າ Firebase Config ກ່ອນ', seed_success: 'ເພີ່ມຂໍ້ມູນຕົວຢ່າງສຳເລັດ', seed_error: 'ເກີດຂໍ້ຜິດພາດ: ກະລຸນາຕັ້ງ Firestore Rule ເປັນ Test Mode', boq_import_success: 'ນຳເຂົ້າຂໍ້ມູນ BOQ ສຳເລັດ', receipt_scan_success: 'ສະແກນ ແລະ ບັນທຶກບິນສຳເລັດ',
     overview_stat_active_sites: 'ໄຊຕ໌ງານທີ່ກຳລັງດຳເນີນການ', overview_stat_attendance: 'ພະນັກງານມາເຮັດວຽກມື້ນີ້', overview_stat_sos: 'ບັນຫາແຈ້ງເຕືອນ (SOS)', overview_stat_requests: 'ຄຳຂໍເບີກວັດສະດຸໃໝ່',
@@ -367,6 +389,18 @@ const translations = {
     ai_chat_not_ready_detail: 'AI chat จะทำงานเมื่อเปิด enabled, เลือก provider, กำหนด model และใส่ API key ในฝั่ง Admin ให้ครบ',
     ai_chat_demo_reply_intro: 'ระบบได้เตรียม request สำหรับ AI ไว้แล้ว',
     ai_chat_demo_reply_followup: 'สำหรับคำถามนี้ AI สามารถช่วยจัดโครงคำตอบ ร่างขั้นตอน คำนวณเบื้องต้น และสรุปประเด็นสำคัญให้ได้',
+    ai_chat_test_mode_notice: 'โหมดทดสอบบนเบราว์เซอร์สำหรับแอดมินเท่านั้น และเก็บ key ไว้ในเครื่องนี้เท่านั้น',
+    ai_chat_prod_notice: 'งาน production ควรย้ายไปใช้ backend proxy ภายหลัง',
+    ai_chat_prompt_updates: 'สรุปอัปเดตวันนี้',
+    ai_chat_prompt_owner: 'ร่างอัปเดตถึงเจ้าของ',
+    ai_chat_prompt_procurement: 'สรุปปัญหาจัดซื้อ',
+    ai_chat_prompt_tasks: 'เปลี่ยนโน้ตเป็น task list',
+    ai_chat_copy_response: 'คัดลอกคำตอบ',
+    ai_chat_copied: 'คัดลอกแล้ว',
+    ai_chat_reset: 'ล้างแชท',
+    ai_chat_error_prefix: 'ข้อผิดพลาด AI',
+    ai_chat_test_mode_badge: 'Admin Test Mode',
+    ai_chat_missing_response: 'AI ไม่ได้ส่งข้อความตอบกลับ',
     dashboard_main_menu: 'เมนูหลัก', dashboard_seed: 'คลิกที่นี่เพื่อจำลองข้อมูลตัวอย่าง (Seed Mock Data) ลงฐานข้อมูล Firebase', dashboard_view_all: 'ดูทั้งหมด', dashboard_edit: 'แก้ไข',
     weather_loading: 'กำลังตรวจตำแหน่งและดึงข้อมูลอากาศจริง...', weather_permission_denied: 'ไม่ได้รับสิทธิ์ตำแหน่ง จึงไม่สามารถแสดงสภาพอากาศจริงได้', weather_unavailable: 'ดึงข้อมูลอากาศไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', weather_not_supported: 'อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง', weather_now: 'ตอนนี้', weather_tomorrow: 'พรุ่งนี้', weather_rain_chance: 'โอกาสฝน', weather_at_location: 'ตำแหน่งปัจจุบัน', weather_clear: 'ท้องฟ้าแจ่มใส', weather_mainly_clear: 'ค่อนข้างแจ่มใส', weather_partly_cloudy: 'มีเมฆบางส่วน', weather_overcast: 'เมฆมาก', weather_fog: 'มีหมอก', weather_drizzle: 'ฝนปรอย', weather_rain: 'ฝนตก', weather_snow: 'หิมะ', weather_thunderstorm: 'พายุฝนฟ้าคะนอง', firebase_required: 'โปรดใส่ Firebase Config ก่อน', seed_success: 'เพิ่มข้อมูลตัวอย่างสำเร็จ', seed_error: 'เกิดข้อผิดพลาด: โปรดตั้งค่า Firestore Rule เป็น Test Mode', boq_import_success: 'นำเข้าข้อมูล BOQ สำเร็จ', receipt_scan_success: 'สแกนและบันทึกบิลสำเร็จ',
     overview_stat_active_sites: 'ไซต์งานกำลังดำเนินการ', overview_stat_attendance: 'พนักงานมาทำงานวันนี้', overview_stat_sos: 'ปัญหาแจ้งเตือน (SOS)', overview_stat_requests: 'คำขอเบิกวัสดุใหม่',
@@ -493,6 +527,18 @@ const translations = {
     ai_chat_not_ready_detail: 'AI chat becomes available after enabling it, selecting a provider, setting a model, and adding the matching API key in Admin Settings.',
     ai_chat_demo_reply_intro: 'The app has already prepared the AI request structure.',
     ai_chat_demo_reply_followup: 'For this prompt, AI can structure an answer, draft the next steps, estimate basic figures, and summarize the key points.',
+    ai_chat_test_mode_notice: 'Browser-stored admin test mode only. The API key stays in this browser.',
+    ai_chat_prod_notice: 'Production use should move to a backend proxy later.',
+    ai_chat_prompt_updates: 'summarize todays updates',
+    ai_chat_prompt_owner: 'draft owner update',
+    ai_chat_prompt_procurement: 'summarize procurement issues',
+    ai_chat_prompt_tasks: 'turn notes into task list',
+    ai_chat_copy_response: 'Copy response',
+    ai_chat_copied: 'Copied',
+    ai_chat_reset: 'Reset chat',
+    ai_chat_error_prefix: 'AI error',
+    ai_chat_test_mode_badge: 'Admin Test Mode',
+    ai_chat_missing_response: 'The AI provider returned no response text.',
     dashboard_main_menu: 'Main Menu', dashboard_seed: 'Click here to seed sample data into Firebase', dashboard_view_all: 'View All', dashboard_edit: 'Edit',
     weather_loading: 'Detecting your location and loading live weather...', weather_permission_denied: 'Location access was denied, so live weather could not be loaded', weather_unavailable: 'Weather data could not be loaded. Please try again.', weather_not_supported: 'This device does not support geolocation', weather_now: 'Now', weather_tomorrow: 'Tomorrow', weather_rain_chance: 'Rain chance', weather_at_location: 'Current location', weather_clear: 'Clear', weather_mainly_clear: 'Mostly clear', weather_partly_cloudy: 'Partly cloudy', weather_overcast: 'Overcast', weather_fog: 'Foggy', weather_drizzle: 'Drizzle', weather_rain: 'Rain', weather_snow: 'Snow', weather_thunderstorm: 'Thunderstorm', firebase_required: 'Please configure Firebase first', seed_success: 'Sample data added successfully', seed_error: 'An error occurred: please set Firestore Rules to Test Mode', boq_import_success: 'BOQ import completed', receipt_scan_success: 'Receipt scanned and saved successfully',
     overview_stat_active_sites: 'Active Sites', overview_stat_attendance: 'Workers Present Today', overview_stat_sos: 'SOS Alerts', overview_stat_requests: 'New Material Requests',
@@ -1431,13 +1477,17 @@ Object.assign(translations.LA, {
   admin_ai_system_prompt: 'System Prompt',
   admin_ai_openrouter_key: 'OpenRouter API Key',
   admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_api_key: 'API Key',
+  admin_ai_site_name: 'Site / App Name (optional)',
   admin_ai_active_key_hint: 'ລະບົບຈະໃຊ້ key ຕາມ provider ທີ່ເລືອກ',
   admin_ai_status_ready: 'AI config ພ້ອມໃຊ້ງານ',
   admin_ai_status_missing: 'AI config ຍັງບໍ່ຄົບ',
   admin_ai_provider_openrouter: 'OpenRouter',
   admin_ai_provider_openai: 'OpenAI GPT',
+  admin_ai_provider_custom_openai: 'OpenAI-compatible Custom Endpoint',
   admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
   admin_ai_placeholder_openai: 'OPENAI_API_KEY',
+  admin_ai_placeholder_api_key: 'sk-...',
   admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
   admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
@@ -1524,6 +1574,14 @@ Object.assign(translations.LA, {
   ai_dataset_candidates_hint: 'ເຄສທີ່ຄະແນນດີ ຫຼື admin ເລືອກໄວ້ ສາມາດນຳໄປກຽມ dataset ຕໍ່ໄດ້',
   ai_readiness_ready: 'ພ້ອມຕໍ່ dataset',
   ai_readiness_in_progress: 'ກຳລັງກວດທົບ',
+  admin_ai_placeholder_site_name: 'BuildSabaidee Admin Test',
+  admin_ai_browser_notice_title: 'Admin browser test mode',
+  admin_ai_browser_notice_desc: 'ການຕັ້ງຄ່າ AI ຈະຖືກບັນທຶກໄວ້ໃນ localStorage ຂອງ browser ນີ້ເທົ່ານັ້ນ.',
+  admin_ai_browser_notice_prod: 'ສຳລັບ production ຄວນຍ້າຍໄປໃຊ້ backend proxy ແທນການເກັບ key ໃນ browser.',
+  admin_ai_connection_test: 'ທົດສອບການເຊື່ອມຕໍ່',
+  admin_ai_connection_testing: 'ກຳລັງທົດສອບ...',
+  admin_ai_connection_success: 'ເຊື່ອມຕໍ່ສຳເລັດ',
+  admin_ai_connection_failed: 'ທົດສອບບໍ່ຜ່ານ',
   admin_settings_reuse_notice: 'ຄ່າຊຸດນີ້ຖືກກຽມໄວ້ເພື່ອ reuse ຮ່ວມກັບ Supplier Agreements, Commission Billing, Settlements ແລະ future print/export',
   admin_settings_saved: 'ບັນທຶກຄ່າຕັ້ງ admin ແລ້ວ',
   admin_settings_section_defaults: 'Default settings',
@@ -1851,13 +1909,17 @@ Object.assign(translations.TH, {
   admin_ai_system_prompt: 'System Prompt',
   admin_ai_openrouter_key: 'OpenRouter API Key',
   admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_api_key: 'API Key',
+  admin_ai_site_name: 'Site / App Name (optional)',
   admin_ai_active_key_hint: 'ระบบจะเลือกใช้ key ตาม provider ที่เลือก',
   admin_ai_status_ready: 'AI config พร้อมใช้งาน',
   admin_ai_status_missing: 'AI config ยังไม่ครบ',
   admin_ai_provider_openrouter: 'OpenRouter',
   admin_ai_provider_openai: 'OpenAI GPT',
+  admin_ai_provider_custom_openai: 'OpenAI-compatible Custom Endpoint',
   admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
   admin_ai_placeholder_openai: 'OPENAI_API_KEY',
+  admin_ai_placeholder_api_key: 'sk-...',
   admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
   admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
@@ -1944,6 +2006,14 @@ Object.assign(translations.TH, {
   ai_dataset_candidates_hint: 'เคสที่คะแนนดีหรือ admin เลือกไว้ สามารถนำไปเตรียม dataset ต่อได้',
   ai_readiness_ready: 'พร้อมต่อ dataset',
   ai_readiness_in_progress: 'กำลังกวดทบทวน',
+  admin_ai_placeholder_site_name: 'BuildSabaidee Admin Test',
+  admin_ai_browser_notice_title: 'Admin browser test mode',
+  admin_ai_browser_notice_desc: 'การตั้งค่า AI จะถูกเก็บใน localStorage ของเบราว์เซอร์นี้เท่านั้น',
+  admin_ai_browser_notice_prod: 'สำหรับ production ควรเปลี่ยนไปใช้ backend proxy แทนการเก็บ key ใน browser',
+  admin_ai_connection_test: 'ทดสอบการเชื่อมต่อ',
+  admin_ai_connection_testing: 'กำลังทดสอบ...',
+  admin_ai_connection_success: 'เชื่อมต่อสำเร็จ',
+  admin_ai_connection_failed: 'ทดสอบไม่ผ่าน',
   admin_settings_reuse_notice: 'ค่าชุดนี้ถูกเตรียมไว้เพื่อ reuse ร่วมกับ Supplier Agreements, Commission Billing, Settlements และ future print/export',
   admin_settings_saved: 'บันทึกค่า admin settings แล้ว',
   admin_settings_section_defaults: 'Default settings',
@@ -2271,13 +2341,17 @@ Object.assign(translations.EN, {
   admin_ai_system_prompt: 'System Prompt',
   admin_ai_openrouter_key: 'OpenRouter API Key',
   admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_api_key: 'API Key',
+  admin_ai_site_name: 'Site / App Name (optional)',
   admin_ai_active_key_hint: 'The active key follows the selected provider.',
   admin_ai_status_ready: 'AI config is ready',
   admin_ai_status_missing: 'AI config is incomplete',
   admin_ai_provider_openrouter: 'OpenRouter',
   admin_ai_provider_openai: 'OpenAI GPT',
+  admin_ai_provider_custom_openai: 'OpenAI-compatible Custom Endpoint',
   admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
   admin_ai_placeholder_openai: 'OPENAI_API_KEY',
+  admin_ai_placeholder_api_key: 'sk-...',
   admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
   admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
@@ -2364,6 +2438,14 @@ Object.assign(translations.EN, {
   ai_dataset_candidates_hint: 'High-quality examples or admin-selected conversations can be prepared as dataset candidates next.',
   ai_readiness_ready: 'Ready for dataset',
   ai_readiness_in_progress: 'Review in progress',
+  admin_ai_placeholder_site_name: 'BuildSabaidee Admin Test',
+  admin_ai_browser_notice_title: 'Admin browser test mode',
+  admin_ai_browser_notice_desc: 'AI settings are stored in this browser localStorage only.',
+  admin_ai_browser_notice_prod: 'Production should use a backend proxy instead of storing API keys in the browser.',
+  admin_ai_connection_test: 'Test connection',
+  admin_ai_connection_testing: 'Testing...',
+  admin_ai_connection_success: 'Connection successful',
+  admin_ai_connection_failed: 'Connection failed',
   admin_settings_reuse_notice: 'These settings are prepared to be reused by Supplier Agreements, Commission Billing, Settlements, and future print/export flows.',
   admin_settings_saved: 'Admin settings saved',
   admin_settings_section_defaults: 'Default Settings',
@@ -3336,17 +3418,6 @@ const PRICING_PACKAGE_CURRENCY_ORDER = {
   EN: ['USD', 'THB', 'LAK'],
 };
 
-const AI_PROVIDER_DEFAULTS = {
-  openrouter: {
-    baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'openai/gpt-4.1-mini',
-  },
-  openai: {
-    baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4.1-mini',
-  },
-};
-
 const COMPANY_PROFILE_STORAGE_KEY = 'buildsabaidee_company_profile';
 const QUOTATION_DRAFT_STORAGE_KEY = 'buildsabaidee_quotation_draft';
 const AGREEMENT_DRAFT_STORAGE_KEY = 'buildsabaidee_agreement_draft';
@@ -3442,9 +3513,11 @@ function createDefaultAdminPlatformSettings() {
     internalAdminNotes: '',
     aiEnabled: false,
     aiProvider: 'openrouter',
-    aiModel: AI_PROVIDER_DEFAULTS.openrouter.model,
-    aiBaseUrl: AI_PROVIDER_DEFAULTS.openrouter.baseUrl,
-    aiSystemPrompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+    aiModel: ADMIN_AI_PROVIDER_DEFAULTS.openrouter.model,
+    aiBaseUrl: ADMIN_AI_PROVIDER_DEFAULTS.openrouter.baseUrl,
+    aiApiKey: '',
+    aiSiteName: 'BuildSabaidee Admin Test',
+    aiSystemPrompt: DEFAULT_ADMIN_AI_SYSTEM_PROMPT,
     openRouterApiKey: '',
     openAIApiKey: '',
   };
@@ -3767,7 +3840,7 @@ function getLocalizedPricingPackageContent(entry, language = 'EN') {
 
 function normalizeAdminPlatformSettings(settings) {
   const base = createDefaultAdminPlatformSettings();
-  return {
+  const normalized = {
     ...base,
     ...(settings || {}),
     defaultCommissionRate: Number(settings?.defaultCommissionRate ?? base.defaultCommissionRate),
@@ -3785,14 +3858,27 @@ function normalizeAdminPlatformSettings(settings) {
     platformBillingPhone: settings?.platformBillingPhone || '',
     internalAdminNotes: settings?.internalAdminNotes || '',
     aiEnabled: Boolean(settings?.aiEnabled),
-    aiProvider: ['openrouter', 'openai'].includes(String(settings?.aiProvider || '').toLowerCase())
-      ? String(settings.aiProvider).toLowerCase()
-      : base.aiProvider,
-    aiModel: String(settings?.aiModel || base.aiModel).trim() || base.aiModel,
-    aiBaseUrl: String(settings?.aiBaseUrl || base.aiBaseUrl).trim() || base.aiBaseUrl,
-    aiSystemPrompt: String(settings?.aiSystemPrompt || base.aiSystemPrompt).trim() || base.aiSystemPrompt,
     openRouterApiKey: String(settings?.openRouterApiKey || '').trim(),
     openAIApiKey: String(settings?.openAIApiKey || '').trim(),
+  };
+  const aiSettings = normalizeAdminAiSettings({
+    ...normalized,
+    aiProvider: settings?.aiProvider,
+    aiModel: settings?.aiModel,
+    aiBaseUrl: settings?.aiBaseUrl,
+    aiApiKey: settings?.aiApiKey,
+    aiSiteName: settings?.aiSiteName,
+    aiSystemPrompt: settings?.aiSystemPrompt,
+  });
+
+  return {
+    ...normalized,
+    aiProvider: aiSettings.aiProvider,
+    aiModel: aiSettings.aiModel,
+    aiBaseUrl: aiSettings.aiBaseUrl,
+    aiApiKey: aiSettings.aiApiKey,
+    aiSiteName: aiSettings.aiSiteName,
+    aiSystemPrompt: aiSettings.aiSystemPrompt,
   };
 }
 
@@ -5153,33 +5239,15 @@ function tMonthlyLabel(language) {
 }
 
 function getAiProviderConfig(settings) {
-  const normalizedSettings = normalizeAdminPlatformSettings(settings);
-  const provider = normalizedSettings.aiProvider === 'openai' ? 'openai' : 'openrouter';
-  return {
-    provider,
-    enabled: normalizedSettings.aiEnabled,
-    model: normalizedSettings.aiModel || AI_PROVIDER_DEFAULTS[provider].model,
-    baseUrl: normalizedSettings.aiBaseUrl || AI_PROVIDER_DEFAULTS[provider].baseUrl,
-    systemPrompt: normalizedSettings.aiSystemPrompt || createDefaultAdminPlatformSettings().aiSystemPrompt,
-    apiKey: provider === 'openai' ? normalizedSettings.openAIApiKey : normalizedSettings.openRouterApiKey,
-  };
+  return getAdminAiConfig(normalizeAdminPlatformSettings(settings));
 }
 
 function isAiChatReady(settings) {
-  const config = getAiProviderConfig(settings);
-  return Boolean(config.enabled && config.apiKey && config.model);
+  return isAdminAiReady(normalizeAdminPlatformSettings(settings));
 }
 
 function buildAiChatRequestPreview(settings, messages) {
-  const config = getAiProviderConfig(settings);
-  return {
-    provider: config.provider,
-    endpoint: `${String(config.baseUrl || '').replace(/\/$/, '')}/chat/completions`,
-    model: config.model,
-    systemPrompt: config.systemPrompt,
-    hasApiKey: Boolean(config.apiKey),
-    messages,
-  };
+  return buildAdminAiRequestPreview(normalizeAdminPlatformSettings(settings), messages);
 }
 
 function formatDateByLanguage(value, language) {
@@ -6354,12 +6422,14 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
   const [isOpen, setIsOpen] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [copyStatus, setCopyStatus] = useState(false);
   const config = getAiProviderConfig(adminPlatformSettings);
   const aiReady = isAiChatReady(adminPlatformSettings);
   const welcomeText = aiReady ? t('ai_chat_welcome_ready') : t('ai_chat_welcome_fallback');
   const [messages, setMessages] = useState(() => ([
     { id: 'welcome', role: 'assistant', text: welcomeText },
   ]));
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -6368,6 +6438,12 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
     });
   }, [welcomeText]);
 
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
+  }, [messages, isSending]);
+
   const capabilityBadges = [
     t('ai_chat_capability_questions'),
     t('ai_chat_capability_drafts'),
@@ -6375,7 +6451,39 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
     t('ai_chat_capability_summary'),
   ];
 
-  const handleSend = () => {
+  const quickPrompts = [
+    t('ai_chat_prompt_updates'),
+    t('ai_chat_prompt_owner'),
+    t('ai_chat_prompt_procurement'),
+    t('ai_chat_prompt_tasks'),
+  ];
+
+  const latestAssistantMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === 'assistant' && message.id !== 'welcome' && String(message.text || '').trim());
+
+  const providerLabel = config.provider === 'custom_openai'
+    ? t('admin_ai_provider_custom_openai')
+    : t('admin_ai_provider_openrouter');
+
+  const handleResetChat = () => {
+    setMessages([{ id: 'welcome', role: 'assistant', text: welcomeText }]);
+    setChatInput('');
+    setCopyStatus(false);
+  };
+
+  const handleCopyResponse = async () => {
+    if (!latestAssistantMessage?.text) return;
+    try {
+      await navigator.clipboard.writeText(latestAssistantMessage.text);
+      setCopyStatus(true);
+      window.setTimeout(() => setCopyStatus(false), 1800);
+    } catch {
+      setCopyStatus(false);
+    }
+  };
+
+  const handleSend = async () => {
     const trimmedInput = String(chatInput || '').trim();
     if (!trimmedInput || isSending) return;
 
@@ -6401,22 +6509,41 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
     }
 
     setIsSending(true);
-    const requestPreview = buildAiChatRequestPreview(adminPlatformSettings, nextMessages.map((message) => ({
-      role: message.role === 'assistant' ? 'assistant' : 'user',
-      content: message.text,
-    })));
+    setCopyStatus(false);
 
-    window.setTimeout(() => {
+    try {
+      const result = await sendAdminAiMessage({
+        settings: adminPlatformSettings,
+        messages: nextMessages
+          .filter((message) => message.id !== 'welcome')
+          .map((message) => ({
+            role: message.role === 'assistant' ? 'assistant' : 'user',
+            content: message.text,
+          })),
+      });
+
       setMessages((prev) => [
         ...prev,
         {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          text: `${t('ai_chat_demo_reply_intro')}\n${t('ai_chat_demo_reply_followup')}\n${t('ai_chat_powered_by')}: ${requestPreview.provider === 'openai' ? 'OpenAI GPT' : 'OpenRouter'} | ${requestPreview.model}`,
+          text: result.text || t('ai_chat_missing_response'),
         },
       ]);
+    } catch (error) {
+      const fallbackPreview = buildAiChatRequestPreview(adminPlatformSettings, []);
+      const errorMessage = String(error?.message || '').trim() || `${t('ai_chat_error_prefix')}.`;
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          text: `${t('ai_chat_error_prefix')}: ${errorMessage}\n${t('ai_chat_powered_by')}: ${fallbackPreview.providerLabel} • ${fallbackPreview.model}`,
+        },
+      ]);
+    } finally {
       setIsSending(false);
-    }, 450);
+    }
   };
 
   return (
@@ -6441,7 +6568,7 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
                 <div className="min-w-0">
                   <div className="font-semibold">{t('ai_chat_title')}</div>
                   <div className="mt-1 text-xs text-blue-100">
-                    {aiReady ? t('ai_chat_status_enabled') : t('ai_chat_status_disabled')} • {config.provider === 'openai' ? 'OpenAI GPT' : 'OpenRouter'}
+                    {aiReady ? t('ai_chat_status_enabled') : t('ai_chat_status_disabled')} • {providerLabel}
                   </div>
                 </div>
               </div>
@@ -6458,7 +6585,28 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
             </div>
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+          <div className="border-b border-slate-200 bg-amber-50/70 px-4 py-3 text-xs leading-5 text-amber-900">
+            <div className="font-semibold">{t('ai_chat_test_mode_badge')}</div>
+            <div>{t('ai_chat_test_mode_notice')}</div>
+            <div className="mt-1 text-amber-800">{t('ai_chat_prod_notice')}</div>
+          </div>
+
+          <div className="border-b border-slate-200 px-4 py-3">
+            <div className="flex flex-wrap gap-2">
+              {quickPrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setChatInput(prompt)}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div ref={messagesContainerRef} className="max-h-[52vh] overflow-y-auto px-4 py-4">
             {messages.map((message) => (
               <div key={message.id} className={`mb-3 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
@@ -6477,7 +6625,25 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
 
           <div className="border-t border-slate-200 px-4 py-4">
             <div className="mb-3 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              {t('ai_chat_powered_by')}: {config.provider === 'openai' ? 'OpenAI GPT' : 'OpenRouter'} • {config.model}
+              {t('ai_chat_powered_by')}: {providerLabel} • {config.model}
+            </div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleCopyResponse}
+                disabled={!latestAssistantMessage?.text || isSending}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+              >
+                {copyStatus ? t('ai_chat_copied') : t('ai_chat_copy_response')}
+              </button>
+              <button
+                type="button"
+                onClick={handleResetChat}
+                disabled={isSending}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+              >
+                {t('ai_chat_reset')}
+              </button>
             </div>
             <div className="flex items-end gap-2">
               <textarea
@@ -6486,6 +6652,7 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
                 placeholder={t('ai_chat_input_placeholder')}
                 className="min-h-[52px] flex-1 resize-none rounded-2xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 rows={2}
+                disabled={isSending}
               />
               <button
                 type="button"
@@ -7626,6 +7793,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   });
   const [adminSettingsForm, setAdminSettingsForm] = useState(normalizeAdminPlatformSettings(adminPlatformSettings));
   const [adminSettingsSaved, setAdminSettingsSaved] = useState(false);
+  const [aiConnectionResult, setAiConnectionResult] = useState({ status: 'idle', message: '' });
   const [pricingSearchQuery, setPricingSearchQuery] = useState('');
   const [pricingStatusFilter, setPricingStatusFilter] = useState('all');
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
@@ -9158,11 +9326,27 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       [field]: ['defaultCommissionRate', 'defaultPaymentDueDays'].includes(field) ? Number(value || 0) : value,
     }));
     setAdminSettingsSaved(false);
+    setAiConnectionResult({ status: 'idle', message: '' });
   };
   const handleSaveAdminSettings = () => {
     setAdminPlatformSettings(normalizeAdminPlatformSettings(adminSettingsForm));
     setAdminSettingsSaved(true);
     window.setTimeout(() => setAdminSettingsSaved(false), 2200);
+  };
+  const handleTestAdminAiSettings = async () => {
+    setAiConnectionResult({ status: 'loading', message: '' });
+    try {
+      const result = await testAdminAiConnection({ settings: adminSettingsForm });
+      setAiConnectionResult({
+        status: 'success',
+        message: `${t('admin_ai_connection_success')}: ${result.text}`,
+      });
+    } catch (error) {
+      setAiConnectionResult({
+        status: 'error',
+        message: `${t('admin_ai_connection_failed')}: ${String(error?.message || 'Unknown error')}`,
+      });
+    }
   };
   const handlePurchaseOrderChange = (field, value) => {
     setPurchaseOrderForm((prev) => ({ ...prev, [field]: value }));
@@ -15628,9 +15812,14 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                         </p>
                       </div>
                       <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        <div className="font-semibold text-slate-800">{aiProviderConfig.provider === 'openai' ? t('admin_ai_provider_openai') : t('admin_ai_provider_openrouter')}</div>
+                        <div className="font-semibold text-slate-800">{aiProviderConfig.provider === 'custom_openai' ? t('admin_ai_provider_custom_openai') : t('admin_ai_provider_openrouter')}</div>
                         <div className="mt-1 text-xs">{aiProviderConfig.model}</div>
                       </div>
+                    </div>
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                      <div className="font-semibold">{t('admin_ai_browser_notice_title')}</div>
+                      <div className="mt-1">{t('admin_ai_browser_notice_desc')}</div>
+                      <div className="mt-2 text-amber-800">{t('admin_ai_browser_notice_prod')}</div>
                     </div>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2">
@@ -15649,13 +15838,13 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                           onChange={(e) => {
                             const provider = e.target.value;
                             updateAdminSettingsField('aiProvider', provider);
-                            updateAdminSettingsField('aiBaseUrl', AI_PROVIDER_DEFAULTS[provider]?.baseUrl || '');
-                            updateAdminSettingsField('aiModel', AI_PROVIDER_DEFAULTS[provider]?.model || '');
+                            updateAdminSettingsField('aiBaseUrl', ADMIN_AI_PROVIDER_DEFAULTS[provider]?.baseUrl || '');
+                            updateAdminSettingsField('aiModel', ADMIN_AI_PROVIDER_DEFAULTS[provider]?.model || '');
                           }}
                           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                         >
                           <option value="openrouter">{t('admin_ai_provider_openrouter')}</option>
-                          <option value="openai">{t('admin_ai_provider_openai')}</option>
+                          <option value="custom_openai">{t('admin_ai_provider_custom_openai')}</option>
                         </select>
                       </div>
                       <div>
@@ -15667,12 +15856,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                         <input type="text" value={adminSettingsForm.aiBaseUrl} onChange={(e) => updateAdminSettingsField('aiBaseUrl', e.target.value)} placeholder={t('admin_ai_placeholder_base_url')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_openrouter_key')}</label>
-                        <input type="password" value={adminSettingsForm.openRouterApiKey} onChange={(e) => updateAdminSettingsField('openRouterApiKey', e.target.value)} placeholder={t('admin_ai_placeholder_openrouter')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_api_key')}</label>
+                        <input type="password" value={adminSettingsForm.aiApiKey} onChange={(e) => updateAdminSettingsField('aiApiKey', e.target.value)} placeholder={t('admin_ai_placeholder_api_key')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_openai_key')}</label>
-                        <input type="password" value={adminSettingsForm.openAIApiKey} onChange={(e) => updateAdminSettingsField('openAIApiKey', e.target.value)} placeholder={t('admin_ai_placeholder_openai')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_site_name')}</label>
+                        <input type="text" value={adminSettingsForm.aiSiteName} onChange={(e) => updateAdminSettingsField('aiSiteName', e.target.value)} placeholder={t('admin_ai_placeholder_site_name')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                       </div>
                       <div className="md:col-span-2">
                         <div className="mb-1 flex items-center justify-between gap-3">
@@ -15680,6 +15869,21 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                           <span className="text-xs text-slate-500">{t('admin_ai_active_key_hint')}</span>
                         </div>
                         <textarea value={adminSettingsForm.aiSystemPrompt} onChange={(e) => updateAdminSettingsField('aiSystemPrompt', e.target.value)} placeholder={t('admin_ai_placeholder_prompt')} className="min-h-28 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      </div>
+                      <div className="md:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <button
+                          type="button"
+                          onClick={handleTestAdminAiSettings}
+                          disabled={aiConnectionResult.status === 'loading'}
+                          className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                        >
+                          {aiConnectionResult.status === 'loading' ? t('admin_ai_connection_testing') : t('admin_ai_connection_test')}
+                        </button>
+                        {aiConnectionResult.status !== 'idle' && (
+                          <div className={`text-sm ${aiConnectionResult.status === 'success' ? 'text-green-700' : aiConnectionResult.status === 'error' ? 'text-red-600' : 'text-slate-500'}`}>
+                            {aiConnectionResult.message}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
