@@ -8852,12 +8852,6 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
     }
   }, [filteredSettlementRecords, selectedSettlementId]);
 
-  useEffect(() => {
-    if (!dailyIssueSiteOptions.some((option) => option.value === dailyIssueSiteFilter)) {
-      setDailyIssueSiteFilter('all');
-    }
-  }, [dailyIssueSiteFilter, dailyIssueSiteOptions]);
-
   const dailyIssuesDashboardItems = useMemo(() => {
     const resolveSupervisorName = (projectId, fallbackName) => {
       const assignedSupervisor = workersList.find((worker) => {
@@ -8945,6 +8939,12 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
       ? dailyIssuesDashboardItems
       : dailyIssuesDashboardItems.filter((issue) => String(issue.projectId || '') === String(dailyIssueSiteFilter))
   ), [dailyIssueSiteFilter, dailyIssuesDashboardItems]);
+
+  useEffect(() => {
+    if (!dailyIssueSiteOptions.some((option) => option.value === dailyIssueSiteFilter)) {
+      setDailyIssueSiteFilter('all');
+    }
+  }, [dailyIssueSiteFilter, dailyIssueSiteOptions]);
 
   const dailyIssueSummary = useMemo(() => ({
     total: filteredDailyIssuesDashboardItems.length,
