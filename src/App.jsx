@@ -5801,7 +5801,7 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages,
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t('pricing_subtitle')}</p>
             <p className="mt-3 text-sm text-slate-500">{t('pricing_currency_hint')}</p>
           </div>
-          <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-2 md:[grid-auto-rows:1fr] xl:grid-cols-3">
+          <div className="mx-auto grid max-w-5xl gap-4 md:grid-cols-2 md:[grid-auto-rows:1fr] xl:grid-cols-3">
             {landingPricingPackages.map((entry, index) => {
               const localizedPackage = getLocalizedPricingPackageContent(entry, language);
               const pricingAmounts = getPricingPackageAmounts(entry.code, language);
@@ -5817,46 +5817,46 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages,
                   ? t('pricing_cta_get_started')
                   : t('pricing_cta_view_details');
               return (
-                <div key={entry.id} className={`relative flex h-full flex-col overflow-hidden rounded-[1.5rem] p-5 transition ${tone.card} ${tone.border}`}>
+                <div key={entry.id} className={`relative flex h-full flex-col overflow-hidden rounded-[1.5rem] px-4 py-4 sm:px-5 sm:py-4 transition ${tone.card} ${tone.border}`}>
                   {entry.isRecommended && (
-                    <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-lg shadow-blue-200">
+                    <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-200">
                       {tone.badge}
                     </div>
                   )}
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-2.5">
                     <div>
-                      <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone.accent}`}>{entry.code || '-'}</div>
-                      <h3 className={`mt-3 text-xl font-bold ${tone.title}`}>{localizedPackage.name}</h3>
-                      <p className="mt-2 min-h-[2.5rem] text-sm leading-6 text-slate-500">{localizedPackage.description || '-'}</p>
+                      <div className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${tone.accent}`}>{entry.code || '-'}</div>
+                      <h3 className={`mt-2.5 text-lg font-bold leading-tight ${tone.title}`}>{localizedPackage.name}</h3>
+                      <p className="mt-1.5 min-h-[2.2rem] text-[13px] leading-5 text-slate-500">{localizedPackage.description || '-'}</p>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                       {t(`admin_pricing_billing_period_${entry.billingPeriod}`)}
                     </span>
                   </div>
-                  <div className="my-5 rounded-2xl bg-slate-50/80 p-4">
-                    <div className={`text-3xl font-bold ${tone.price}`}>{formatPricingPackagePrice(entry.code, language)}</div>
-                    <div className="mt-1 text-xs font-medium text-slate-500">
+                  <div className="my-4 rounded-2xl bg-slate-50/80 px-3.5 py-3">
+                    <div className={`text-[1.65rem] font-bold leading-none ${tone.price}`}>{formatPricingPackagePrice(entry.code, language)}</div>
+                    <div className="mt-1 text-[11px] font-medium leading-4 text-slate-500">
                       {formatPricingPackageBillingSuffix(entry.code, language)}
                     </div>
-                    <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_equivalent_label')}</div>
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('pricing_equivalent_label')}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {pricingAmounts.secondaryAmounts.map((item) => (
-                        <span key={`${entry.code}-${item.currency}`} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                        <span key={`${entry.code}-${item.currency}`} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium leading-4 text-slate-600">
                           {formatPricingPackageCurrencyAmount(item.amount, item.currency, language)}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_modules_title')}</div>
-                  <ul className="flex flex-1 flex-col space-y-2">
+                  <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{t('pricing_modules_title')}</div>
+                  <ul className="flex flex-1 flex-col space-y-1.5">
                     {featureList.map((feature, featureIndex) => (
-                      <li key={`${entry.id}-feature-${featureIndex}`} className="flex min-h-[3.25rem] items-start rounded-xl bg-white/70 px-3 py-2.5 text-sm text-slate-600">
-                        <Check className={`mr-2 mt-0.5 h-4 w-4 ${tone.icon}`} />
+                      <li key={`${entry.id}-feature-${featureIndex}`} className="flex min-h-[2.75rem] items-start rounded-xl bg-white/70 px-3 py-2 text-[13px] leading-5 text-slate-600">
+                        <Check className={`mr-2 mt-0.5 h-3.5 w-3.5 shrink-0 ${tone.icon}`} />
                         <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className={`mt-auto w-full rounded-2xl py-3 text-sm font-semibold transition ${tone.button}`}>
+                  <button onClick={() => onNavigate({ view: 'role_login', role: 'user' })} className={`mt-3.5 w-full rounded-xl px-4 py-2.5 text-[13px] font-semibold leading-5 transition ${tone.button}`}>
                     {ctaLabel}
                   </button>
                 </div>
