@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import {
   WORKER_STORAGE_KEYS,
   TASK_STATUS,
@@ -18,6 +19,17 @@ import WorkerAppV2 from './WorkerAppV2';
 import WorkerMobileTestPage from './WorkerMobileTestPage';
 import { buildChatAnalytics, buildChatConversations } from './chatAnalytics';
 import {
+  getRememberedAdminEmail,
+  mapFirebaseAuthErrorToKey,
+  persistRememberedAdminEmail,
+  registerAdminWithEmail,
+  sendAdminPasswordReset,
+  signInAdminWithEmail,
+  signOutAdmin,
+  subscribeToAdminAuth,
+  validateAdminAuthInput,
+} from './services/adminAuth';
+import {
   ADMIN_AI_PROVIDER_DEFAULTS,
   DEFAULT_ADMIN_AI_SYSTEM_PROMPT,
   buildAdminAiRequestPreview,
@@ -34,7 +46,7 @@ import {
   Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
   LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
   UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
-  Send, Database, Eye, Printer, Percent, Download, Home, Bot
+  Send, Database, Eye, EyeOff, Printer, Percent, Download, Home, Bot
 } from 'lucide-react';
 
 // ========================================================
@@ -54,6 +66,7 @@ const firebaseConfig = {
 const isFirebaseConfigured = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
 const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 const db = isFirebaseConfigured ? getFirestore(app) : null;
+const firebaseAuth = isFirebaseConfigured ? getAuth(app) : null;
 
 // ==========================================
 // 🌟 CUSTOM HOOK: ระบบบันทึกเสียง (แปลงเสียงเป็น Base64 เพื่อเก็บลง Firebase)
@@ -2923,6 +2936,31 @@ Object.assign(translations.LA, {
   auth_invalid_credentials: 'ອີເມວ ຫຼື ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງສຳລັບ role ທີ່ເລືອກ.',
   auth_guard_message: 'ບັນຊີນີ້ບໍ່ມີສິດເຂົ້າ dashboard ນີ້. ກະລຸນາເຂົ້າລະບົບດ້ວຍ role ທີ່ຖືກຕ້ອງ.',
   auth_logged_in_as: 'ກຳລັງເຂົ້າລະບົບເປັນ',
+  auth_admin_real_title: 'Real Admin Sign In',
+  auth_admin_real_hint: 'ໃຊ້ Firebase Authentication ສຳລັບ admin ເທົ່ານັ້ນ. Role ອື່ນຍັງຄົງເປັນ demo.',
+  auth_admin_mode_sign_in: 'ເຂົ້າລະບົບ admin',
+  auth_admin_mode_register: 'ສ້າງບັນຊີ admin',
+  auth_admin_forgot_password: 'ລືມລະຫັດຜ່ານ?',
+  auth_admin_send_reset: 'ສົ່ງອີເມວ reset',
+  auth_admin_reset_sent: 'ສົ່ງອີເມວ reset ແລ້ວ. ກະລຸນາກວດກ່ອງຂາເຂົ້າຂອງທ່ານ.',
+  auth_admin_register_success: 'ສ້າງບັນຊີ admin ສຳເລັດ ແລະ ເຂົ້າລະບົບແລ້ວ.',
+  auth_admin_sign_in_success: 'ເຂົ້າລະບົບ admin ສຳເລັດ.',
+  auth_admin_sign_out_success: 'ອອກຈາກລະບົບ admin ແລ້ວ.',
+  auth_admin_only_notice: 'ໜ້ານີ້ເປັນ real admin auth ເທົ່ານັ້ນ.',
+  auth_remember_email: 'ຈື່ອີເມວນີ້',
+  auth_password_show: 'ສະແດງ',
+  auth_password_hide: 'ປິດ',
+  auth_email_required: 'ກະລຸນາໃສ່ອີເມວ.',
+  auth_invalid_email: 'ຮູບແບບອີເມວບໍ່ຖືກຕ້ອງ.',
+  auth_password_required: 'ກະລຸນາໃສ່ລະຫັດຜ່ານ.',
+  auth_password_min_length: 'ລະຫັດຜ່ານຕ້ອງຢ່າງໜ້ອຍ 6 ຕົວອັກສອນ.',
+  auth_email_in_use: 'ອີເມວນີ້ຖືກໃຊ້ແລ້ວ.',
+  auth_too_many_requests: 'ລອງຫຼາຍເກີນໄປ. ກະລຸນາລໍຖ້າແລ້ວລອງອີກ.',
+  auth_network_error: 'ເຄືອຂ່າຍຂັດຂ້ອງ. ກະລຸນາລອງອີກ.',
+  auth_generic_error: 'ບໍ່ສາມາດທຳລາຍການນີ້ໄດ້. ກະລຸນາລອງອີກ.',
+  auth_loading: 'ກຳລັງດຳເນີນການ...',
+  auth_register_link: 'ສ້າງບັນຊີ',
+  auth_back_to_sign_in: 'ກັບໄປເຂົ້າລະບົບ',
 });
 
 Object.assign(translations.TH, {
@@ -2975,6 +3013,31 @@ Object.assign(translations.TH, {
   auth_invalid_credentials: 'อีเมลหรือรหัสผ่านไม่ถูกต้องสำหรับบทบาทที่เลือก',
   auth_guard_message: 'บัญชีนี้ไม่มีสิทธิ์เข้าหน้า dashboard นี้ กรุณาเข้าสู่ระบบด้วยบทบาทที่ถูกต้อง',
   auth_logged_in_as: 'กำลังเข้าสู่ระบบเป็น',
+  auth_admin_real_title: 'Real Admin Sign In',
+  auth_admin_real_hint: 'ใช้ Firebase Authentication สำหรับแอดมินเท่านั้น ส่วน role อื่นยังคงเป็น demo',
+  auth_admin_mode_sign_in: 'เข้าสู่ระบบแอดมิน',
+  auth_admin_mode_register: 'สร้างบัญชีแอดมิน',
+  auth_admin_forgot_password: 'ลืมรหัสผ่าน?',
+  auth_admin_send_reset: 'ส่งอีเมลรีเซ็ต',
+  auth_admin_reset_sent: 'ส่งอีเมลรีเซ็ตแล้ว กรุณาตรวจสอบอีเมลของคุณ',
+  auth_admin_register_success: 'สร้างบัญชีแอดมินสำเร็จและเข้าสู่ระบบแล้ว',
+  auth_admin_sign_in_success: 'เข้าสู่ระบบแอดมินสำเร็จ',
+  auth_admin_sign_out_success: 'ออกจากระบบแอดมินแล้ว',
+  auth_admin_only_notice: 'หน้านี้เป็น real admin auth เท่านั้น',
+  auth_remember_email: 'จดจำอีเมลนี้',
+  auth_password_show: 'แสดง',
+  auth_password_hide: 'ซ่อน',
+  auth_email_required: 'กรุณาใส่อีเมล',
+  auth_invalid_email: 'รูปแบบอีเมลไม่ถูกต้อง',
+  auth_password_required: 'กรุณาใส่รหัสผ่าน',
+  auth_password_min_length: 'รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร',
+  auth_email_in_use: 'อีเมลนี้ถูกใช้งานแล้ว',
+  auth_too_many_requests: 'มีการลองหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่',
+  auth_network_error: 'เครือข่ายมีปัญหา กรุณาลองใหม่',
+  auth_generic_error: 'ไม่สามารถทำรายการนี้ได้ กรุณาลองใหม่',
+  auth_loading: 'กำลังดำเนินการ...',
+  auth_register_link: 'สร้างบัญชี',
+  auth_back_to_sign_in: 'กลับไปเข้าสู่ระบบ',
 });
 
 Object.assign(translations.EN, {
@@ -3027,6 +3090,31 @@ Object.assign(translations.EN, {
   auth_invalid_credentials: 'The email or password does not match the selected role.',
   auth_guard_message: 'This account cannot open that dashboard. Sign in with the correct role first.',
   auth_logged_in_as: 'Signed in as',
+  auth_admin_real_title: 'Real Admin Sign In',
+  auth_admin_real_hint: 'Firebase Authentication is enabled only for admin. Other roles remain demo-only.',
+  auth_admin_mode_sign_in: 'Admin sign in',
+  auth_admin_mode_register: 'Create admin account',
+  auth_admin_forgot_password: 'Forgot password?',
+  auth_admin_send_reset: 'Send reset email',
+  auth_admin_reset_sent: 'Password reset email sent. Please check your inbox.',
+  auth_admin_register_success: 'Admin account created and signed in successfully.',
+  auth_admin_sign_in_success: 'Admin signed in successfully.',
+  auth_admin_sign_out_success: 'Admin signed out.',
+  auth_admin_only_notice: 'This screen uses real admin authentication only.',
+  auth_remember_email: 'Remember this email',
+  auth_password_show: 'Show',
+  auth_password_hide: 'Hide',
+  auth_email_required: 'Please enter an email address.',
+  auth_invalid_email: 'Enter a valid email address.',
+  auth_password_required: 'Please enter a password.',
+  auth_password_min_length: 'Password must be at least 6 characters.',
+  auth_email_in_use: 'This email is already in use.',
+  auth_too_many_requests: 'Too many attempts. Please wait and try again.',
+  auth_network_error: 'Network error. Please try again.',
+  auth_generic_error: 'This action could not be completed. Please try again.',
+  auth_loading: 'Processing...',
+  auth_register_link: 'Create account',
+  auth_back_to_sign_in: 'Back to sign in',
 });
 
 Object.assign(translations.LA, {
@@ -5905,6 +5993,7 @@ export default function BuildSabaideeApp() {
   const [language, setLanguage] = useState('LA');
   const [loginRole, setLoginRole] = useState('user');
   const [authErrorKey, setAuthErrorKey] = useState('');
+  const [isAdminAuthReady, setIsAdminAuthReady] = useState(!firebaseAuth);
   const [isKioskMode, setIsKioskMode] = useState(() => {
     try {
       return new URLSearchParams(window.location.search).get('kiosk') === '1';
@@ -6187,12 +6276,65 @@ export default function BuildSabaideeApp() {
 
   useEffect(() => {
     try {
-      if (authSession) window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(authSession));
-      else window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      if (authSession && authSession.role !== 'admin') {
+        window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(authSession));
+      } else {
+        window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+      }
     } catch (error) {
       console.error('Failed to persist auth session:', error);
     }
   }, [authSession]);
+
+  useEffect(() => {
+    if (!firebaseAuth) {
+      setIsAdminAuthReady(true);
+      setAuthSession((prev) => (prev?.role === 'admin' ? null : prev));
+      return;
+    }
+
+    const unsubscribe = subscribeToAdminAuth(firebaseAuth, (user) => {
+      setIsAdminAuthReady(true);
+
+      if (!user) {
+        setAuthSession((prev) => (prev?.role === 'admin' ? null : prev));
+        return;
+      }
+
+      setAuthSession((prev) => ({
+        role: 'admin',
+        email: String(user.email || '').trim().toLowerCase(),
+        displayName: user.displayName || prev?.displayName || 'Platform Owner',
+        uid: user.uid,
+        signedInAt: Date.now(),
+      }));
+      setAuthErrorKey('');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (currentView === 'platform_owner_access') {
+      if (!isAdminAuthReady) return;
+      if (authSession?.role === 'admin') return;
+      setLoginRole('admin');
+      setAuthErrorKey('auth_guard_message');
+      setCurrentView('role_login');
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    const requiredRole = DASHBOARD_ROLE_MAP[currentView];
+    if (!requiredRole) return;
+    if (requiredRole === 'admin' && !isAdminAuthReady) return;
+    if (authSession?.role === requiredRole) return;
+
+    setLoginRole(requiredRole);
+    setAuthErrorKey('auth_guard_message');
+    setCurrentView('role_login');
+    window.scrollTo(0, 0);
+  }, [authSession?.role, currentView, isAdminAuthReady]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -6227,6 +6369,9 @@ export default function BuildSabaideeApp() {
     const requestedRole = normalizedTarget.role || VIEW_ROLE_MAP[nextView] || 'user';
 
     if (nextView === 'logout') {
+      if ((normalizedTarget.role || authSession?.role) === 'admin' && firebaseAuth) {
+        signOutAdmin(firebaseAuth).catch(() => {});
+      }
       setAuthSession(null);
       setAuthErrorKey('');
       setLoginRole(normalizedTarget.role || 'user');
@@ -6260,12 +6405,44 @@ export default function BuildSabaideeApp() {
     window.scrollTo(0, 0);
   };
 
-  const handleRoleLogin = ({ role, email, password }) => {
+  const handleRoleLogin = async ({ role, email, password, rememberEmail }) => {
     const normalizedRole = role || loginRole;
+    if (normalizedRole === 'admin') {
+      const validationKey = validateAdminAuthInput({ email, password });
+      if (validationKey) {
+        setAuthErrorKey(validationKey);
+        return { ok: false, errorKey: validationKey };
+      }
+      if (!firebaseAuth) {
+        setAuthErrorKey('firebase_config_warning');
+        return { ok: false, errorKey: 'firebase_config_warning' };
+      }
+
+      try {
+        const credential = await signInAdminWithEmail(firebaseAuth, { email, password });
+        persistRememberedAdminEmail(email, rememberEmail);
+        setAuthSession({
+          role: 'admin',
+          email: String(credential.user.email || email || '').trim().toLowerCase(),
+          displayName: credential.user.displayName || 'Platform Owner',
+          uid: credential.user.uid,
+          signedInAt: Date.now(),
+        });
+        setAuthErrorKey('');
+        setCurrentView(ROLE_HOME_VIEW.admin);
+        window.scrollTo(0, 0);
+        return { ok: true, successKey: 'auth_admin_sign_in_success' };
+      } catch (error) {
+        const errorKey = mapFirebaseAuthErrorToKey(error);
+        setAuthErrorKey(errorKey);
+        return { ok: false, errorKey };
+      }
+    }
+
     const account = DEMO_AUTH_ACCOUNTS[normalizedRole];
     if (!account || account.email !== String(email || '').trim().toLowerCase() || account.password !== password) {
       setAuthErrorKey('auth_invalid_credentials');
-      return false;
+      return { ok: false, errorKey: 'auth_invalid_credentials' };
     }
 
     setAuthSession({
@@ -6277,7 +6454,74 @@ export default function BuildSabaideeApp() {
     setAuthErrorKey('');
     setCurrentView(ROLE_HOME_VIEW[normalizedRole] || 'landing');
     window.scrollTo(0, 0);
-    return true;
+    return { ok: true };
+  };
+
+  const handleAdminRegister = async ({ email, password, rememberEmail }) => {
+    const validationKey = validateAdminAuthInput({ email, password, isRegister: true });
+    if (validationKey) {
+      setAuthErrorKey(validationKey);
+      return { ok: false, errorKey: validationKey };
+    }
+    if (!firebaseAuth) {
+      setAuthErrorKey('firebase_config_warning');
+      return { ok: false, errorKey: 'firebase_config_warning' };
+    }
+
+    try {
+      const credential = await registerAdminWithEmail(firebaseAuth, { email, password });
+      persistRememberedAdminEmail(email, rememberEmail);
+      setAuthSession({
+        role: 'admin',
+        email: String(credential.user.email || email || '').trim().toLowerCase(),
+        displayName: credential.user.displayName || 'Platform Owner',
+        uid: credential.user.uid,
+        signedInAt: Date.now(),
+      });
+      setAuthErrorKey('');
+      setCurrentView(ROLE_HOME_VIEW.admin);
+      window.scrollTo(0, 0);
+      return { ok: true, successKey: 'auth_admin_register_success' };
+    } catch (error) {
+      const errorKey = mapFirebaseAuthErrorToKey(error);
+      setAuthErrorKey(errorKey);
+      return { ok: false, errorKey };
+    }
+  };
+
+  const handleAdminPasswordReset = async ({ email }) => {
+    const validationKey = validateAdminAuthInput({ email, password: 'placeholder' });
+    if (validationKey && validationKey !== 'auth_password_required') {
+      setAuthErrorKey(validationKey);
+      return { ok: false, errorKey: validationKey };
+    }
+    if (!firebaseAuth) {
+      setAuthErrorKey('firebase_config_warning');
+      return { ok: false, errorKey: 'firebase_config_warning' };
+    }
+
+    try {
+      await sendAdminPasswordReset(firebaseAuth, email);
+      setAuthErrorKey('');
+      return { ok: true, successKey: 'auth_admin_reset_sent' };
+    } catch (error) {
+      const errorKey = mapFirebaseAuthErrorToKey(error);
+      setAuthErrorKey(errorKey);
+      return { ok: false, errorKey };
+    }
+  };
+
+  const handleAdminSignOut = async () => {
+    if (firebaseAuth) {
+      try {
+        await signOutAdmin(firebaseAuth);
+      } catch {
+        // no-op
+      }
+    }
+    setAuthSession((prev) => (prev?.role === 'admin' ? null : prev));
+    setAuthErrorKey('');
+    return { ok: true, successKey: 'auth_admin_sign_out_success' };
   };
 
   const toggleLanguage = () => {
@@ -6312,11 +6556,15 @@ export default function BuildSabaideeApp() {
         <RoleLoginPage
           onNavigate={navigateTo}
           onLogin={handleRoleLogin}
+          onAdminRegister={handleAdminRegister}
+          onAdminPasswordReset={handleAdminPasswordReset}
+          onAdminSignOut={handleAdminSignOut}
           t={t}
           role={loginRole}
           setRole={setLoginRole}
           authErrorKey={authErrorKey}
           authSession={authSession}
+          isAdminAuthReady={isAdminAuthReady}
         />
       )}
       {currentView === 'worker' && (
@@ -17104,13 +17352,32 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   );
 }
 
-function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, authSession }) {
-  const [email, setEmail] = useState(DEMO_AUTH_ACCOUNTS[role]?.email || '');
-  const [password, setPassword] = useState(DEMO_AUTH_ACCOUNTS[role]?.password || '');
+function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordReset, onAdminSignOut, t, role, setRole, authErrorKey, authSession, isAdminAuthReady }) {
+  const isAdminRole = role === 'admin';
+  const [email, setEmail] = useState(() => (role === 'admin' ? getRememberedAdminEmail() : (DEMO_AUTH_ACCOUNTS[role]?.email || '')));
+  const [password, setPassword] = useState(() => (role === 'admin' ? '' : (DEMO_AUTH_ACCOUNTS[role]?.password || '')));
+  const [rememberEmail, setRememberEmail] = useState(() => Boolean(getRememberedAdminEmail()));
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [adminMode, setAdminMode] = useState('sign_in');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessageKey, setStatusMessageKey] = useState('');
 
   useEffect(() => {
+    if (role === 'admin') {
+      const rememberedEmail = getRememberedAdminEmail();
+      setEmail(rememberedEmail);
+      setPassword('');
+      setRememberEmail(Boolean(rememberedEmail));
+      setAdminMode('sign_in');
+      setStatusMessageKey('');
+      return;
+    }
+
     setEmail(DEMO_AUTH_ACCOUNTS[role]?.email || '');
     setPassword(DEMO_AUTH_ACCOUNTS[role]?.password || '');
+    setRememberEmail(Boolean(getRememberedAdminEmail()));
+    setAdminMode('sign_in');
+    setStatusMessageKey('');
   }, [role]);
 
   const roleOptions = [
@@ -17120,12 +17387,56 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
     { key: 'admin', title: t('nav_platform_owner'), desc: t('landing_role_admin_desc'), icon: Database },
   ];
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onLogin({ role, email, password });
+    setStatusMessageKey('');
+    setIsSubmitting(true);
+    try {
+      const result = isAdminRole && adminMode === 'register'
+        ? await onAdminRegister({ email, password, rememberEmail })
+        : await onLogin({ role, email, password, rememberEmail });
+      if (result?.successKey) {
+        setStatusMessageKey(result.successKey);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setStatusMessageKey('');
+    setIsSubmitting(true);
+    try {
+      const result = await onAdminPasswordReset({ email });
+      if (result?.successKey) {
+        setStatusMessageKey(result.successKey);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRoleSignOut = async () => {
+    setStatusMessageKey('');
+    if (isAdminRole) {
+      setIsSubmitting(true);
+      try {
+        const result = await onAdminSignOut();
+        if (result?.successKey) {
+          setStatusMessageKey(result.successKey);
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    onNavigate({ view: 'logout', role });
   };
 
   const sessionMatchesRole = authSession?.role === role;
+  const showAdminReset = isAdminRole && adminMode === 'sign_in';
+  const showAdminRegisterLink = isAdminRole && adminMode === 'sign_in';
 
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 lg:px-8">
@@ -17139,7 +17450,7 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
               <button onClick={() => onNavigate(ROLE_HOME_VIEW[role] || 'landing')} className="inline-flex items-center justify-center rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
                 {t('auth_continue')}
               </button>
-              <button onClick={() => onNavigate({ view: 'logout', role })} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+              <button onClick={handleRoleSignOut} className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
                 {t('auth_sign_out')}
               </button>
             </div>
@@ -17150,10 +17461,10 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
           <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 p-6 text-white shadow-xl sm:p-8">
             <div className="max-w-3xl space-y-4">
               <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-100">
-                {t('auth_login_title')}
+                {isAdminRole ? t('auth_admin_real_title') : t('auth_login_title')}
               </span>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{t('auth_login_title')}</h1>
-              <p className="text-sm text-slate-100 sm:text-base">{t('auth_login_desc')}</p>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{isAdminRole ? t('auth_admin_real_title') : t('auth_login_title')}</h1>
+              <p className="text-sm text-slate-100 sm:text-base">{isAdminRole ? t('auth_admin_real_hint') : t('auth_login_desc')}</p>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4">
@@ -17183,6 +17494,11 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
 
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
+              {isAdminRole && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  {t('auth_admin_only_notice')}
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">{t('auth_role_label')}</label>
                 <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400">
@@ -17191,18 +17507,75 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
                   ))}
                 </select>
               </div>
+              {isAdminRole && (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdminMode('sign_in')}
+                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${adminMode === 'sign_in' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    {t('auth_admin_mode_sign_in')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdminMode('register')}
+                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${adminMode === 'register' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+                  >
+                    {t('auth_admin_mode_register')}
+                  </button>
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">{t('auth_email_label')}</label>
-                <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">{t('auth_password_label')}</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400" />
+                <div className="relative">
+                  <input
+                    type={isPasswordVisible ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete={isAdminRole && adminMode === 'register' ? 'new-password' : 'current-password'}
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-14 text-sm outline-none transition focus:border-blue-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordVisible((prev) => !prev)}
+                    className="absolute inset-y-0 right-3 inline-flex items-center justify-center text-slate-500 transition hover:text-slate-700"
+                    aria-label={isPasswordVisible ? t('auth_password_hide') : t('auth_password_show')}
+                  >
+                    {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
+              {isAdminRole && (
+                <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={rememberEmail}
+                    onChange={(e) => setRememberEmail(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>{t('auth_remember_email')}</span>
+                </label>
+              )}
 
               {authErrorKey && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                   {t(authErrorKey)}
+                </div>
+              )}
+
+              {statusMessageKey && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  {t(statusMessageKey)}
                 </div>
               )}
 
@@ -17212,12 +17585,38 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
                 </div>
               )}
 
-              <button type="submit" className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
-                {t('auth_sign_in')}
+              <button
+                type="submit"
+                disabled={isSubmitting || (isAdminRole && !isAdminAuthReady)}
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {isSubmitting ? t('auth_loading') : (isAdminRole && adminMode === 'register' ? t('auth_admin_mode_register') : t('auth_sign_in'))}
               </button>
+
+              {showAdminReset && (
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={isSubmitting || !isAdminAuthReady}
+                  className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                >
+                  {t('auth_admin_send_reset')}
+                </button>
+              )}
+              {showAdminRegisterLink && (
+                <button type="button" onClick={() => setAdminMode('register')} className="w-full text-sm font-semibold text-blue-700 transition hover:text-blue-800">
+                  {t('auth_register_link')}
+                </button>
+              )}
+              {isAdminRole && adminMode === 'register' && (
+                <button type="button" onClick={() => setAdminMode('sign_in')} className="w-full text-sm font-semibold text-slate-600 transition hover:text-slate-800">
+                  {t('auth_back_to_sign_in')}
+                </button>
+              )}
             </form>
 
-            <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+            {!isAdminRole && (
+              <div className="mt-6 rounded-2xl bg-slate-50 p-4">
               <div className="text-sm font-semibold text-slate-800">{t('auth_demo_title')}</div>
               <div className="mt-2 text-xs leading-6 text-slate-600">{t('auth_demo_hint')}</div>
               <div className="mt-3 space-y-2 text-sm text-slate-700">
@@ -17229,7 +17628,8 @@ function RoleLoginPage({ onNavigate, onLogin, t, role, setRole, authErrorKey, au
                   </div>
                 ))}
               </div>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
