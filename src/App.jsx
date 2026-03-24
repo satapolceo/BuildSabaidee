@@ -398,7 +398,7 @@ const translations = {
     ai_chat_powered_by: 'Connection',
     ai_chat_welcome_ready: '',
     ai_chat_welcome_fallback: '',
-    ai_chat_input_placeholder: 'พิมพ์คำถามหา AI น้องสบายดี...',
+    ai_chat_input_placeholder: 'พิมพ์คำถามถึง AI น้องสบายดี...',
     ai_chat_send: 'ส่ง',
     ai_chat_thinking: 'AI น้องสบายดีกำลังตอบ...',
     ai_chat_capability_questions: 'ช่วยตอบคำถามได้รวดเร็ว',
@@ -6861,13 +6861,13 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
           </div>
 
           <div className="border-b border-slate-200 px-4 py-3">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2.5">
               {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => setChatInput(prompt)}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  className="min-h-10 max-w-full rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-left text-xs font-medium leading-5 text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 >
                   {prompt}
                 </button>
