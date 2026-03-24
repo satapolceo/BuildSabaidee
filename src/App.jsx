@@ -49,14 +49,51 @@ const db = isFirebaseConfigured ? getFirestore(app) : null;
 // ==========================================
 function useAudioRecorder(onAudioReady) {
   const [isRecording, setIsRecording] = useState(false);
+  const [errorKey, setErrorKey] = useState('');
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
+  const discardRecordingRef = useRef(false);
+
+  const isSupported = typeof window !== 'undefined'
+    && typeof window.MediaRecorder !== 'undefined'
+    && !!navigator?.mediaDevices?.getUserMedia;
+
+  const cleanupStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  };
 
   const startRecording = async (e) => {
-    if(e) e.preventDefault(); 
+    if (e) e.preventDefault();
+    if (!isSupported) {
+      setErrorKey('chat_mic_not_supported');
+      return false;
+    }
+    if (mediaRecorderRef.current?.state === 'recording') {
+      return true;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      streamRef.current = stream;
+      discardRecordingRef.current = false;
+      setErrorKey('');
+
+      const mimeTypeOptions = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      const supportedMimeType = mimeTypeOptions.find((type) => {
+        try {
+          return typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(type);
+        } catch (error) {
+          return false;
+        }
+      });
+
+      mediaRecorderRef.current = supportedMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+        : new MediaRecorder(stream);
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -64,33 +101,75 @@ function useAudioRecorder(onAudioReady) {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        // แปลงไฟล์เสียงเป็น Base64 String เพื่อเก็บลง Firebase (ง่ายกว่า Storage สำหรับการเริ่มต้น)
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = () => {
-           if (onAudioReady) onAudioReady(reader.result);
-        };
-        stream.getTracks().forEach(track => track.stop());
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (!discardRecordingRef.current && audioBlob.size > 0) {
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = () => {
+            if (onAudioReady) onAudioReady(reader.result);
+          };
+        }
+        cleanupStream();
+        mediaRecorderRef.current = null;
+        audioChunksRef.current = [];
+        discardRecordingRef.current = false;
+        setIsRecording(false);
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      return true;
     } catch (err) {
       console.error("Error accessing mic:", err);
-      alert("ไม่สามารถเข้าถึงไมโครโฟนได้ กรุณาตรวจสอบการอนุญาต (Permissions) ในเบราว์เซอร์ของคุณ");
+      const nextErrorKey = err?.name === 'NotAllowedError' || err?.name === 'SecurityError'
+        ? 'chat_mic_permission_denied'
+        : 'chat_mic_error_generic';
+      setErrorKey(nextErrorKey);
+      cleanupStream();
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
+      setIsRecording(false);
+      return false;
     }
   };
 
   const stopRecording = (e) => {
-    if(e) e.preventDefault();
+    if (e) e.preventDefault();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
+      return true;
+    }
+    return false;
+  };
+
+  const cancelRecording = (e) => {
+    if (e) e.preventDefault();
+    discardRecordingRef.current = true;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    } else {
+      cleanupStream();
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
       setIsRecording(false);
     }
   };
 
-  return { isRecording, startRecording, stopRecording };
+  useEffect(() => () => {
+    discardRecordingRef.current = true;
+    cleanupStream();
+  }, []);
+
+  return {
+    isRecording,
+    isSupported,
+    errorKey,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    clearError: () => setErrorKey(''),
+  };
 }
 
 // ==========================================
@@ -220,7 +299,7 @@ const translations = {
     workers_unit: 'ຄົນງານ', attendance_from_app: 'ຈາກ App',
     inventory_all_projects: 'ລວມທຸກໂຄງການ', inventory_central_stock: 'ສະຕັອກກາງ (ບໍ່ໄດ້ລະບຸ)', label_related_project: 'ໂຄງການທີ່ກ່ຽວຂ້ອງ', label_linked_project: 'ໂຄງການທີ່ຜູກ', stock_overview_title: 'ພາບລວມສະຕັອກ', stock_total_items: 'ຈຳນວນລາຍການທັງໝົດ', stock_low_items: 'ລາຍການໃກ້ໝົດ', stock_out_items: 'ລາຍການໝົດສະຕັອກ', stock_recent_movements: 'ຄວາມເຄື່ອນໄຫວສະຕັອກຫຼ້າສຸດ', stock_recent_placeholder: 'ລະບົບຈະສະແດງ movement ຈາກໂມດູນຮັບເຂົ້າ/ເບີກອອກເມື່ອພ້ອມ', stock_status_low: 'ໃກ້ໝົດ', stock_status_out: 'ໝົດສະຕັອກ', stock_status_ok: 'ພ້ອມໃຊ້', stock_movement_updated: 'ອັບເດດລາຍການ', material_catalog_title: 'ລາຍການວັດສະດຸ', material_catalog_description: 'ຄົ້ນຫາ ແລະ ເບິ່ງລາຍລະອຽດວັດສະດຸຈາກຂໍ້ມູນຄັງທີ່ມີຢູ່', material_catalog_search_placeholder: 'ຄົ້ນຫາຊື່ວັດສະດຸ...', material_catalog_filter_all_categories: 'ທຸກໝວດໝູ່', material_catalog_filter_all_statuses: 'ທຸກສະຖານະ', material_catalog_details: 'ລາຍລະອຽດວັດສະດຸ', material_catalog_open_details: 'ເປີດລາຍລະອຽດ', material_catalog_empty: 'ບໍ່ພົບລາຍການວັດສະດຸ', material_catalog_notes: 'ໝາຍເຫດ', inventory_movements_title: 'ຮັບເຂົ້າ / ເບີກອອກ', inventory_movements_description: 'ຕິດຕາມ movement ຂອງວັດສະດຸຈາກຂໍ້ມູນຄັງປະຈຸບັນ', inventory_movements_search_placeholder: 'ຄົ້ນຫາ movement...', inventory_movements_all_types: 'ທຸກປະເພດ', inventory_movements_all_materials: 'ທຸກວັດສະດຸ', inventory_movements_date_all: 'ທຸກວັນ', inventory_movement_type: 'ປະເພດ movement', inventory_movement_inbound: 'ຮັບເຂົ້າ', inventory_movement_outbound: 'ເບີກອອກ', inventory_movement_date: 'ວັນທີ', inventory_movement_reference: 'ໝາຍເຫດ / ອ້າງອີງ', inventory_movement_balance: 'ຍອດຄົງເຫຼືອ', inventory_movement_details: 'ລາຍລະອຽດ movement', inventory_movement_empty: 'ບໍ່ພົບ movement ໃນລະບົບ', warehouse_value_title: 'ມູນຄ່າຄັງວັດສະດຸ', warehouse_value_description: 'ສະຫຼຸບມູນຄ່າຂອງສະຕັອກຈາກຂໍ້ມູນວັດສະດຸປະຈຸບັນ', warehouse_value_total: 'ມູນຄ່າຄັງລວມ', warehouse_value_by_category: 'ມູນຄ່າຕາມໝວດໝູ່', warehouse_value_top_materials: 'ວັດສະດຸມູນຄ່າສູງ', warehouse_value_low_high: 'ໃກ້ໝົດແຕ່ມູນຄ່າສູງ', warehouse_value_out_impact: 'ຜົນກະທົບຈາກສະຕັອກໝົດ', warehouse_value_empty: 'ຍັງບໍ່ມີຂໍ້ມູນວັດສະດຸສຳລັບຄຳນວນ', warehouse_value_items: 'ລາຍການ', warehouse_value_estimated_loss: 'ມູນຄ່າທີ່ຂາດໄປ',
     requests_intro: 'ຂໍ້ມູນໃນໜ້ານີ້ຈະເຊື່ອມໂຍງແບບ Real-time ກັບສິ່ງທີ່ພະນັກງານສົ່ງມາຈາກ "ແອັບຄົນງານ"', requests_open_worker: 'ຈຳລອງໄປໜ້າຈໍຄົນງານ', requests_project: 'ໂຄງການ', requests_unspecified: 'ບໍ່ໄດ້ລະບຸ', requests_items_title: 'ລາຍການວັດສະດຸທີ່ຂໍເບີກ:', requests_empty: 'ຍັງບໍ່ມີລາຍການຂໍເບີກ',
-    chat_realtime: 'ເຊື່ອມຕໍ່ກັບແອັບຄົນງານ ແລະ ເຈົ້າຂອງບ້ານແບບ Real-time', chat_go_worker: 'ໄປແອັບຄົນງານ', chat_go_owner: 'ໄປແອັບເຈົ້າຂອງ', chat_owner_suffix: '(ເຈົ້າຂອງບ້ານ)', chat_recording: 'ກຳລັງອັດສຽງ...', chat_hold_record: 'ກົດຄ້າງເພື່ອອັດສຽງ',
+    chat_realtime: 'ເຊື່ອມຕໍ່ກັບແອັບຄົນງານ ແລະ ເຈົ້າຂອງບ້ານແບບ Real-time', chat_go_worker: 'ໄປແອັບຄົນງານ', chat_go_owner: 'ໄປແອັບເຈົ້າຂອງ', chat_owner_suffix: '(ເຈົ້າຂອງບ້ານ)', chat_recording: 'ກຳລັງອັດສຽງ...', chat_hold_record: 'ກົດອັດສຽງ', chat_record_start: 'ເລີ່ມອັດ', chat_record_stop: 'ສົ່ງສຽງ', chat_record_cancel: 'ຍົກເລີກການອັດ', chat_mic_not_supported: 'ອຸປະກອນນີ້ບໍ່ຮອງຮັບການອັດສຽງ', chat_mic_permission_denied: 'ບໍ່ໄດ້ອະນຸຍາດໃຊ້ໄມໂຄຣໂຟນ', chat_mic_error_generic: 'ບໍ່ສາມາດເລີ່ມອັດສຽງໄດ້ ກະລຸນາລອງໃໝ່', chat_demo_empty: 'ຍັງບໍ່ມີຂໍ້ຄວາມ ລອງສົ່ງຂໍ້ຄວາມ ຫຼື ສຽງເພື່ອເລີ່ມການສື່ສານ', chat_demo_reply_worker: 'ຮັບຊາບແລ້ວ ທີມຫນ້າງານກຳລັງກວດເບິ່ງ ແລະ ຈະອັບເດດກັບໄປໃນໄມ່ດົນ', chat_demo_reply_owner: 'ຮັບຊາບແລ້ວ ຂໍໃຫ້ອັບເດດຄວາມຄືບໜ້າ ແລະ ລາຍລະອຽດເພີ່ມເຕີມນຳ',
     modal_full_name: 'ຊື່ - ນາມສະກຸນ *', category_construction: 'ວັດສະດຸກໍ່ສ້າງ', category_decor: 'ຕົກແຕ່ງ', category_plumbing: 'ປະປາ/ສຸຂາພິບານ', category_electrical: 'ໄຟຟ້າ', category_other: 'ອື່ນໆ', project_risk_alert: 'ມີຄວາມສ່ຽງຕ້ອງຕິດຕາມ',
   },
   TH: {
@@ -346,7 +425,7 @@ const translations = {
     workers_unit: 'คนงาน', attendance_from_app: 'จาก App',
     inventory_all_projects: 'รวมทุกโครงการ', inventory_central_stock: 'สต็อกกลาง (ไม่ได้ระบุ)', label_related_project: 'โครงการที่เกี่ยวข้อง', label_linked_project: 'โครงการที่ผูก', stock_overview_title: 'ภาพรวมสต็อก', stock_total_items: 'จำนวนรายการทั้งหมด', stock_low_items: 'รายการใกล้หมด', stock_out_items: 'รายการหมดสต็อก', stock_recent_movements: 'ความเคลื่อนไหวสต็อกล่าสุด', stock_recent_placeholder: 'ระบบจะแสดง movement จากโมดูลรับเข้า/เบิกออกเมื่อพร้อมใช้งาน', stock_status_low: 'ใกล้หมด', stock_status_out: 'หมดสต็อก', stock_status_ok: 'พร้อมใช้', stock_movement_updated: 'อัปเดตรายการ', material_catalog_title: 'แคตตาล็อกวัสดุ', material_catalog_description: 'ค้นหาและดูรายละเอียดวัสดุจากข้อมูลคลังที่มีอยู่', material_catalog_search_placeholder: 'ค้นหาชื่อวัสดุ...', material_catalog_filter_all_categories: 'ทุกหมวดหมู่', material_catalog_filter_all_statuses: 'ทุกสถานะ', material_catalog_details: 'รายละเอียดวัสดุ', material_catalog_open_details: 'เปิดรายละเอียด', material_catalog_empty: 'ไม่พบรายการวัสดุ', material_catalog_notes: 'หมายเหตุ', inventory_movements_title: 'รับเข้า / เบิกออก', inventory_movements_description: 'ติดตามรายการเคลื่อนไหวสต็อกจากข้อมูลคลังปัจจุบัน', inventory_movements_search_placeholder: 'ค้นหา movement...', inventory_movements_all_types: 'ทุกประเภท', inventory_movements_all_materials: 'ทุกวัสดุ', inventory_movements_date_all: 'ทุกวัน', inventory_movement_type: 'ประเภท movement', inventory_movement_inbound: 'รับเข้า', inventory_movement_outbound: 'เบิกออก', inventory_movement_date: 'วันที่', inventory_movement_reference: 'หมายเหตุ / อ้างอิง', inventory_movement_balance: 'ยอดคงเหลือ', inventory_movement_details: 'รายละเอียด movement', inventory_movement_empty: 'ไม่พบรายการ movement', warehouse_value_title: 'มูลค่าคลังวัสดุ', warehouse_value_description: 'สรุปมูลค่าสต็อกจากข้อมูลวัสดุปัจจุบัน', warehouse_value_total: 'มูลค่าคลังรวม', warehouse_value_by_category: 'มูลค่าตามหมวดหมู่', warehouse_value_top_materials: 'วัสดุมูลค่าสูง', warehouse_value_low_high: 'ใกล้หมดแต่มูลค่าสูง', warehouse_value_out_impact: 'ผลกระทบจากของหมดสต็อก', warehouse_value_empty: 'ยังไม่มีข้อมูลวัสดุสำหรับคำนวณ', warehouse_value_items: 'รายการ', warehouse_value_estimated_loss: 'มูลค่าที่หายไป',
     requests_intro: 'ข้อมูลที่แสดงในหน้านี้ จะเชื่อมโยงแบบ Real-time กับสิ่งที่พนักงานกดส่งมาจาก "แอปของคนงาน" ทันที', requests_open_worker: 'จำลองไปหน้าจอคนงาน', requests_project: 'โครงการ', requests_unspecified: 'ไม่ระบุ', requests_items_title: 'รายการวัสดุที่ขอเบิก:', requests_empty: 'ยังไม่มีรายการขอเบิก',
-    chat_realtime: 'เชื่อมต่อกับแอปคนงานและเจ้าของบ้านแบบ Real-time', chat_go_worker: 'ไปแอปคนงาน', chat_go_owner: 'ไปแอปเจ้าของ', chat_owner_suffix: '(เจ้าของบ้าน)', chat_recording: 'กำลังอัดเสียง...', chat_hold_record: 'กดค้างเพื่ออัดเสียง',
+    chat_realtime: 'เชื่อมต่อกับแอปคนงานและเจ้าของบ้านแบบ Real-time', chat_go_worker: 'ไปแอปคนงาน', chat_go_owner: 'ไปแอปเจ้าของ', chat_owner_suffix: '(เจ้าของบ้าน)', chat_recording: 'กำลังอัดเสียง...', chat_hold_record: 'กดอัดเสียง', chat_record_start: 'เริ่มอัด', chat_record_stop: 'ส่งเสียง', chat_record_cancel: 'ยกเลิกการอัด', chat_mic_not_supported: 'อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการอัดเสียง', chat_mic_permission_denied: 'ยังไม่ได้อนุญาตการใช้ไมโครโฟน', chat_mic_error_generic: 'ไม่สามารถเริ่มอัดเสียงได้ กรุณาลองใหม่', chat_demo_empty: 'ยังไม่มีข้อความ ลองส่งข้อความหรือเสียงเพื่อเริ่มการสื่อสาร', chat_demo_reply_worker: 'รับทราบครับ ทีมหน้างานกำลังตรวจสอบและจะอัปเดตกลับภายในไม่กี่นาที', chat_demo_reply_owner: 'รับทราบค่ะ รบกวนอัปเดตความคืบหน้าและรายละเอียดเพิ่มเติมในรอบถัดไป',
     modal_full_name: 'ชื่อ - นามสกุล *', category_construction: 'วัสดุก่อสร้าง', category_decor: 'วัสดุตกแต่ง', category_plumbing: 'ประปา/สุขาภิบาล', category_electrical: 'ไฟฟ้า', category_other: 'อื่นๆ', project_risk_alert: 'มีความเสี่ยงต้องติดตาม',
   },
   EN: {
@@ -472,7 +551,7 @@ const translations = {
     workers_unit: 'workers', attendance_from_app: 'from App',
     inventory_all_projects: 'All Projects Combined', inventory_central_stock: 'Central stock (unassigned)', label_related_project: 'Related Project', label_linked_project: 'Linked Project', stock_overview_title: 'Stock Overview', stock_total_items: 'Total Items', stock_low_items: 'Low Stock Items', stock_out_items: 'Out of Stock Items', stock_recent_movements: 'Recent Stock Movements', stock_recent_placeholder: 'Movement history will connect here when inbound/outbound stock modules are ready', stock_status_low: 'Low', stock_status_out: 'Out of Stock', stock_status_ok: 'Available', stock_movement_updated: 'Item updated', material_catalog_title: 'Material Catalog', material_catalog_description: 'Search and review material details from the current inventory dataset', material_catalog_search_placeholder: 'Search materials...', material_catalog_filter_all_categories: 'All categories', material_catalog_filter_all_statuses: 'All statuses', material_catalog_details: 'Material Details', material_catalog_open_details: 'Open Details', material_catalog_empty: 'No materials found', material_catalog_notes: 'Notes', inventory_movements_title: 'Inbound / Outbound', inventory_movements_description: 'Track stock movement records from the current inventory dataset', inventory_movements_search_placeholder: 'Search movements...', inventory_movements_all_types: 'All types', inventory_movements_all_materials: 'All materials', inventory_movements_date_all: 'All dates', inventory_movement_type: 'Movement Type', inventory_movement_inbound: 'Inbound', inventory_movement_outbound: 'Outbound', inventory_movement_date: 'Date', inventory_movement_reference: 'Note / Reference', inventory_movement_balance: 'Stock Balance', inventory_movement_details: 'Movement Details', inventory_movement_empty: 'No movement records found', warehouse_value_title: 'Warehouse Value', warehouse_value_description: 'Summarize stock value from the current inventory dataset', warehouse_value_total: 'Total Warehouse Value', warehouse_value_by_category: 'Value by Category', warehouse_value_top_materials: 'Highest Value Materials', warehouse_value_low_high: 'Low Stock but High Value', warehouse_value_out_impact: 'Out of Stock Value Impact', warehouse_value_empty: 'No material data available for valuation', warehouse_value_items: 'Items', warehouse_value_estimated_loss: 'Estimated Value Gap',
     requests_intro: 'This page reflects worker submissions from the worker app in real time', requests_open_worker: 'Open Worker Screen', requests_project: 'Project', requests_unspecified: 'Unspecified', requests_items_title: 'Requested materials:', requests_empty: 'No material requests yet',
-    chat_realtime: 'Connected to worker and homeowner apps in real time', chat_go_worker: 'Go to Worker App', chat_go_owner: 'Go to Owner App', chat_owner_suffix: '(owner)', chat_recording: 'Recording audio...', chat_hold_record: 'Hold to record',
+    chat_realtime: 'Connected to worker and homeowner apps in real time', chat_go_worker: 'Go to Worker App', chat_go_owner: 'Go to Owner App', chat_owner_suffix: '(owner)', chat_recording: 'Recording audio...', chat_hold_record: 'Record voice', chat_record_start: 'Start Recording', chat_record_stop: 'Send Voice', chat_record_cancel: 'Cancel Recording', chat_mic_not_supported: 'This browser or device does not support voice recording', chat_mic_permission_denied: 'Microphone permission was denied', chat_mic_error_generic: 'Could not start voice recording. Please try again.', chat_demo_empty: 'No messages yet. Send a text or voice note to start the conversation.', chat_demo_reply_worker: 'Received. The site team is checking it now and will send an update shortly.', chat_demo_reply_owner: 'Acknowledged. Please share the next progress update and any cost impact when available.',
     modal_full_name: 'Full Name *', category_construction: 'Construction Materials', category_decor: 'Decorative Materials', category_plumbing: 'Plumbing / Sanitary', category_electrical: 'Electrical', category_other: 'Other', project_risk_alert: 'Risk detected and requires follow-up',
   }
 };
@@ -6928,25 +7007,173 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
 
   const [chatInput, setChatInput] = useState('');
+  const [demoChatMessages, setDemoChatMessages] = useState([]);
+  const [chatFeedbackKey, setChatFeedbackKey] = useState('');
   const chatContainerRef = useRef(null);
+  const chatReplyTimeoutRef = useRef(null);
   const quotationPreviewRef = useRef(null);
   const agreementPreviewRef = useRef(null);
   const commissionBillingPreviewRef = useRef(null);
   const settlementPreviewRef = useRef(null);
+  const managerChatStorageKey = `buildsabaidee.manager-chat-demo.${dashboardRole}`;
+  const managerDisplayName = dashboardRole === 'platform_owner'
+    ? (language === 'EN' ? 'BuildSabaidee Admin' : language === 'TH' ? 'ผู้ดูแลระบบ BuildSabaidee' : 'ແອັດມິນ BuildSabaidee')
+    : (language === 'EN' ? 'Project Manager' : language === 'TH' ? 'ผู้จัดการโครงการ' : 'ຜູ້ຈັດການໂຄງການ');
+  const ownerDisplayName = language === 'EN' ? 'Homeowner' : language === 'TH' ? 'เจ้าของบ้าน' : 'ເຈົ້າຂອງບ້ານ';
+  const workerDisplayName = t('worker_role_foreman');
+  const initialDemoChatMessages = useMemo(() => ([
+    {
+      id: 'demo-worker-1',
+      sender: workerDisplayName,
+      senderRole: 'worker',
+      text: t('chat_demo_reply_worker'),
+      projectId: '1',
+      createdAt: Date.now() - 1000 * 60 * 12,
+      time: new Date(Date.now() - 1000 * 60 * 12).toLocaleTimeString(language === 'EN' ? 'en-US' : language === 'TH' ? 'th-TH' : 'lo-LA', { hour: '2-digit', minute: '2-digit' }),
+    },
+    {
+      id: 'demo-owner-1',
+      sender: ownerDisplayName,
+      senderRole: 'owner',
+      text: t('chat_demo_reply_owner'),
+      projectId: '1',
+      createdAt: Date.now() - 1000 * 60 * 6,
+      time: new Date(Date.now() - 1000 * 60 * 6).toLocaleTimeString(language === 'EN' ? 'en-US' : language === 'TH' ? 'th-TH' : 'lo-LA', { hour: '2-digit', minute: '2-digit' }),
+    },
+  ]), [language, ownerDisplayName, t, workerDisplayName]);
+
+  const buildChatTimeLabel = (timestamp = Date.now()) => new Date(timestamp).toLocaleTimeString(
+    language === 'EN' ? 'en-US' : language === 'TH' ? 'th-TH' : 'lo-LA',
+    { hour: '2-digit', minute: '2-digit' }
+  );
+
+  const buildDemoChatEntry = ({ sender, senderRole, text = '', audioUrl = '', projectId = '1', createdAt = Date.now(), clientId }) => ({
+    id: clientId || `demo-${senderRole}-${createdAt}`,
+    clientId: clientId || null,
+    sender,
+    senderRole,
+    text,
+    audioUrl,
+    projectId,
+    createdAt,
+    time: buildChatTimeLabel(createdAt),
+  });
+
+  useEffect(() => {
+    try {
+      const storedMessages = window.localStorage.getItem(managerChatStorageKey);
+      if (storedMessages) {
+        const parsed = JSON.parse(storedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setDemoChatMessages(parsed);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to read demo chat messages:', error);
+    }
+    setDemoChatMessages(initialDemoChatMessages);
+  }, [initialDemoChatMessages, managerChatStorageKey]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(managerChatStorageKey, JSON.stringify(demoChatMessages));
+    } catch (error) {
+      console.error('Failed to persist demo chat messages:', error);
+    }
+  }, [demoChatMessages, managerChatStorageKey]);
+
+  const mergedChatMessages = useMemo(() => {
+    const items = [...(Array.isArray(globalChats) ? globalChats : []), ...demoChatMessages]
+      .filter(Boolean)
+      .map((message) => ({
+        ...message,
+        createdAt: Number(message?.createdAt || 0),
+        sender: message?.sender || '-',
+        senderRole: message?.senderRole || 'manager',
+        text: typeof message?.text === 'string' ? message.text : '',
+        audioUrl: typeof message?.audioUrl === 'string' ? message.audioUrl : '',
+        time: message?.time || buildChatTimeLabel(Number(message?.createdAt || Date.now())),
+      }));
+
+    const dedupedMap = new Map();
+    items.forEach((message) => {
+      const dedupeKey = message.clientId || `${message.senderRole}-${message.createdAt}-${message.text}-${message.audioUrl}`;
+      if (!dedupedMap.has(dedupeKey) || message.id?.length > String(dedupedMap.get(dedupeKey)?.id || '').length) {
+        dedupedMap.set(dedupeKey, message);
+      }
+    });
+
+    return Array.from(dedupedMap.values()).sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
+  }, [globalChats, demoChatMessages]);
 
   // 🎙️ Firebase Audio Recorder สำหรับ Manager
-  const { isRecording: isRecordingAudio, startRecording, stopRecording } = useAudioRecorder(async (base64Audio) => {
-    if(!db) return alert(t('firebase_required'));
-    await addDoc(collection(db, 'chats'), {
-       sender: 'ผู้จัดการโครงการ', senderRole: 'manager', text: 'ส่งข้อความเสียง 🎵', audioUrl: base64Audio, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: '1', createdAt: Date.now()
+  const appendDemoChatMessage = async (messagePayload) => {
+    const nextMessage = buildDemoChatEntry(messagePayload);
+    setDemoChatMessages((prev) => [...prev.filter((item) => item.clientId !== nextMessage.clientId), nextMessage]);
+
+    if (db) {
+      try {
+        await addDoc(collection(db, 'chats'), nextMessage);
+      } catch (error) {
+        console.error('Failed to sync chat message to Firebase:', error);
+      }
+    }
+
+    return nextMessage;
+  };
+
+  const queueDemoReply = (sourceMessage) => {
+    if (chatReplyTimeoutRef.current) {
+      window.clearTimeout(chatReplyTimeoutRef.current);
+    }
+
+    const replyRole = sourceMessage.senderRole === 'owner' ? 'worker' : (sourceMessage.createdAt % 2 === 0 ? 'worker' : 'owner');
+    const replyText = replyRole === 'worker' ? t('chat_demo_reply_worker') : t('chat_demo_reply_owner');
+    const replySender = replyRole === 'worker' ? workerDisplayName : ownerDisplayName;
+
+    chatReplyTimeoutRef.current = window.setTimeout(() => {
+      appendDemoChatMessage({
+        sender: replySender,
+        senderRole: replyRole,
+        text: replyText,
+        projectId: sourceMessage.projectId || '1',
+        clientId: `demo-reply-${replyRole}-${Date.now()}`,
+      });
+    }, 900);
+  };
+
+  const {
+    isRecording: isRecordingAudio,
+    isSupported: isAudioRecordingSupported,
+    errorKey: audioRecorderErrorKey,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    clearError: clearAudioRecorderError,
+  } = useAudioRecorder(async (base64Audio) => {
+    const outgoingVoiceMessage = await appendDemoChatMessage({
+      sender: managerDisplayName,
+      senderRole: 'manager',
+      text: t('voice_message_label'),
+      audioUrl: base64Audio,
+      projectId: '1',
+      clientId: `demo-voice-${Date.now()}`,
     });
+    queueDemoReply(outgoingVoiceMessage);
   });
 
   useEffect(() => {
     if (activeTab === 'chat' && chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [globalChats, activeTab]);
+  }, [mergedChatMessages, activeTab]);
+
+  useEffect(() => () => {
+    if (chatReplyTimeoutRef.current) {
+      window.clearTimeout(chatReplyTimeoutRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     setCompanyProfileForm(companyProfile);
@@ -7503,14 +7730,25 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
   // FIREBASE ACTIONS (Manager)
   const handleSendChat = async () => {
-    if(!chatInput.trim()) return;
-    if(!db) return alert(t('firebase_required'));
-    await addDoc(collection(db, 'chats'), {
-       sender: 'ผู้จัดการโครงการ', senderRole: 'manager', text: chatInput, time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.', projectId: '1', createdAt: Date.now()
+    const trimmedMessage = String(chatInput || '').trim();
+    if (!trimmedMessage) return;
+    const outgoingMessage = await appendDemoChatMessage({
+      sender: managerDisplayName,
+      senderRole: 'manager',
+      text: trimmedMessage,
+      projectId: '1',
+      clientId: `demo-text-${Date.now()}`,
     });
     setChatInput('');
+    setChatFeedbackKey('');
+    queueDemoReply(outgoingMessage);
   };
-  const handleKeyPress = (e) => { if(e.key === 'Enter') handleSendChat(); };
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendChat();
+    }
+  };
 
   // Helper Function สำหรับใส่ข้อมูลทดสอบกรณีฐานข้อมูลว่าง
   const seedDatabase = async () => {
@@ -14252,33 +14490,66 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
           {/* ----- TAB: CHAT (แชทส่วนกลางผู้จัดการ พร้อมเสียงจริง) ----- */}
           {activeTab === 'chat' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 h-[calc(100vh-140px)] flex flex-col overflow-hidden animate-in fade-in duration-300">
-               <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div className="flex h-[calc(100vh-140px)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm animate-in fade-in duration-300">
+               <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                  <div><h3 className="font-bold text-slate-800">{t('chat_manager_title')}</h3><p className="text-xs text-slate-500">{t('chat_realtime')}</p></div>
-                 <div className="flex space-x-2"><button onClick={() => onNavigate('worker')} className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-200 transition">{t('chat_go_worker')}</button><button onClick={() => onNavigate('owner')} className="bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-orange-200 transition">{t('chat_go_owner')}</button></div>
+                 <div className="flex flex-wrap gap-2"><button onClick={() => onNavigate('worker')} className="rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-200">{t('chat_go_worker')}</button><button onClick={() => onNavigate('owner')} className="rounded-lg bg-orange-100 px-3 py-1.5 text-xs font-bold text-orange-700 transition hover:bg-orange-200">{t('chat_go_owner')}</button></div>
                </div>
 
-               <div ref={chatContainerRef} className="flex-1 p-6 space-y-4 overflow-y-auto bg-slate-100/50">
-                 {globalChats.map(msg => {
-                   const isMe = msg.senderRole === 'manager';
-                   return (
-                     <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                        <div className={`p-3 rounded-2xl text-sm shadow-sm max-w-[90%] md:max-w-[70%] ${isMe ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white text-slate-700 border border-slate-200 rounded-tl-sm'}`}>
+               {(audioRecorderErrorKey || chatFeedbackKey || !isAudioRecordingSupported) && (
+                 <div className="border-b border-slate-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                   {audioRecorderErrorKey ? t(audioRecorderErrorKey) : !isAudioRecordingSupported ? t('chat_mic_not_supported') : t(chatFeedbackKey)}
+                 </div>
+               )}
+
+               <div ref={chatContainerRef} className="flex-1 space-y-4 overflow-y-auto bg-slate-100/50 p-4 sm:p-6">
+                 {mergedChatMessages.length === 0 && (
+                   <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                     {t('chat_demo_empty')}
+                   </div>
+                 )}
+                 {mergedChatMessages.map(msg => {
+                    const isMe = msg.senderRole === 'manager';
+                    return (
+                      <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                         <div className={`max-w-[92%] rounded-2xl p-3 text-sm shadow-sm md:max-w-[70%] ${isMe ? 'rounded-tr-sm bg-blue-600 text-white' : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700'}`}>
                           {!isMe && (<div className={`text-[10px] font-bold mb-1 ${msg.senderRole === 'owner' ? 'text-orange-500' : 'text-blue-500'}`}>{msg.sender} {msg.senderRole === 'owner' && t('chat_owner_suffix')}</div>)}
                           {msg.audioUrl ? (
-                             <audio controls src={msg.audioUrl} className="max-w-[200px] sm:max-w-full h-10 mt-1 rounded-full outline-none bg-transparent" />
+                             <div className="space-y-2">
+                               {msg.text ? <div className={isMe ? 'text-white/90' : 'text-slate-600'}>{msg.text}</div> : null}
+                               <div className={`rounded-2xl p-2 ${isMe ? 'bg-white/10' : 'bg-slate-50'}`}>
+                                 <audio controls src={msg.audioUrl} className="h-10 w-full max-w-[260px] sm:max-w-full" />
+                               </div>
+                             </div>
                           ) : (msg.text)}
-                        </div>
-                        <span className="text-[10px] text-slate-400 mt-1 mx-1">{msg.time}</span>
-                     </div>
+                         </div>
+                         <span className="text-[10px] text-slate-400 mt-1 mx-1">{msg.time}</span>
+                      </div>
                    )
                  })}
                </div>
 
-               <div className="p-4 bg-white border-t border-slate-200 flex items-center">
-                  <button onMouseDown={startRecording} onMouseUp={stopRecording} onMouseLeave={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording} className={`p-3 transition rounded-full ${isRecordingAudio ? 'text-red-500 bg-red-50 animate-pulse' : 'text-slate-400 hover:bg-slate-100'}`} title={t('chat_hold_record')}><Mic className="w-5 h-5"/></button>
-                  <input type="text" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={handleKeyPress} className="flex-1 bg-slate-100 rounded-full px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mx-3" placeholder={isRecordingAudio ? t('chat_recording') : t('chat_placeholder')} disabled={isRecordingAudio} />
-                  <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`p-3 rounded-full transition ${chatInput.trim() ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md' : 'bg-slate-100 text-slate-400'}`}><Send className="w-5 h-5"/></button>
+               <div className="border-t border-slate-200 bg-white p-4">
+                  {isRecordingAudio ? (
+                    <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3 text-sm font-medium text-red-700">
+                        <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse"></div>
+                        {t('chat_recording')}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={cancelRecording} className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">{t('chat_record_cancel')}</button>
+                        <button onClick={stopRecording} className="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">{t('chat_record_stop')}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <button onClick={async () => { setChatFeedbackKey(''); clearAudioRecorderError(); await startRecording(); }} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200" title={t('chat_record_start')}>
+                        <Mic className="h-5 w-5" />
+                      </button>
+                      <input type="text" value={chatInput} onChange={(e) => { setChatInput(e.target.value); if (chatFeedbackKey) setChatFeedbackKey(''); }} onKeyDown={handleKeyPress} className="min-w-0 flex-1 rounded-full bg-slate-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder={t('chat_placeholder')} />
+                      <button onClick={handleSendChat} disabled={!chatInput.trim()} className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition ${chatInput.trim() ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700' : 'bg-slate-100 text-slate-400'}`}><Send className="h-5 w-5" /></button>
+                    </div>
+                  )}
                </div>
             </div>
           )}
