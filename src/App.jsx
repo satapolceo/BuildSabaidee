@@ -166,6 +166,33 @@ const translations = {
     overview_stat_active_sites: 'ໄຊຕ໌ງານທີ່ກຳລັງດຳເນີນການ', overview_stat_attendance: 'ພະນັກງານມາເຮັດວຽກມື້ນີ້', overview_stat_sos: 'ບັນຫາແຈ້ງເຕືອນ (SOS)', overview_stat_requests: 'ຄຳຂໍເບີກວັດສະດຸໃໝ່',
     overview_sos_title: 'ມີການແຈ້ງບັນຫາໜ້າວຽກສຸກເສີນ (SOS)', overview_by: 'ໂດຍ', overview_site: 'ໄຊຕ໌', overview_acknowledge: 'ຮັບຊາບບັນຫາ', overview_current_sites: 'ສະຖານະໄຊຕ໌ງານປັດຈຸບັນ', overview_no_sites: 'ບໍ່ມີຂໍ້ມູນໄຊຕ໌ງານ',
     overview_pending_docs: 'ເອກະສານລໍຖ້າອະນຸມັດ', overview_amount: 'ຍອດ', overview_no_pending_docs: 'ບໍ່ມີລາຍການລໍຖ້າອະນຸມັດ', overview_manage_all_docs: 'ຈັດການເອກະສານທັງໝົດ',
+    overview_daily_issues_title: 'Dashboard ຕິດຕາມບັນຫາປະຈຳວັນ',
+    overview_daily_issues_desc: 'ເຫັນບັນຫາຂອງມື້ນີ້, ໄຊຕ໌ງານ, ຜູ້ຄວບຄຸມ, ລະດັບຄວາມດ່ວນ ແລະ ສະຖານະໄດ້ໃນບ່ອນດຽວ',
+    overview_daily_issues_total_today: 'ບັນຫາທັງໝົດມື້ນີ້',
+    overview_daily_issues_urgent: 'ບັນຫາເລັ່ງດ່ວນ',
+    overview_daily_issues_in_progress: 'ກຳລັງດຳເນີນການ',
+    overview_daily_issues_waiting: 'ລໍຖ້າອະນຸມັດ / ລໍຖ້າແກ້ໄຂ',
+    overview_daily_issues_priority: 'ຄວາມດ່ວນ',
+    overview_daily_issues_status: 'ສະຖານະ',
+    overview_daily_issues_supervisor: 'ຜູ້ຄວບຄຸມງານ',
+    overview_daily_issues_reported_at: 'ແຈ້ງເມື່ອ',
+    overview_daily_issues_photo: 'ຮູບປະກອບ',
+    overview_daily_issues_has_photo: 'ມີຮູບປະກອບ',
+    overview_daily_issues_no_photo: 'ບໍ່ມີຮູບ',
+    overview_daily_issues_site_fallback: 'ຍັງບໍ່ລະບຸໄຊຕ໌ງານ',
+    overview_daily_issues_supervisor_fallback: 'ລໍຖ້າມອບໝາຍຜູ້ຄວບຄຸມ',
+    overview_daily_issues_action_details: 'ເບິ່ງລາຍລະອຽດ',
+    overview_daily_issues_action_update: 'ອັບເດດສະຖານະ',
+    overview_daily_issues_action_notify: 'ແຈ້ງເຕືອນຜູ້ກ່ຽວຂ້ອງ',
+    overview_daily_issues_empty: 'ຍັງບໍ່ມີບັນຫາສຳລັບມື້ນີ້',
+    daily_issue_severity_critical: 'ເລັ່ງດ່ວນຫຼາຍ',
+    daily_issue_severity_high: 'ເລັ່ງດ່ວນ',
+    daily_issue_severity_medium: 'ປານກາງ',
+    daily_issue_severity_normal: 'ທົ່ວໄປ',
+    daily_issue_status_pending: 'ລໍຖ້າດຳເນີນການ',
+    daily_issue_status_in_progress: 'ກຳລັງແກ້ໄຂ',
+    daily_issue_status_resolved: 'ແກ້ໄຂແລ້ວ',
+    daily_issue_status_waiting_approval: 'ລໍຖ້າກວດສອບ',
     table_project_name: 'ຊື່ໂຄງການ', table_progress: 'ຄວາມຄືບໜ້າ', table_actions: 'ຈັດການ', table_identity_phone: 'ຊື່ - ເບີໂທ', table_role_wage: 'ຕຳແໜ່ງ & ຄ່າແຮງ', table_site: 'ໄຊຕ໌ງານ', table_attendance: 'ການເຂົ້າວຽກ', table_doc_name: 'ຊື່ເອກະສານ', table_doc_amount: 'ຍອດເງິນ', table_project: 'ໂຄງການ', table_sender: 'ຜູ້ສົ່ງ',
     workers_unit: 'ຄົນງານ', attendance_from_app: 'ຈາກ App',
     inventory_all_projects: 'ລວມທຸກໂຄງການ', inventory_central_stock: 'ສະຕັອກກາງ (ບໍ່ໄດ້ລະບຸ)', label_related_project: 'ໂຄງການທີ່ກ່ຽວຂ້ອງ', label_linked_project: 'ໂຄງການທີ່ຜູກ', stock_overview_title: 'ພາບລວມສະຕັອກ', stock_total_items: 'ຈຳນວນລາຍການທັງໝົດ', stock_low_items: 'ລາຍການໃກ້ໝົດ', stock_out_items: 'ລາຍການໝົດສະຕັອກ', stock_recent_movements: 'ຄວາມເຄື່ອນໄຫວສະຕັອກຫຼ້າສຸດ', stock_recent_placeholder: 'ລະບົບຈະສະແດງ movement ຈາກໂມດູນຮັບເຂົ້າ/ເບີກອອກເມື່ອພ້ອມ', stock_status_low: 'ໃກ້ໝົດ', stock_status_out: 'ໝົດສະຕັອກ', stock_status_ok: 'ພ້ອມໃຊ້', stock_movement_updated: 'ອັບເດດລາຍການ', material_catalog_title: 'ລາຍການວັດສະດຸ', material_catalog_description: 'ຄົ້ນຫາ ແລະ ເບິ່ງລາຍລະອຽດວັດສະດຸຈາກຂໍ້ມູນຄັງທີ່ມີຢູ່', material_catalog_search_placeholder: 'ຄົ້ນຫາຊື່ວັດສະດຸ...', material_catalog_filter_all_categories: 'ທຸກໝວດໝູ່', material_catalog_filter_all_statuses: 'ທຸກສະຖານະ', material_catalog_details: 'ລາຍລະອຽດວັດສະດຸ', material_catalog_open_details: 'ເປີດລາຍລະອຽດ', material_catalog_empty: 'ບໍ່ພົບລາຍການວັດສະດຸ', material_catalog_notes: 'ໝາຍເຫດ', inventory_movements_title: 'ຮັບເຂົ້າ / ເບີກອອກ', inventory_movements_description: 'ຕິດຕາມ movement ຂອງວັດສະດຸຈາກຂໍ້ມູນຄັງປະຈຸບັນ', inventory_movements_search_placeholder: 'ຄົ້ນຫາ movement...', inventory_movements_all_types: 'ທຸກປະເພດ', inventory_movements_all_materials: 'ທຸກວັດສະດຸ', inventory_movements_date_all: 'ທຸກວັນ', inventory_movement_type: 'ປະເພດ movement', inventory_movement_inbound: 'ຮັບເຂົ້າ', inventory_movement_outbound: 'ເບີກອອກ', inventory_movement_date: 'ວັນທີ', inventory_movement_reference: 'ໝາຍເຫດ / ອ້າງອີງ', inventory_movement_balance: 'ຍອດຄົງເຫຼືອ', inventory_movement_details: 'ລາຍລະອຽດ movement', inventory_movement_empty: 'ບໍ່ພົບ movement ໃນລະບົບ', warehouse_value_title: 'ມູນຄ່າຄັງວັດສະດຸ', warehouse_value_description: 'ສະຫຼຸບມູນຄ່າຂອງສະຕັອກຈາກຂໍ້ມູນວັດສະດຸປະຈຸບັນ', warehouse_value_total: 'ມູນຄ່າຄັງລວມ', warehouse_value_by_category: 'ມູນຄ່າຕາມໝວດໝູ່', warehouse_value_top_materials: 'ວັດສະດຸມູນຄ່າສູງ', warehouse_value_low_high: 'ໃກ້ໝົດແຕ່ມູນຄ່າສູງ', warehouse_value_out_impact: 'ຜົນກະທົບຈາກສະຕັອກໝົດ', warehouse_value_empty: 'ຍັງບໍ່ມີຂໍ້ມູນວັດສະດຸສຳລັບຄຳນວນ', warehouse_value_items: 'ລາຍການ', warehouse_value_estimated_loss: 'ມູນຄ່າທີ່ຂາດໄປ',
@@ -242,6 +269,33 @@ const translations = {
     overview_stat_active_sites: 'ไซต์งานกำลังดำเนินการ', overview_stat_attendance: 'พนักงานมาทำงานวันนี้', overview_stat_sos: 'ปัญหาแจ้งเตือน (SOS)', overview_stat_requests: 'คำขอเบิกวัสดุใหม่',
     overview_sos_title: 'มีการแจ้งปัญหาหน้างานฉุกเฉิน (SOS)', overview_by: 'โดย', overview_site: 'ไซต์', overview_acknowledge: 'รับทราบปัญหา', overview_current_sites: 'สถานะไซต์งานปัจจุบัน', overview_no_sites: 'ไม่มีข้อมูลไซต์งาน',
     overview_pending_docs: 'เอกสารรอการอนุมัติ', overview_amount: 'ยอด', overview_no_pending_docs: 'ไม่มีรายการรออนุมัติ', overview_manage_all_docs: 'จัดการเอกสารทั้งหมด',
+    overview_daily_issues_title: 'Daily Issues Dashboard',
+    overview_daily_issues_desc: 'ดูปัญหาของวันนี้พร้อมไซต์งาน ผู้ควบคุม ระดับความเร่งด่วน และสถานะปัจจุบันได้ในบล็อกเดียว',
+    overview_daily_issues_total_today: 'ปัญหาทั้งหมดวันนี้',
+    overview_daily_issues_urgent: 'ปัญหาเร่งด่วน',
+    overview_daily_issues_in_progress: 'กำลังดำเนินการ',
+    overview_daily_issues_waiting: 'รออนุมัติ / รอแก้ไข',
+    overview_daily_issues_priority: 'ความเร่งด่วน',
+    overview_daily_issues_status: 'สถานะ',
+    overview_daily_issues_supervisor: 'ผู้ควบคุมงาน',
+    overview_daily_issues_reported_at: 'แจ้งเมื่อ',
+    overview_daily_issues_photo: 'รูปประกอบ',
+    overview_daily_issues_has_photo: 'มีรูปประกอบ',
+    overview_daily_issues_no_photo: 'ไม่มีรูป',
+    overview_daily_issues_site_fallback: 'ยังไม่ได้ระบุไซต์งาน',
+    overview_daily_issues_supervisor_fallback: 'รอมอบหมายผู้ควบคุม',
+    overview_daily_issues_action_details: 'ดูรายละเอียด',
+    overview_daily_issues_action_update: 'อัปเดตสถานะ',
+    overview_daily_issues_action_notify: 'แจ้งเตือนผู้เกี่ยวข้อง',
+    overview_daily_issues_empty: 'ยังไม่มีปัญหาสำหรับวันนี้',
+    daily_issue_severity_critical: 'เร่งด่วนมาก',
+    daily_issue_severity_high: 'เร่งด่วน',
+    daily_issue_severity_medium: 'ปานกลาง',
+    daily_issue_severity_normal: 'ทั่วไป',
+    daily_issue_status_pending: 'รอดำเนินการ',
+    daily_issue_status_in_progress: 'กำลังแก้ไข',
+    daily_issue_status_resolved: 'แก้ไขแล้ว',
+    daily_issue_status_waiting_approval: 'รอตรวจสอบ',
     table_project_name: 'ชื่อโครงการ', table_progress: 'ความคืบหน้า', table_actions: 'จัดการ', table_identity_phone: 'ชื่อ - เบอร์โทร', table_role_wage: 'ตำแหน่ง & ค่าแรง', table_site: 'ไซต์งาน', table_attendance: 'การเข้างาน', table_doc_name: 'ชื่อเอกสาร', table_doc_amount: 'ยอดเงิน', table_project: 'โครงการ', table_sender: 'ผู้ส่ง',
     workers_unit: 'คนงาน', attendance_from_app: 'จาก App',
     inventory_all_projects: 'รวมทุกโครงการ', inventory_central_stock: 'สต็อกกลาง (ไม่ได้ระบุ)', label_related_project: 'โครงการที่เกี่ยวข้อง', label_linked_project: 'โครงการที่ผูก', stock_overview_title: 'ภาพรวมสต็อก', stock_total_items: 'จำนวนรายการทั้งหมด', stock_low_items: 'รายการใกล้หมด', stock_out_items: 'รายการหมดสต็อก', stock_recent_movements: 'ความเคลื่อนไหวสต็อกล่าสุด', stock_recent_placeholder: 'ระบบจะแสดง movement จากโมดูลรับเข้า/เบิกออกเมื่อพร้อมใช้งาน', stock_status_low: 'ใกล้หมด', stock_status_out: 'หมดสต็อก', stock_status_ok: 'พร้อมใช้', stock_movement_updated: 'อัปเดตรายการ', material_catalog_title: 'แคตตาล็อกวัสดุ', material_catalog_description: 'ค้นหาและดูรายละเอียดวัสดุจากข้อมูลคลังที่มีอยู่', material_catalog_search_placeholder: 'ค้นหาชื่อวัสดุ...', material_catalog_filter_all_categories: 'ทุกหมวดหมู่', material_catalog_filter_all_statuses: 'ทุกสถานะ', material_catalog_details: 'รายละเอียดวัสดุ', material_catalog_open_details: 'เปิดรายละเอียด', material_catalog_empty: 'ไม่พบรายการวัสดุ', material_catalog_notes: 'หมายเหตุ', inventory_movements_title: 'รับเข้า / เบิกออก', inventory_movements_description: 'ติดตามรายการเคลื่อนไหวสต็อกจากข้อมูลคลังปัจจุบัน', inventory_movements_search_placeholder: 'ค้นหา movement...', inventory_movements_all_types: 'ทุกประเภท', inventory_movements_all_materials: 'ทุกวัสดุ', inventory_movements_date_all: 'ทุกวัน', inventory_movement_type: 'ประเภท movement', inventory_movement_inbound: 'รับเข้า', inventory_movement_outbound: 'เบิกออก', inventory_movement_date: 'วันที่', inventory_movement_reference: 'หมายเหตุ / อ้างอิง', inventory_movement_balance: 'ยอดคงเหลือ', inventory_movement_details: 'รายละเอียด movement', inventory_movement_empty: 'ไม่พบรายการ movement', warehouse_value_title: 'มูลค่าคลังวัสดุ', warehouse_value_description: 'สรุปมูลค่าสต็อกจากข้อมูลวัสดุปัจจุบัน', warehouse_value_total: 'มูลค่าคลังรวม', warehouse_value_by_category: 'มูลค่าตามหมวดหมู่', warehouse_value_top_materials: 'วัสดุมูลค่าสูง', warehouse_value_low_high: 'ใกล้หมดแต่มูลค่าสูง', warehouse_value_out_impact: 'ผลกระทบจากของหมดสต็อก', warehouse_value_empty: 'ยังไม่มีข้อมูลวัสดุสำหรับคำนวณ', warehouse_value_items: 'รายการ', warehouse_value_estimated_loss: 'มูลค่าที่หายไป',
@@ -318,6 +372,33 @@ const translations = {
     overview_stat_active_sites: 'Active Sites', overview_stat_attendance: 'Workers Present Today', overview_stat_sos: 'SOS Alerts', overview_stat_requests: 'New Material Requests',
     overview_sos_title: 'There are urgent SOS reports from site', overview_by: 'By', overview_site: 'Site', overview_acknowledge: 'Acknowledge', overview_current_sites: 'Current Site Status', overview_no_sites: 'No project sites found',
     overview_pending_docs: 'Pending Documents', overview_amount: 'Amount', overview_no_pending_docs: 'No pending documents', overview_manage_all_docs: 'Manage All Documents',
+    overview_daily_issues_title: 'Daily Issues Dashboard',
+    overview_daily_issues_desc: 'Scan today’s site issues, supervisors, urgency levels, and current status from one clean operations panel.',
+    overview_daily_issues_total_today: 'Total Issues Today',
+    overview_daily_issues_urgent: 'Urgent Issues',
+    overview_daily_issues_in_progress: 'In Progress',
+    overview_daily_issues_waiting: 'Waiting Approval / Fix',
+    overview_daily_issues_priority: 'Priority',
+    overview_daily_issues_status: 'Status',
+    overview_daily_issues_supervisor: 'Supervisor',
+    overview_daily_issues_reported_at: 'Reported At',
+    overview_daily_issues_photo: 'Photo',
+    overview_daily_issues_has_photo: 'Has photo',
+    overview_daily_issues_no_photo: 'No photo',
+    overview_daily_issues_site_fallback: 'Site not specified',
+    overview_daily_issues_supervisor_fallback: 'Supervisor pending assignment',
+    overview_daily_issues_action_details: 'View Details',
+    overview_daily_issues_action_update: 'Update Status',
+    overview_daily_issues_action_notify: 'Notify Team',
+    overview_daily_issues_empty: 'No issues logged for today',
+    daily_issue_severity_critical: 'Critical',
+    daily_issue_severity_high: 'Urgent',
+    daily_issue_severity_medium: 'Medium',
+    daily_issue_severity_normal: 'General',
+    daily_issue_status_pending: 'Pending Action',
+    daily_issue_status_in_progress: 'In Progress',
+    daily_issue_status_resolved: 'Resolved',
+    daily_issue_status_waiting_approval: 'Waiting Review',
     table_project_name: 'Project Name', table_progress: 'Progress', table_actions: 'Actions', table_identity_phone: 'Name - Phone', table_role_wage: 'Role & Wage', table_site: 'Site', table_attendance: 'Attendance', table_doc_name: 'Document Name', table_doc_amount: 'Amount', table_project: 'Project', table_sender: 'Sender',
     workers_unit: 'workers', attendance_from_app: 'from App',
     inventory_all_projects: 'All Projects Combined', inventory_central_stock: 'Central stock (unassigned)', label_related_project: 'Related Project', label_linked_project: 'Linked Project', stock_overview_title: 'Stock Overview', stock_total_items: 'Total Items', stock_low_items: 'Low Stock Items', stock_out_items: 'Out of Stock Items', stock_recent_movements: 'Recent Stock Movements', stock_recent_placeholder: 'Movement history will connect here when inbound/outbound stock modules are ready', stock_status_low: 'Low', stock_status_out: 'Out of Stock', stock_status_ok: 'Available', stock_movement_updated: 'Item updated', material_catalog_title: 'Material Catalog', material_catalog_description: 'Search and review material details from the current inventory dataset', material_catalog_search_placeholder: 'Search materials...', material_catalog_filter_all_categories: 'All categories', material_catalog_filter_all_statuses: 'All statuses', material_catalog_details: 'Material Details', material_catalog_open_details: 'Open Details', material_catalog_empty: 'No materials found', material_catalog_notes: 'Notes', inventory_movements_title: 'Inbound / Outbound', inventory_movements_description: 'Track stock movement records from the current inventory dataset', inventory_movements_search_placeholder: 'Search movements...', inventory_movements_all_types: 'All types', inventory_movements_all_materials: 'All materials', inventory_movements_date_all: 'All dates', inventory_movement_type: 'Movement Type', inventory_movement_inbound: 'Inbound', inventory_movement_outbound: 'Outbound', inventory_movement_date: 'Date', inventory_movement_reference: 'Note / Reference', inventory_movement_balance: 'Stock Balance', inventory_movement_details: 'Movement Details', inventory_movement_empty: 'No movement records found', warehouse_value_title: 'Warehouse Value', warehouse_value_description: 'Summarize stock value from the current inventory dataset', warehouse_value_total: 'Total Warehouse Value', warehouse_value_by_category: 'Value by Category', warehouse_value_top_materials: 'Highest Value Materials', warehouse_value_low_high: 'Low Stock but High Value', warehouse_value_out_impact: 'Out of Stock Value Impact', warehouse_value_empty: 'No material data available for valuation', warehouse_value_items: 'Items', warehouse_value_estimated_loss: 'Estimated Value Gap',
@@ -4727,6 +4808,199 @@ function formatDateByLanguage(value, language) {
   }).format(parsedDate);
 }
 
+const DAILY_ISSUE_SEVERITY_ORDER = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  normal: 3,
+};
+
+const DAILY_ISSUE_STATUS_ORDER = {
+  pending: 0,
+  waiting_approval: 1,
+  in_progress: 2,
+  resolved: 3,
+};
+
+const DAILY_ISSUES_MOCK_LIBRARY = [
+  {
+    id: 'demo-water-leak',
+    severity: 'critical',
+    status: 'in_progress',
+    time: '08:40',
+    imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356f27?q=80&w=900&auto=format&fit=crop',
+    title: {
+      TH: 'ปัญหาน้ำรั่วโซนห้องน้ำชั้น 2',
+      LA: 'ບັນຫານ້ຳຮົ່ວບໍລິເວນຫ້ອງນ້ຳຊັ້ນ 2',
+      EN: 'Water leakage near level 2 restroom',
+    },
+    siteName: {
+      TH: 'โครงการบ้านตัวอย่าง Riverside',
+      LA: 'ໂຄງການເຮືອນຕົວຢ່າງ Riverside',
+      EN: 'Riverside Showhouse Project',
+    },
+    supervisor: {
+      TH: 'สมชาย วิศวกรสนาม',
+      LA: 'ສົມໄຊ ວິສະວະກອນໜ້າງານ',
+      EN: 'Somchai, Site Engineer',
+    },
+  },
+  {
+    id: 'demo-electrical',
+    severity: 'high',
+    status: 'pending',
+    time: '09:25',
+    imageUrl: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=900&auto=format&fit=crop',
+    title: {
+      TH: 'งานไฟฟ้าชั้นล่างเดินท่อไม่ตรงแบบ',
+      LA: 'ວຽກໄຟຟ້າຊັ້ນລຸ່ມວາງທໍ່ບໍ່ຕົງແບບ',
+      EN: 'Electrical conduit routing does not match the drawing',
+    },
+    siteName: {
+      TH: 'ไซต์รีโนเวทสำนักงาน Mekong',
+      LA: 'ໄຊຕ໌ປັບປຸງຫ້ອງການ Mekong',
+      EN: 'Mekong Office Renovation',
+    },
+    supervisor: {
+      TH: 'อนุชา หัวหน้าควบคุมงาน',
+      LA: 'ອະນຸຊາ ຫົວໜ້າຄວບຄຸມວຽກ',
+      EN: 'Anucha, Site Supervisor',
+    },
+  },
+  {
+    id: 'demo-material',
+    severity: 'medium',
+    status: 'waiting_approval',
+    time: '10:10',
+    imageUrl: '',
+    title: {
+      TH: 'วัสดุเหล็กข้ออ้อยขาดสำหรับงานเทฐาน',
+      LA: 'ເຫຼັກເສັ້ນບໍ່ພໍສຳລັບງານເທຖານ',
+      EN: 'Rebar shortage for foundation pour',
+    },
+    siteName: {
+      TH: 'โครงการคลังสินค้า North Yard',
+      LA: 'ໂຄງການຄັງສິນຄ້າ North Yard',
+      EN: 'North Yard Warehouse',
+    },
+    supervisor: {
+      TH: 'ณัฐพล ผู้ควบคุมหน้างาน',
+      LA: 'ນັດທະພົນ ຜູ້ຄວບຄຸມໜ້າງານ',
+      EN: 'Nattaphon, Field Controller',
+    },
+  },
+  {
+    id: 'demo-delay',
+    severity: 'medium',
+    status: 'in_progress',
+    time: '11:35',
+    imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=900&auto=format&fit=crop',
+    title: {
+      TH: 'งานฉาบผนังล่าช้ากว่าแผน 1 วัน',
+      LA: 'ວຽກສາບຜະໜັງຊ້າກວ່າແຜນ 1 ມື້',
+      EN: 'Wall plastering is running one day behind schedule',
+    },
+    siteName: {
+      TH: 'โครงการบ้านตัวอย่าง Riverside',
+      LA: 'ໂຄງການເຮືອນຕົວຢ່າງ Riverside',
+      EN: 'Riverside Showhouse Project',
+    },
+    supervisor: {
+      TH: 'พรชัย วิศวกรสนาม',
+      LA: 'ພອນໄຊ ວິສະວະກອນໜ້າງານ',
+      EN: 'Pornchai, Site Engineer',
+    },
+  },
+  {
+    id: 'demo-safety',
+    severity: 'critical',
+    status: 'pending',
+    time: '13:05',
+    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=900&auto=format&fit=crop',
+    title: {
+      TH: 'ความปลอดภัย: ราวกันตกชั้น 3 ยังติดตั้งไม่ครบ',
+      LA: 'ຄວາມປອດໄພ: ລາວກັ້ນຕົກຊັ້ນ 3 ຍັງຕິດຕັ້ງບໍ່ຄົບ',
+      EN: 'Safety risk: level 3 edge protection is incomplete',
+    },
+    siteName: {
+      TH: 'ไซต์รีโนเวทสำนักงาน Mekong',
+      LA: 'ໄຊຕ໌ປັບປຸງຫ້ອງການ Mekong',
+      EN: 'Mekong Office Renovation',
+    },
+    supervisor: {
+      TH: 'เกริกฤทธิ์ หัวหน้าความปลอดภัย',
+      LA: 'ເກຣິກຣິດ ຫົວໜ້າຄວາມປອດໄພ',
+      EN: 'Kriangkrit, Safety Lead',
+    },
+  },
+];
+
+function getDailyIssueSeverityKey(severity) {
+  if (severity === 'critical') return 'daily_issue_severity_critical';
+  if (severity === 'high') return 'daily_issue_severity_high';
+  if (severity === 'medium') return 'daily_issue_severity_medium';
+  return 'daily_issue_severity_normal';
+}
+
+function getDailyIssueStatusKey(status) {
+  if (status === 'in_progress') return 'daily_issue_status_in_progress';
+  if (status === 'resolved') return 'daily_issue_status_resolved';
+  if (status === 'waiting_approval') return 'daily_issue_status_waiting_approval';
+  return 'daily_issue_status_pending';
+}
+
+function getDailyIssueSeverityTone(severity) {
+  if (severity === 'critical') {
+    return {
+      card: 'border-red-200 bg-gradient-to-br from-red-50 via-white to-white shadow-red-100/80',
+      badge: 'border-red-200 bg-red-100 text-red-700',
+      dot: 'bg-red-500',
+      accent: 'text-red-600',
+      thumbnail: 'from-red-100 to-orange-50',
+    };
+  }
+  if (severity === 'high') {
+    return {
+      card: 'border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white shadow-amber-100/80',
+      badge: 'border-amber-200 bg-amber-100 text-amber-700',
+      dot: 'bg-amber-500',
+      accent: 'text-amber-600',
+      thumbnail: 'from-amber-100 to-orange-50',
+    };
+  }
+  if (severity === 'medium') {
+    return {
+      card: 'border-blue-200 bg-gradient-to-br from-blue-50 via-white to-white shadow-blue-100/80',
+      badge: 'border-blue-200 bg-blue-100 text-blue-700',
+      dot: 'bg-blue-500',
+      accent: 'text-blue-600',
+      thumbnail: 'from-blue-100 to-cyan-50',
+    };
+  }
+  return {
+    card: 'border-slate-200 bg-white shadow-slate-100/80',
+    badge: 'border-slate-200 bg-slate-100 text-slate-700',
+    dot: 'bg-slate-400',
+    accent: 'text-slate-600',
+    thumbnail: 'from-slate-100 to-slate-50',
+  };
+}
+
+function getDailyIssueStatusTone(status) {
+  if (status === 'resolved') return 'border-green-200 bg-green-50 text-green-700';
+  if (status === 'in_progress') return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (status === 'waiting_approval') return 'border-violet-200 bg-violet-50 text-violet-700';
+  return 'border-amber-200 bg-amber-50 text-amber-700';
+}
+
+function inferDailyIssueSeverity(title, desc, fallbackSeverity = 'medium') {
+  const content = `${String(title || '')} ${String(desc || '')}`.toLowerCase();
+  if (/(safety|ไฟ|electric|electrical|short|shock|fall|ตก|รั่ว|leak|hazard|unsafe|อันตราย|ອັນຕະລາຍ|ນ້ຳຮົ່ວ|ໄຟຟ້າ)/.test(content)) return 'critical';
+  if (/(delay|late|material|ขาด|ล่าช้า|เร่งด่วน|urgent|ຂາດ|ຊ້າ|ດ່ວນ)/.test(content)) return 'high';
+  if (/(inspection|verify|approval|approve|ตรวจ|อนุมัติ|ກວດ|ອະນຸມັດ)/.test(content)) return 'medium';
+  return fallbackSeverity;
+}
+
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 
 function getWeatherConditionKey(code) {
@@ -6540,6 +6814,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [editingPricingPackageId, setEditingPricingPackageId] = useState(null);
   const [pricingPackageFormData, setPricingPackageFormData] = useState(createPricingPackageEntry());
+  const [dailyIssueStatusOverrides, setDailyIssueStatusOverrides] = useState({});
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState('');
   const [purchaseOrderForm, setPurchaseOrderForm] = useState(createPurchaseOrderEntry());
   const [orderStatusSearchQuery, setOrderStatusSearchQuery] = useState('');
@@ -8516,8 +8791,99 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
     }
   }, [filteredSettlementRecords, selectedSettlementId]);
 
+  const dailyIssuesDashboardItems = useMemo(() => {
+    const resolveSupervisorName = (projectId, fallbackName) => {
+      const assignedSupervisor = workersList.find((worker) => {
+        const assignedId = String(worker.assignedSiteId || worker.projectId || '');
+        const normalizedRole = String(worker.role || '').toLowerCase();
+        return assignedId === String(projectId || '') && /foreman|supervisor|manager|lead/.test(normalizedRole);
+      });
+      return assignedSupervisor?.name || fallbackName || t('overview_daily_issues_supervisor_fallback');
+    };
+
+    const realIssues = globalIssues.map((issue, index) => {
+      const fallbackMock = DAILY_ISSUES_MOCK_LIBRARY[index % DAILY_ISSUES_MOCK_LIBRARY.length];
+      const project = projectsList.find((item) => String(item.id) === String(issue.projectId));
+      const severity = inferDailyIssueSeverity(issue.title, issue.desc, fallbackMock.severity);
+      const overrideStatus = dailyIssueStatusOverrides[issue.id];
+      return {
+        id: issue.id || `issue-${index}`,
+        projectId: String(issue.projectId || project?.id || fallbackMock.id),
+        title: String(issue.title || fallbackMock.title[language] || fallbackMock.title.EN),
+        siteName: project?.name || issue.siteName || fallbackMock.siteName[language] || fallbackMock.siteName.EN,
+        supervisor: resolveSupervisorName(issue.projectId, fallbackMock.supervisor[language] || fallbackMock.supervisor.EN),
+        reporter: issue.requestedBy || '-',
+        reportedDate: issue.date || issue.createdAt || todayDate,
+        reportedTime: issue.time || fallbackMock.time,
+        severity,
+        status: overrideStatus || (issue.status === 'resolved' ? 'resolved' : 'pending'),
+        imageUrl: issue.photoUrl || fallbackMock.imageUrl || '',
+        hasImage: Boolean(issue.photoUrl || fallbackMock.imageUrl),
+        source: 'real',
+      };
+    });
+
+    const minimumIssueCount = 5;
+    const requiredMockCount = Math.max(minimumIssueCount - realIssues.length, 0);
+    const mockIssues = DAILY_ISSUES_MOCK_LIBRARY.slice(0, requiredMockCount).map((item, index) => {
+      const project = projectsList[index % Math.max(projectsList.length, 1)];
+      const overrideStatus = dailyIssueStatusOverrides[item.id];
+      return {
+        id: item.id,
+        projectId: String(project?.id || item.id),
+        title: item.title[language] || item.title.EN,
+        siteName: project?.name || item.siteName[language] || item.siteName.EN,
+        supervisor: resolveSupervisorName(project?.id, item.supervisor[language] || item.supervisor.EN),
+        reporter: item.supervisor[language] || item.supervisor.EN,
+        reportedDate: todayDate,
+        reportedTime: item.time,
+        severity: item.severity,
+        status: overrideStatus || item.status,
+        imageUrl: item.imageUrl,
+        hasImage: Boolean(item.imageUrl),
+        source: 'mock',
+      };
+    });
+
+    return [...realIssues, ...mockIssues]
+      .sort((a, b) => {
+        const severityDiff = (DAILY_ISSUE_SEVERITY_ORDER[a.severity] ?? 99) - (DAILY_ISSUE_SEVERITY_ORDER[b.severity] ?? 99);
+        if (severityDiff !== 0) return severityDiff;
+        const statusDiff = (DAILY_ISSUE_STATUS_ORDER[a.status] ?? 99) - (DAILY_ISSUE_STATUS_ORDER[b.status] ?? 99);
+        if (statusDiff !== 0) return statusDiff;
+        return String(b.reportedTime || '').localeCompare(String(a.reportedTime || ''));
+      })
+      .slice(0, 6);
+  }, [dailyIssueStatusOverrides, globalIssues, language, projectsList, t, todayDate, workersList]);
+
+  const dailyIssueSummary = useMemo(() => ({
+    total: dailyIssuesDashboardItems.length,
+    urgent: dailyIssuesDashboardItems.filter((issue) => ['critical', 'high'].includes(issue.severity)).length,
+    inProgress: dailyIssuesDashboardItems.filter((issue) => issue.status === 'in_progress').length,
+    waiting: dailyIssuesDashboardItems.filter((issue) => ['pending', 'waiting_approval'].includes(issue.status)).length,
+  }), [dailyIssuesDashboardItems]);
+
   const pendingReqsCount = globalRequests.filter(r => r.status === 'pending').length;
   const pendingIssuesCount = globalIssues.filter(i => i.status === 'pending').length;
+
+  const openDailyIssueDetails = (issue) => {
+    if (issue?.projectId) {
+      setSelectedProjectId(String(issue.projectId));
+      setSelectedProjectTab('overview');
+    }
+    setActiveTab('projects');
+  };
+
+  const handleDailyIssueStatusUpdate = (issue) => {
+    const statusFlow = {
+      pending: 'in_progress',
+      in_progress: 'waiting_approval',
+      waiting_approval: 'resolved',
+      resolved: 'resolved',
+    };
+    const nextStatus = statusFlow[issue.status] || 'in_progress';
+    setDailyIssueStatusOverrides((prev) => ({ ...prev, [issue.id]: nextStatus }));
+  };
 
   const userNavGroups = [
     {
@@ -9015,6 +9381,129 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                     </div>
                  </div>
               )}
+
+              <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)] px-5 py-5 sm:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-3xl">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm">
+                          <AlertTriangle className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900">{t('overview_daily_issues_title')}</h3>
+                          <p className="mt-1 text-sm leading-6 text-slate-600">{t('overview_daily_issues_desc')}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => setActiveTab('projects')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                      <Eye className="h-4 w-4" />
+                      {t('dashboard_view_all')}
+                    </button>
+                  </div>
+                  <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{t('overview_daily_issues_total_today')}</div>
+                      <div className="mt-2 text-2xl font-bold text-slate-900">{dailyIssueSummary.total}</div>
+                    </div>
+                    <div className="rounded-2xl border border-red-100 bg-red-50/80 p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-red-400">{t('overview_daily_issues_urgent')}</div>
+                      <div className="mt-2 text-2xl font-bold text-red-700">{dailyIssueSummary.urgent}</div>
+                    </div>
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-400">{t('overview_daily_issues_in_progress')}</div>
+                      <div className="mt-2 text-2xl font-bold text-blue-700">{dailyIssueSummary.inProgress}</div>
+                    </div>
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div>
+                      <div className="mt-2 text-2xl font-bold text-amber-700">{dailyIssueSummary.waiting}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-5 py-5 sm:px-6">
+                  {dailyIssuesDashboardItems.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      {dailyIssuesDashboardItems.map((issue) => {
+                        const severityTone = getDailyIssueSeverityTone(issue.severity);
+                        return (
+                          <div key={issue.id} className={`rounded-2xl border p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${severityTone.card}`}>
+                            <div className="flex flex-col gap-4 sm:flex-row">
+                              <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${severityTone.thumbnail} sm:w-[168px] sm:min-w-[168px]`}>
+                                {issue.hasImage ? (
+                                  <img src={issue.imageUrl} alt={issue.title} className="h-44 w-full object-cover sm:h-full" />
+                                ) : (
+                                  <div className="flex h-44 w-full flex-col items-center justify-center gap-2 text-slate-400 sm:h-full">
+                                    <ImageIcon className="h-8 w-8" />
+                                    <span className="text-xs font-medium">{t('overview_daily_issues_no_photo')}</span>
+                                  </div>
+                                )}
+                                <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm backdrop-blur">
+                                  <span className={`h-2 w-2 rounded-full ${severityTone.dot}`}></span>
+                                  {t(getDailyIssueSeverityKey(issue.severity))}
+                                </div>
+                                <div className="absolute bottom-3 left-3 rounded-full bg-slate-900/80 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
+                                  {issue.hasImage ? t('overview_daily_issues_has_photo') : t('overview_daily_issues_no_photo')}
+                                </div>
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="text-base font-bold leading-6 text-slate-900">{issue.title}</h4>
+                                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                                      <span className="inline-flex items-center gap-1.5"><Building className="h-3.5 w-3.5" /> {issue.siteName || t('overview_daily_issues_site_fallback')}</span>
+                                      <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> {issue.supervisor}</span>
+                                      <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {formatDateByLanguage(issue.reportedDate, language)} • {issue.reportedTime || '-'}</span>
+                                    </div>
+                                  </div>
+                                  <div className={`inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold ${getDailyIssueStatusTone(issue.status)}`}>
+                                    {t(getDailyIssueStatusKey(issue.status))}
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                  <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_priority')}</div>
+                                    <div className={`mt-1 text-sm font-semibold ${severityTone.accent}`}>{t(getDailyIssueSeverityKey(issue.severity))}</div>
+                                  </div>
+                                  <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_supervisor')}</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-700">{issue.supervisor || t('overview_daily_issues_supervisor_fallback')}</div>
+                                  </div>
+                                  <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{t('overview_daily_issues_reported_at')}</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-700">{issue.reportedTime || '-'}</div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                                  <button onClick={() => openDailyIssueDetails(issue)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                                    <Eye className="h-4 w-4" />
+                                    {t('overview_daily_issues_action_details')}
+                                  </button>
+                                  <button onClick={() => handleDailyIssueStatusUpdate(issue)} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
+                                    <CheckCircle className="h-4 w-4" />
+                                    {t('overview_daily_issues_action_update')}
+                                  </button>
+                                  <button onClick={() => setActiveTab('chat')} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                                    <Send className="h-4 w-4" />
+                                    {t('overview_daily_issues_action_notify')}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      {t('overview_daily_issues_empty')}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
