@@ -32,7 +32,6 @@ import {
 import {
   ADMIN_AI_PROVIDER_DEFAULTS,
   DEFAULT_ADMIN_AI_SYSTEM_PROMPT,
-  buildAdminAiRequestPreview,
   getAdminAiConfig,
   isAdminAiReady,
   normalizeAdminAiSettings,
@@ -53,7 +52,7 @@ import {
   Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
   LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
   UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
-  Send, Database, Eye, EyeOff, Printer, Percent, Download, Home, Bot
+  Send, Database, Eye, EyeOff, Printer, Percent, Download, Home
 } from 'lucide-react';
 
 // ========================================================
@@ -254,21 +253,21 @@ const translations = {
     pricing_owner_desc: 'ສຳລັບເຈົ້າຂອງບ້ານ / ຜູ້ວ່າຈ້າງ', pricing_owner_item1: 'ເບິ່ງຄວາມຄືບໜ້າແບບ Real-time', pricing_owner_item2: 'ເບິ່ງຮູບອັບເດດໜ້າວຽກ', pricing_owner_item3: 'ກົດອະນຸມັດການເບີກຈ່າຍງວດງານ', pricing_owner_item4: 'ແຊັດຕົງກັບຜູ້ຈັດການໂຄງການ', pricing_owner_cta: 'ເບິ່ງຕົວຢ່າງແອັບເຈົ້າຂອງບ້ານ',
     pricing_currency_hint: 'ລາຄາຈະສະແດງຕາມພາສາທີ່ເລືອກ ແລະ ມີມູນຄ່າເທົ່າກັນໃຫ້ເບິ່ງເພີ່ມ',
     pricing_equivalent_label: 'ມູນຄ່າເທົ່າກັນ',
-    ai_chat_launcher: 'AI',
-    ai_chat_title: 'AI Assistant',
+    ai_chat_launcher: 'AI น้องสบายดี',
+    ai_chat_title: 'AI น้องสบายดี',
     ai_chat_status_enabled: 'ພ້ອມໃຊ້ງານ',
     ai_chat_status_disabled: 'ຍັງບໍ່ພ້ອມ',
-    ai_chat_powered_by: 'Provider',
-    ai_chat_welcome_ready: 'AI ພ້ອມຊ່ວຍຕອບຄຳຖາມ, ຮ່າງໂຄງການ, ຄຳນວນຂໍ້ມູນ ແລະ ສະຫຼຸບຂໍ້ມູນເບື້ອງຕົ້ນ.',
-    ai_chat_welcome_fallback: 'AI chat ຍັງບໍ່ພ້ອມໃຊ້ງານ. ກະລຸນາເປີດໃຊ້ ແລະ ຕັ້ງ API key ໃນ Admin settings.',
-    ai_chat_input_placeholder: 'ຖາມເລື່ອງວຽກ, ຮ່າງໂຄງການ ຫຼື ໃຫ້ AI ສະຫຼຸບ...',
+    ai_chat_powered_by: 'Connection',
+    ai_chat_welcome_ready: '',
+    ai_chat_welcome_fallback: '',
+    ai_chat_input_placeholder: 'ພິມຄຳຖາມຫາ AI น้องสบายดี...',
     ai_chat_send: 'ສົ່ງ',
-    ai_chat_thinking: 'AI ກຳລັງກະກຽມຄຳຕອບ...',
+    ai_chat_thinking: 'AI น้องสบายดีກຳລັງຕອບ...',
     ai_chat_capability_questions: 'ຕອບຄຳຖາມເກືອບທັນທີ',
     ai_chat_capability_drafts: 'ຊ່ວຍຮ່າງໂຄງການແລະງານ',
     ai_chat_capability_calculations: 'ຊ່ວຍຄຳນວນຕົວເລກພື້ນຖານ',
     ai_chat_capability_summary: 'ຊ່ວຍສະຫຼຸບຂໍ້ມູນເບື້ອງຕົ້ນ',
-    ai_chat_not_ready_detail: 'AI chat ຈະເຮັດວຽກເມື່ອເປີດ enabled, ເລືອກ provider, ກຳນົດ model ແລະ ໃສ່ API key ໃນຝັ່ງ Admin.',
+    ai_chat_not_ready_detail: 'AI น้องสบายดียังไม่พร้อมใช้งานในหน้านี้',
     ai_chat_demo_reply_intro: 'ລະບົບໄດ້ກຽມ request ສຳລັບ AI ໄວ້ແລ້ວ.',
     ai_chat_demo_reply_followup: 'ສຳລັບຄຳຖາມນີ້ AI ສາມາດຊ່ວຍຈັດໂຄງສ້າງຄຳຕອບ, ຮ່າງຂັ້ນຕອນ, ຄຳນວນເບື້ອງຕົ້ນ ແລະ ສະຫຼຸບປະເດັນໃຫ້.',
     ai_chat_test_mode_notice: 'ໂໝດທົດສອບຝັ່ງ browser ສຳລັບ admin. ເກັບ key ໄວ້ໃນ browser ນີ້ເທົ່ານັ້ນ.',
@@ -280,9 +279,9 @@ const translations = {
     ai_chat_copy_response: 'ຄັດລອກຄຳຕອບ',
     ai_chat_copied: 'ຄັດລອກແລ້ວ',
     ai_chat_reset: 'ລ້າງແຊັດ',
-    ai_chat_error_prefix: 'AI error',
+    ai_chat_error_prefix: 'AI น้องสบายดี',
     ai_chat_test_mode_badge: 'Admin Test Mode',
-    ai_chat_missing_response: 'AI ບໍ່ສົ່ງຂໍ້ຄວາມກັບຄືນ.',
+    ai_chat_missing_response: 'ຍັງບໍ່ມີຂໍ້ຄວາມຕອບກັບ',
     dashboard_main_menu: 'ເມນູຫຼັກ', dashboard_seed: 'ກົດທີ່ນີ້ເພື່ອຈຳລອງຂໍ້ມູນຕົວຢ່າງເຂົ້າ Firebase', dashboard_view_all: 'ເບິ່ງທັງໝົດ', dashboard_edit: 'ແກ້ໄຂ',
     weather_loading: 'ກຳລັງກວດຈັບຕຳແໜ່ງ ແລະ ດຶງຂໍ້ມູນອາກາດ...', weather_permission_denied: 'ບໍ່ໄດ້ອະນຸຍາດຕຳແໜ່ງ ຈຶ່ງບໍ່ສາມາດສະແດງອາກາດຈິງໄດ້', weather_unavailable: 'ດຶງຂໍ້ມູນອາກາດບໍ່ສຳເລັດ ກະລຸນາລອງໃໝ່', weather_not_supported: 'ອຸປະກອນນີ້ບໍ່ຮອງຮັບການລະບຸຕຳແໜ່ງ', weather_now: 'ຕອນນີ້', weather_tomorrow: 'ມື້ອື່ນ', weather_rain_chance: 'ໂອກາດຝົນ', weather_at_location: 'ຕຳແໜ່ງປັດຈຸບັນ', weather_clear: 'ແຈ້ງໃສ', weather_mainly_clear: 'ແຈ້ງສ່ວນໃຫຍ່', weather_partly_cloudy: 'ມີເມກບາງສ່ວນ', weather_overcast: 'ຟ້າປິດ', weather_fog: 'ໝອກ', weather_drizzle: 'ຝົນຝອຍ', weather_rain: 'ຝົນຕົກ', weather_snow: 'ຫິມະ', weather_thunderstorm: 'ພາຍຸຝົນຟ້າຄະນອງ', firebase_required: 'ກະລຸນາຕັ້ງຄ່າ Firebase Config ກ່ອນ', seed_success: 'ເພີ່ມຂໍ້ມູນຕົວຢ່າງສຳເລັດ', seed_error: 'ເກີດຂໍ້ຜິດພາດ: ກະລຸນາຕັ້ງ Firestore Rule ເປັນ Test Mode', boq_import_success: 'ນຳເຂົ້າຂໍ້ມູນ BOQ ສຳເລັດ', receipt_scan_success: 'ສະແກນ ແລະ ບັນທຶກບິນສຳເລັດ',
     overview_stat_active_sites: 'ໄຊຕ໌ງານທີ່ກຳລັງດຳເນີນການ', overview_stat_attendance: 'ພະນັກງານມາເຮັດວຽກມື້ນີ້', overview_stat_sos: 'ບັນຫາແຈ້ງເຕືອນ (SOS)', overview_stat_requests: 'ຄຳຂໍເບີກວັດສະດຸໃໝ່',
@@ -392,21 +391,21 @@ const translations = {
     pricing_owner_desc: 'สำหรับเจ้าของบ้าน / ผู้ว่าจ้าง', pricing_owner_item1: 'ดูความคืบหน้า Real-time', pricing_owner_item2: 'ดูรูปภาพอัปเดตหน้างาน', pricing_owner_item3: 'กดอนุมัติการเบิกจ่ายงวดงาน', pricing_owner_item4: 'แชทตรงกับผู้จัดการโครงการ', pricing_owner_cta: 'ดูตัวอย่างแอปเจ้าของบ้าน',
     pricing_currency_hint: 'ราคาแสดงตามภาษาที่เลือก และมีค่าเทียบสกุลเงินอื่นให้ดูเพิ่ม',
     pricing_equivalent_label: 'ราคาเทียบเท่า',
-    ai_chat_launcher: 'AI',
-    ai_chat_title: 'AI Assistant',
+    ai_chat_launcher: 'AI น้องสบายดี',
+    ai_chat_title: 'AI น้องสบายดี',
     ai_chat_status_enabled: 'พร้อมใช้งาน',
     ai_chat_status_disabled: 'ยังไม่พร้อม',
-    ai_chat_powered_by: 'Provider',
-    ai_chat_welcome_ready: 'AI พร้อมช่วยตอบคำถาม ร่างโครงการ คำนวณข้อมูล และสรุปข้อมูลเบื้องต้นให้คุณ',
-    ai_chat_welcome_fallback: 'AI chat ยังไม่พร้อมใช้งาน กรุณาเปิดใช้งานและตั้ง API key ใน Admin settings ก่อน',
-    ai_chat_input_placeholder: 'ถามเรื่องงาน ให้ช่วยร่างโครงการ หรือให้ AI สรุปข้อมูล...',
+    ai_chat_powered_by: 'Connection',
+    ai_chat_welcome_ready: '',
+    ai_chat_welcome_fallback: '',
+    ai_chat_input_placeholder: 'พิมพ์คำถามหา AI น้องสบายดี...',
     ai_chat_send: 'ส่ง',
-    ai_chat_thinking: 'AI กำลังเตรียมคำตอบ...',
+    ai_chat_thinking: 'AI น้องสบายดีกำลังตอบ...',
     ai_chat_capability_questions: 'ช่วยตอบคำถามได้รวดเร็ว',
     ai_chat_capability_drafts: 'ช่วยร่างโครงการและงานเบื้องต้น',
     ai_chat_capability_calculations: 'ช่วยคำนวณตัวเลขทั่วไปในระบบ',
     ai_chat_capability_summary: 'ช่วยสรุปข้อมูลเบื้องต้น',
-    ai_chat_not_ready_detail: 'AI chat จะทำงานเมื่อเปิด enabled, เลือก provider, กำหนด model และใส่ API key ในฝั่ง Admin ให้ครบ',
+    ai_chat_not_ready_detail: 'AI น้องสบายดียังไม่พร้อมใช้งานในหน้านี้',
     ai_chat_demo_reply_intro: 'ระบบได้เตรียม request สำหรับ AI ไว้แล้ว',
     ai_chat_demo_reply_followup: 'สำหรับคำถามนี้ AI สามารถช่วยจัดโครงคำตอบ ร่างขั้นตอน คำนวณเบื้องต้น และสรุปประเด็นสำคัญให้ได้',
     ai_chat_test_mode_notice: 'โหมดทดสอบบนเบราว์เซอร์สำหรับแอดมินเท่านั้น และเก็บ key ไว้ในเครื่องนี้เท่านั้น',
@@ -418,9 +417,9 @@ const translations = {
     ai_chat_copy_response: 'คัดลอกคำตอบ',
     ai_chat_copied: 'คัดลอกแล้ว',
     ai_chat_reset: 'ล้างแชท',
-    ai_chat_error_prefix: 'ข้อผิดพลาด AI',
+    ai_chat_error_prefix: 'AI น้องสบายดี',
     ai_chat_test_mode_badge: 'Admin Test Mode',
-    ai_chat_missing_response: 'AI ไม่ได้ส่งข้อความตอบกลับ',
+    ai_chat_missing_response: 'ยังไม่มีข้อความตอบกลับ',
     dashboard_main_menu: 'เมนูหลัก', dashboard_seed: 'คลิกที่นี่เพื่อจำลองข้อมูลตัวอย่าง (Seed Mock Data) ลงฐานข้อมูล Firebase', dashboard_view_all: 'ดูทั้งหมด', dashboard_edit: 'แก้ไข',
     weather_loading: 'กำลังตรวจตำแหน่งและดึงข้อมูลอากาศจริง...', weather_permission_denied: 'ไม่ได้รับสิทธิ์ตำแหน่ง จึงไม่สามารถแสดงสภาพอากาศจริงได้', weather_unavailable: 'ดึงข้อมูลอากาศไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', weather_not_supported: 'อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง', weather_now: 'ตอนนี้', weather_tomorrow: 'พรุ่งนี้', weather_rain_chance: 'โอกาสฝน', weather_at_location: 'ตำแหน่งปัจจุบัน', weather_clear: 'ท้องฟ้าแจ่มใส', weather_mainly_clear: 'ค่อนข้างแจ่มใส', weather_partly_cloudy: 'มีเมฆบางส่วน', weather_overcast: 'เมฆมาก', weather_fog: 'มีหมอก', weather_drizzle: 'ฝนปรอย', weather_rain: 'ฝนตก', weather_snow: 'หิมะ', weather_thunderstorm: 'พายุฝนฟ้าคะนอง', firebase_required: 'โปรดใส่ Firebase Config ก่อน', seed_success: 'เพิ่มข้อมูลตัวอย่างสำเร็จ', seed_error: 'เกิดข้อผิดพลาด: โปรดตั้งค่า Firestore Rule เป็น Test Mode', boq_import_success: 'นำเข้าข้อมูล BOQ สำเร็จ', receipt_scan_success: 'สแกนและบันทึกบิลสำเร็จ',
     overview_stat_active_sites: 'ไซต์งานกำลังดำเนินการ', overview_stat_attendance: 'พนักงานมาทำงานวันนี้', overview_stat_sos: 'ปัญหาแจ้งเตือน (SOS)', overview_stat_requests: 'คำขอเบิกวัสดุใหม่',
@@ -530,21 +529,21 @@ const translations = {
     pricing_owner_desc: 'For homeowners / clients', pricing_owner_item1: 'View real-time progress', pricing_owner_item2: 'See updated site photos', pricing_owner_item3: 'Approve milestone payments', pricing_owner_item4: 'Chat with the project manager', pricing_owner_cta: 'View Owner App Demo',
     pricing_currency_hint: 'Prices follow the selected UI language, with equivalent currencies shown below when helpful.',
     pricing_equivalent_label: 'Equivalent prices',
-    ai_chat_launcher: 'AI',
-    ai_chat_title: 'AI Assistant',
+    ai_chat_launcher: 'AI น้องสบายดี',
+    ai_chat_title: 'AI น้องสบายดี',
     ai_chat_status_enabled: 'Ready',
     ai_chat_status_disabled: 'Not ready',
-    ai_chat_powered_by: 'Provider',
-    ai_chat_welcome_ready: 'AI is ready to answer questions, draft projects, calculate figures, and summarize key information.',
-    ai_chat_welcome_fallback: 'AI chat is not ready yet. Enable it and add an API key in Admin Settings first.',
+    ai_chat_powered_by: 'Connection',
+    ai_chat_welcome_ready: '',
+    ai_chat_welcome_fallback: '',
     ai_chat_input_placeholder: 'Ask a question, draft a project, or request a quick summary...',
     ai_chat_send: 'Send',
-    ai_chat_thinking: 'AI is preparing a response...',
+    ai_chat_thinking: 'AI น้องสบายดีกำลังตอบ...',
     ai_chat_capability_questions: 'Answer operational questions quickly',
     ai_chat_capability_drafts: 'Draft project outlines and work plans',
     ai_chat_capability_calculations: 'Calculate general system figures',
     ai_chat_capability_summary: 'Summarize early-stage information',
-    ai_chat_not_ready_detail: 'AI chat becomes available after enabling it, selecting a provider, setting a model, and adding the matching API key in Admin Settings.',
+    ai_chat_not_ready_detail: 'AI น้องสบายดียังไม่พร้อมใช้งาน on this page.',
     ai_chat_demo_reply_intro: 'The app has already prepared the AI request structure.',
     ai_chat_demo_reply_followup: 'For this prompt, AI can structure an answer, draft the next steps, estimate basic figures, and summarize the key points.',
     ai_chat_test_mode_notice: 'Browser-stored admin test mode only. The API key stays in this browser.',
@@ -556,9 +555,9 @@ const translations = {
     ai_chat_copy_response: 'Copy response',
     ai_chat_copied: 'Copied',
     ai_chat_reset: 'Reset chat',
-    ai_chat_error_prefix: 'AI error',
+    ai_chat_error_prefix: 'AI น้องสบายดี',
     ai_chat_test_mode_badge: 'Admin Test Mode',
-    ai_chat_missing_response: 'The AI provider returned no response text.',
+    ai_chat_missing_response: 'No response message was returned.',
     dashboard_main_menu: 'Main Menu', dashboard_seed: 'Click here to seed sample data into Firebase', dashboard_view_all: 'View All', dashboard_edit: 'Edit',
     weather_loading: 'Detecting your location and loading live weather...', weather_permission_denied: 'Location access was denied, so live weather could not be loaded', weather_unavailable: 'Weather data could not be loaded. Please try again.', weather_not_supported: 'This device does not support geolocation', weather_now: 'Now', weather_tomorrow: 'Tomorrow', weather_rain_chance: 'Rain chance', weather_at_location: 'Current location', weather_clear: 'Clear', weather_mainly_clear: 'Mostly clear', weather_partly_cloudy: 'Partly cloudy', weather_overcast: 'Overcast', weather_fog: 'Foggy', weather_drizzle: 'Drizzle', weather_rain: 'Rain', weather_snow: 'Snow', weather_thunderstorm: 'Thunderstorm', firebase_required: 'Please configure Firebase first', seed_success: 'Sample data added successfully', seed_error: 'An error occurred: please set Firestore Rules to Test Mode', boq_import_success: 'BOQ import completed', receipt_scan_success: 'Receipt scanned and saved successfully',
     overview_stat_active_sites: 'Active Sites', overview_stat_attendance: 'Workers Present Today', overview_stat_sos: 'SOS Alerts', overview_stat_requests: 'New Material Requests',
@@ -1488,38 +1487,38 @@ Object.assign(translations.LA, {
   admin_platform_revenue_desc: 'ເຕັຽມ shell ສຳລັບສະຫຼຸບລາຍຮັບ platform, commission ແລະ ຕົວຊີ້ວັດທາງການເງິນ',
   admin_settlements_desc: 'ເຕັຽມພື້ນທີ່ສຳລັບການກະທົບຍອດ, ການຈ່າຍຄືນ ແລະ ສະຖານະການຊຳລະ',
   admin_settings_desc: 'ຕັ້ງຄ່າ default ລະດັບ platform ສຳລັບ commission, billing, settlement ແລະ ຂໍ້ມູນທີ່ໃຊ້ຮ່ວມກັນໃນ print/export',
-  admin_ai_settings_title: 'AI Provider & API',
-  admin_ai_settings_desc: 'ຕັ້ງ provider, API key, model ແລະ system prompt ສຳລັບ AI chat ຂອງເວັບໄຊต์',
-  admin_ai_enabled: 'ເປີດໃຊ້ AI Chat',
-  admin_ai_provider: 'AI Provider',
-  admin_ai_model: 'Model name',
-  admin_ai_base_url: 'Base URL',
+  admin_ai_settings_title: 'ຕັ້ງຄ່າ AI น้องสบายดี',
+  admin_ai_settings_desc: 'ຈັດການການເຊື່ອມຕໍ່ສຳລັບການທົດສອບ',
+  admin_ai_enabled: 'ເປີດໃຊ້ AI น้องสบายดี',
+  admin_ai_provider: 'ຮູບແບບການເຊື່ອມຕໍ່',
+  admin_ai_model: 'ຊື່ເຄື່ອງຈັກ',
+  admin_ai_base_url: 'ທີ່ຢູ່ການເຊື່ອມຕໍ່',
   admin_ai_system_prompt: 'System Prompt',
-  admin_ai_openrouter_key: 'OpenRouter API Key',
-  admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_openrouter_key: 'Access Key',
+  admin_ai_openai_key: 'Access Key',
   admin_ai_api_key: 'API Key',
   admin_ai_site_name: 'Site / App Name (optional)',
-  admin_ai_active_key_hint: 'ລະບົບຈະໃຊ້ key ຕາມ provider ທີ່ເລືອກ',
-  admin_ai_status_ready: 'AI config ພ້ອມໃຊ້ງານ',
-  admin_ai_status_missing: 'AI config ຍັງບໍ່ຄົບ',
-  admin_ai_provider_openrouter: 'OpenRouter',
-  admin_ai_provider_openai: 'OpenAI GPT',
-  admin_ai_provider_custom_openai: 'OpenAI-compatible Custom Endpoint',
+  admin_ai_active_key_hint: 'ໃຊ້ key ຕາມຮູບແບບທີ່ເລືອກ',
+  admin_ai_status_ready: 'AI น้องสบายดีພ້ອມໃຊ້ງານ',
+  admin_ai_status_missing: 'ຕັ້ງຄ່າ AI น้องสบายດີຍັງບໍ່ຄົບ',
+  admin_ai_provider_openrouter: 'ຊ່ອງທາງມາດຕະຖານ',
+  admin_ai_provider_openai: 'ຊ່ອງທາງກຳນົດເອງ',
+  admin_ai_provider_custom_openai: 'ຊ່ອງທາງກຳນົດເອງ',
   admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
   admin_ai_placeholder_openai: 'OPENAI_API_KEY',
   admin_ai_placeholder_api_key: 'sk-...',
-  admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
+  admin_ai_placeholder_model: 'sabaidee-chat',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
-  admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+  admin_ai_placeholder_prompt: 'You are AI น้องสบายดี. Help with project updates, procurement notes, task lists, and summaries.',
   manager_menu_admin_chat_monitoring: 'ຕິດຕາມຄຸນນະພາບແຊທ',
   manager_menu_admin_chat_review: 'ກວດທົບບົດສົນທະນາ',
-  manager_menu_admin_ai_improvement: 'ພັດທະນາ AI',
+  manager_menu_admin_ai_improvement: 'AI น้องสบายดี',
   admin_chat_monitoring_title: 'Chat Monitoring',
   admin_chat_monitoring_desc: 'dashboard ສຳລັບວິເຄາະປະລິມານແຊທ, quality, sentiment ແລະ ເຄສທີ່ຕ້ອງຕິດຕາມ.',
-  admin_chat_review_title: 'Chat Review',
-  admin_chat_review_desc: 'review queue ສຳລັບກວດສອບຄຸນນະພາບບົດສົນທະນາ, score ແລະ ການຕັດສິນໃຈ.',
-  admin_ai_improvement_title: 'AI Improvement',
-  admin_ai_improvement_desc: 'workflow ສຳລັບຄັດເລືອກຕົວຢ່າງ, ຊອກ knowledge gaps ແລະ ກຽມ dataset ສຳລັບການພັດທະນາ AI.',
+  admin_chat_review_title: 'ຣີວິວ AI น้องสบายดี',
+  admin_chat_review_desc: 'ກວດສອບຄຸນນະພາບບົດສົນທະນາ',
+  admin_ai_improvement_title: 'AI น้องสบายดี',
+  admin_ai_improvement_desc: 'ກວດຄຸນນະພາບ ແລະ ຕິດຕາມການປັບປຸງ',
   ai_range_today: 'ມື້ນີ້',
   ai_range_7d: '7 ມື້',
   ai_range_14d: '14 ມື້',
@@ -1595,9 +1594,9 @@ Object.assign(translations.LA, {
   ai_readiness_ready: 'ພ້ອມຕໍ່ dataset',
   ai_readiness_in_progress: 'ກຳລັງກວດທົບ',
   admin_ai_placeholder_site_name: 'BuildSabaidee Admin Test',
-  admin_ai_browser_notice_title: 'Admin browser test mode',
-  admin_ai_browser_notice_desc: 'ການຕັ້ງຄ່າ AI ຈະຖືກບັນທຶກໄວ້ໃນ localStorage ຂອງ browser ນີ້ເທົ່ານັ້ນ.',
-  admin_ai_browser_notice_prod: 'ສຳລັບ production ຄວນຍ້າຍໄປໃຊ້ backend proxy ແທນການເກັບ key ໃນ browser.',
+  admin_ai_browser_notice_title: 'ໂໝດທົດສອບຜູ້ດູແລ',
+  admin_ai_browser_notice_desc: 'ການຕັ້ງຄ່ານີ້ຖືກເກັບໄວ້ໃນ browser ນີ້ເທົ່ານັ້ນ',
+  admin_ai_browser_notice_prod: 'ໃຊ້ສຳລັບທົດສອບໃນເຄື່ອງນີ້',
   admin_ai_connection_test: 'ທົດສອບການເຊື່ອມຕໍ່',
   admin_ai_connection_testing: 'ກຳລັງທົດສອບ...',
   admin_ai_connection_success: 'ເຊື່ອມຕໍ່ສຳເລັດ',
@@ -1920,38 +1919,38 @@ Object.assign(translations.TH, {
   admin_platform_revenue_desc: 'เตรียม shell สำหรับสรุปรายได้แพลตฟอร์ม, commission และตัวชี้วัดทางการเงิน',
   admin_settlements_desc: 'เตรียมพื้นที่สำหรับการกระทบยอด, การจ่ายคืน และสถานะการชำระเงิน',
   admin_settings_desc: 'ตั้งค่า default ระดับแพลตฟอร์มสำหรับ commission, billing, settlement และข้อมูลกลางที่ใช้ร่วมกันใน print/export',
-  admin_ai_settings_title: 'AI Provider & API',
-  admin_ai_settings_desc: 'ตั้งค่า provider, API key, model และ system prompt สำหรับ AI chat ของเว็บไซต์',
-  admin_ai_enabled: 'เปิดใช้งาน AI Chat',
-  admin_ai_provider: 'AI Provider',
-  admin_ai_model: 'Model name',
-  admin_ai_base_url: 'Base URL',
+  admin_ai_settings_title: 'ตั้งค่า AI น้องสบายดี',
+  admin_ai_settings_desc: 'จัดการการเชื่อมต่อสำหรับการทดสอบ',
+  admin_ai_enabled: 'เปิดใช้งาน AI น้องสบายดี',
+  admin_ai_provider: 'รูปแบบการเชื่อมต่อ',
+  admin_ai_model: 'ชื่อเอนจิน',
+  admin_ai_base_url: 'ที่อยู่การเชื่อมต่อ',
   admin_ai_system_prompt: 'System Prompt',
-  admin_ai_openrouter_key: 'OpenRouter API Key',
-  admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_openrouter_key: 'Access Key',
+  admin_ai_openai_key: 'Access Key',
   admin_ai_api_key: 'API Key',
   admin_ai_site_name: 'Site / App Name (optional)',
-  admin_ai_active_key_hint: 'ระบบจะเลือกใช้ key ตาม provider ที่เลือก',
-  admin_ai_status_ready: 'AI config พร้อมใช้งาน',
-  admin_ai_status_missing: 'AI config ยังไม่ครบ',
-  admin_ai_provider_openrouter: 'OpenRouter',
-  admin_ai_provider_openai: 'OpenAI GPT',
-  admin_ai_provider_custom_openai: 'OpenAI-compatible Custom Endpoint',
+  admin_ai_active_key_hint: 'ใช้คีย์ตามรูปแบบที่เลือก',
+  admin_ai_status_ready: 'AI น้องสบายดีพร้อมใช้งาน',
+  admin_ai_status_missing: 'ตั้งค่า AI น้องสบายดียังไม่ครบ',
+  admin_ai_provider_openrouter: 'เส้นทางมาตรฐาน',
+  admin_ai_provider_openai: 'เส้นทางกำหนดเอง',
+  admin_ai_provider_custom_openai: 'เส้นทางกำหนดเอง',
   admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
   admin_ai_placeholder_openai: 'OPENAI_API_KEY',
   admin_ai_placeholder_api_key: 'sk-...',
-  admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
+  admin_ai_placeholder_model: 'sabaidee-chat',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
-  admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+  admin_ai_placeholder_prompt: 'You are AI น้องสบายดี. Help with project updates, procurement notes, task lists, and summaries.',
   manager_menu_admin_chat_monitoring: 'ติดตามคุณภาพแชท',
   manager_menu_admin_chat_review: 'ตรวจบทสนทนา',
-  manager_menu_admin_ai_improvement: 'พัฒนา AI',
+  manager_menu_admin_ai_improvement: 'AI น้องสบายดี',
   admin_chat_monitoring_title: 'Chat Monitoring',
   admin_chat_monitoring_desc: 'dashboard สำหรับวิเคราะห์ปริมาณแชท, quality, sentiment และเคสที่ควรติดตามต่อ.',
-  admin_chat_review_title: 'Chat Review',
-  admin_chat_review_desc: 'review queue สำหรับตรวจสอบคุณภาพบทสนทนา, score และการตัดสินใจของ admin.',
-  admin_ai_improvement_title: 'AI Improvement',
-  admin_ai_improvement_desc: 'workflow สำหรับคัดตัวอย่าง, หา knowledge gaps และเตรียม dataset เพื่อพัฒนา AI ต่อ.',
+  admin_chat_review_title: 'รีวิว AI น้องสบายดี',
+  admin_chat_review_desc: 'ตรวจคุณภาพบทสนทนา',
+  admin_ai_improvement_title: 'AI น้องสบายดี',
+  admin_ai_improvement_desc: 'ตรวจคุณภาพและติดตามการปรับปรุง',
   ai_range_today: 'วันนี้',
   ai_range_7d: '7 วัน',
   ai_range_14d: '14 วัน',
@@ -2027,9 +2026,9 @@ Object.assign(translations.TH, {
   ai_readiness_ready: 'พร้อมต่อ dataset',
   ai_readiness_in_progress: 'กำลังกวดทบทวน',
   admin_ai_placeholder_site_name: 'BuildSabaidee Admin Test',
-  admin_ai_browser_notice_title: 'Admin browser test mode',
-  admin_ai_browser_notice_desc: 'การตั้งค่า AI จะถูกเก็บใน localStorage ของเบราว์เซอร์นี้เท่านั้น',
-  admin_ai_browser_notice_prod: 'สำหรับ production ควรเปลี่ยนไปใช้ backend proxy แทนการเก็บ key ใน browser',
+  admin_ai_browser_notice_title: 'โหมดทดสอบผู้ดูแล',
+  admin_ai_browser_notice_desc: 'การตั้งค่านี้ถูกเก็บไว้ในเบราว์เซอร์นี้เท่านั้น',
+  admin_ai_browser_notice_prod: 'ใช้สำหรับทดสอบในเครื่องนี้',
   admin_ai_connection_test: 'ทดสอบการเชื่อมต่อ',
   admin_ai_connection_testing: 'กำลังทดสอบ...',
   admin_ai_connection_success: 'เชื่อมต่อสำเร็จ',
@@ -2352,38 +2351,38 @@ Object.assign(translations.EN, {
   admin_platform_revenue_desc: 'Prepared shell for platform revenue summaries, commission tracking, and financial insight modules.',
   admin_settlements_desc: 'Prepared area for settlement review, payout handling, and payment status workflows.',
   admin_settings_desc: 'Configure platform-level defaults for commission, billing, settlements, and shared platform billing identity for future print/export.',
-  admin_ai_settings_title: 'AI Provider & API',
-  admin_ai_settings_desc: 'Configure the provider, API keys, model, and system prompt for the website AI chat.',
-  admin_ai_enabled: 'Enable AI Chat',
-  admin_ai_provider: 'AI Provider',
-  admin_ai_model: 'Model Name',
-  admin_ai_base_url: 'Base URL',
+  admin_ai_settings_title: 'AI น้องสบายดี Settings',
+  admin_ai_settings_desc: 'Manage the connection used for testing.',
+  admin_ai_enabled: 'Enable AI น้องสบายดี',
+  admin_ai_provider: 'Connection type',
+  admin_ai_model: 'Engine name',
+  admin_ai_base_url: 'Connection URL',
   admin_ai_system_prompt: 'System Prompt',
-  admin_ai_openrouter_key: 'OpenRouter API Key',
-  admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_openrouter_key: 'Access Key',
+  admin_ai_openai_key: 'Access Key',
   admin_ai_api_key: 'API Key',
   admin_ai_site_name: 'Site / App Name (optional)',
-  admin_ai_active_key_hint: 'The active key follows the selected provider.',
-  admin_ai_status_ready: 'AI config is ready',
-  admin_ai_status_missing: 'AI config is incomplete',
-  admin_ai_provider_openrouter: 'OpenRouter',
-  admin_ai_provider_openai: 'OpenAI GPT',
-  admin_ai_provider_custom_openai: 'OpenAI-compatible Custom Endpoint',
+  admin_ai_active_key_hint: 'The active key follows the selected connection type.',
+  admin_ai_status_ready: 'AI น้องสบายดี is ready',
+  admin_ai_status_missing: 'AI น้องสบายดี setup is incomplete',
+  admin_ai_provider_openrouter: 'Standard route',
+  admin_ai_provider_openai: 'Custom route',
+  admin_ai_provider_custom_openai: 'Custom route',
   admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
   admin_ai_placeholder_openai: 'OPENAI_API_KEY',
   admin_ai_placeholder_api_key: 'sk-...',
-  admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
+  admin_ai_placeholder_model: 'sabaidee-chat',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
-  admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+  admin_ai_placeholder_prompt: 'You are AI น้องสบายดี. Help with project updates, procurement notes, task lists, and summaries.',
   manager_menu_admin_chat_monitoring: 'Chat Monitoring',
   manager_menu_admin_chat_review: 'Chat Review',
-  manager_menu_admin_ai_improvement: 'AI Improvement',
+  manager_menu_admin_ai_improvement: 'AI น้องสบายดี',
   admin_chat_monitoring_title: 'Chat Monitoring',
   admin_chat_monitoring_desc: 'Analytics dashboard for chat volume, quality, sentiment, and conversations that need follow-up.',
-  admin_chat_review_title: 'Chat Review',
-  admin_chat_review_desc: 'Review queue for conversation quality checks, scoring, and admin decisions.',
-  admin_ai_improvement_title: 'AI Improvement',
-  admin_ai_improvement_desc: 'Workflow to curate examples, identify knowledge gaps, and prepare future improvement datasets.',
+  admin_chat_review_title: 'AI น้องสบายดี Review',
+  admin_chat_review_desc: 'Review conversation quality.',
+  admin_ai_improvement_title: 'AI น้องสบายดี',
+  admin_ai_improvement_desc: 'Review quality and track improvements.',
   ai_range_today: 'Today',
   ai_range_7d: '7 Days',
   ai_range_14d: '14 Days',
@@ -2459,9 +2458,9 @@ Object.assign(translations.EN, {
   ai_readiness_ready: 'Ready for dataset',
   ai_readiness_in_progress: 'Review in progress',
   admin_ai_placeholder_site_name: 'BuildSabaidee Admin Test',
-  admin_ai_browser_notice_title: 'Admin browser test mode',
-  admin_ai_browser_notice_desc: 'AI settings are stored in this browser localStorage only.',
-  admin_ai_browser_notice_prod: 'Production should use a backend proxy instead of storing API keys in the browser.',
+  admin_ai_browser_notice_title: 'Admin test mode',
+  admin_ai_browser_notice_desc: 'These settings stay in this browser only.',
+  admin_ai_browser_notice_prod: 'Use this machine for testing only.',
   admin_ai_connection_test: 'Test connection',
   admin_ai_connection_testing: 'Testing...',
   admin_ai_connection_success: 'Connection successful',
@@ -5398,10 +5397,6 @@ function isAiChatReady(settings) {
   return isAdminAiReady(normalizeAdminPlatformSettings(settings));
 }
 
-function buildAiChatRequestPreview(settings, messages) {
-  return buildAdminAiRequestPreview(normalizeAdminPlatformSettings(settings), messages);
-}
-
 function formatDateByLanguage(value, language) {
   if (!value) return '-';
 
@@ -6737,33 +6732,15 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copyStatus, setCopyStatus] = useState(false);
-  const config = getAiProviderConfig(adminPlatformSettings);
   const aiReady = isAiChatReady(adminPlatformSettings);
-  const welcomeText = aiReady ? t('ai_chat_welcome_ready') : t('ai_chat_welcome_fallback');
-  const [messages, setMessages] = useState(() => ([
-    { id: 'welcome', role: 'assistant', text: welcomeText },
-  ]));
+  const [messages, setMessages] = useState([]);
   const messagesContainerRef = useRef(null);
-
-  useEffect(() => {
-    setMessages((prev) => {
-      const nextMessages = prev.filter((message) => message.id !== 'welcome');
-      return [{ id: 'welcome', role: 'assistant', text: welcomeText }, ...nextMessages];
-    });
-  }, [welcomeText]);
 
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages, isSending]);
-
-  const capabilityBadges = [
-    t('ai_chat_capability_questions'),
-    t('ai_chat_capability_drafts'),
-    t('ai_chat_capability_calculations'),
-    t('ai_chat_capability_summary'),
-  ];
 
   const quickPrompts = [
     t('ai_chat_prompt_updates'),
@@ -6774,14 +6751,10 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
 
   const latestAssistantMessage = [...messages]
     .reverse()
-    .find((message) => message.role === 'assistant' && message.id !== 'welcome' && String(message.text || '').trim());
-
-  const providerLabel = config.provider === 'custom_openai'
-    ? t('admin_ai_provider_custom_openai')
-    : t('admin_ai_provider_openrouter');
+    .find((message) => message.role === 'assistant' && String(message.text || '').trim());
 
   const handleResetChat = () => {
-    setMessages([{ id: 'welcome', role: 'assistant', text: welcomeText }]);
+    setMessages([]);
     setChatInput('');
     setCopyStatus(false);
   };
@@ -6829,7 +6802,6 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
       const result = await sendAdminAiMessage({
         settings: adminPlatformSettings,
         messages: nextMessages
-          .filter((message) => message.id !== 'welcome')
           .map((message) => ({
             role: message.role === 'assistant' ? 'assistant' : 'user',
             content: message.text,
@@ -6845,14 +6817,13 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
         },
       ]);
     } catch (error) {
-      const fallbackPreview = buildAiChatRequestPreview(adminPlatformSettings, []);
       const errorMessage = String(error?.message || '').trim() || `${t('ai_chat_error_prefix')}.`;
       setMessages((prev) => [
         ...prev,
         {
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          text: `${t('ai_chat_error_prefix')}: ${errorMessage}\n${t('ai_chat_powered_by')}: ${fallbackPreview.providerLabel} • ${fallbackPreview.model}`,
+          text: `${t('ai_chat_error_prefix')}: ${errorMessage}`,
         },
       ]);
     } finally {
@@ -6868,7 +6839,7 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
         className="fixed bottom-5 right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-300 transition hover:bg-blue-700"
         aria-label={t('ai_chat_title')}
       >
-        {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
+        {isOpen ? <X className="h-6 w-6" /> : <HardHat className="h-6 w-6" />}
       </button>
 
       {isOpen && (
@@ -6877,32 +6848,16 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <div className="rounded-2xl bg-white/15 p-2">
-                  <Bot className="h-5 w-5" />
+                  <HardHat className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="font-semibold">{t('ai_chat_title')}</div>
-                  <div className="mt-1 text-xs text-blue-100">
-                    {aiReady ? t('ai_chat_status_enabled') : t('ai_chat_status_disabled')} • {providerLabel}
-                  </div>
                 </div>
               </div>
               <button type="button" onClick={() => setIsOpen(false)} className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {capabilityBadges.map((badge) => (
-                <span key={badge} className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-blue-50">
-                  {badge}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-b border-slate-200 bg-amber-50/70 px-4 py-3 text-xs leading-5 text-amber-900">
-            <div className="font-semibold">{t('ai_chat_test_mode_badge')}</div>
-            <div>{t('ai_chat_test_mode_notice')}</div>
-            <div className="mt-1 text-amber-800">{t('ai_chat_prod_notice')}</div>
           </div>
 
           <div className="border-b border-slate-200 px-4 py-3">
@@ -6920,27 +6875,26 @@ function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
             </div>
           </div>
 
-          <div ref={messagesContainerRef} className="max-h-[52vh] overflow-y-auto px-4 py-4">
-            {messages.map((message) => (
-              <div key={message.id} className={`mb-3 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
-                  {message.text}
+          {(messages.length > 0 || isSending) && (
+            <div ref={messagesContainerRef} className="max-h-[52vh] overflow-y-auto px-4 py-4">
+              {messages.map((message) => (
+                <div key={message.id} className={`mb-3 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                    {message.text}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {isSending && (
-              <div className="mb-3 flex justify-start">
-                <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
-                  {t('ai_chat_thinking')}
+              ))}
+              {isSending && (
+                <div className="mb-3 flex justify-start">
+                  <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                    {t('ai_chat_thinking')}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <div className="border-t border-slate-200 px-4 py-4">
-            <div className="mb-3 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              {t('ai_chat_powered_by')}: {providerLabel} • {config.model}
-            </div>
             <div className="mb-3 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -10508,7 +10462,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         { tab: 'admin_supplier_management', labelKey: 'manager_menu_admin_supplier_management', icon: Building },
         { tab: 'admin_chat_monitoring', labelKey: 'manager_menu_admin_chat_monitoring', icon: BarChart3 },
         { tab: 'admin_chat_review', labelKey: 'manager_menu_admin_chat_review', icon: MessageSquare },
-        { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: Bot },
+        { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: HardHat },
         { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
         { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
         { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
@@ -10529,7 +10483,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         { tab: 'admin_supplier_agreements', labelKey: 'manager_menu_admin_supplier_agreements', icon: FileText },
         { tab: 'admin_chat_monitoring', labelKey: 'manager_menu_admin_chat_monitoring', icon: BarChart3 },
         { tab: 'admin_chat_review', labelKey: 'manager_menu_admin_chat_review', icon: MessageSquare },
-        { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: Bot },
+        { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: HardHat },
         { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
         { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
         { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
@@ -11188,7 +11142,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   { tab: 'admin_supplier_agreements', titleKey: 'admin_supplier_agreements_title', descKey: 'admin_supplier_agreements_desc', icon: FileText },
                   { tab: 'admin_chat_monitoring', titleKey: 'admin_chat_monitoring_title', descKey: 'admin_chat_monitoring_desc', icon: BarChart3 },
                   { tab: 'admin_chat_review', titleKey: 'admin_chat_review_title', descKey: 'admin_chat_review_desc', icon: MessageSquare },
-                  { tab: 'admin_ai_improvement', titleKey: 'admin_ai_improvement_title', descKey: 'admin_ai_improvement_desc', icon: Bot },
+                  { tab: 'admin_ai_improvement', titleKey: 'admin_ai_improvement_title', descKey: 'admin_ai_improvement_desc', icon: HardHat },
                   { tab: 'admin_commission_billing', titleKey: 'admin_commission_billing_title', descKey: 'admin_commission_billing_desc', icon: Receipt },
                   { tab: 'admin_platform_revenue', titleKey: 'admin_platform_revenue_title', descKey: 'admin_platform_revenue_desc', icon: DollarSign },
                   { tab: 'admin_settlements', titleKey: 'admin_settlements_title', descKey: 'admin_settlements_desc', icon: Receipt },
@@ -15758,8 +15712,8 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <StatCard title={t('ai_metric_ai_messages')} value={formatNumberByLanguage(aiAnalytics.aiMessages, language)} icon={<Bot />} color="text-cyan-600" bg="bg-cyan-100" />
-                <StatCard title={t('ai_metric_ai_handled')} value={formatNumberByLanguage(aiAnalytics.aiHandled, language)} icon={<Bot />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('ai_metric_ai_messages')} value={formatNumberByLanguage(aiAnalytics.aiMessages, language)} icon={<HardHat />} color="text-cyan-600" bg="bg-cyan-100" />
+                <StatCard title={t('ai_metric_ai_handled')} value={formatNumberByLanguage(aiAnalytics.aiHandled, language)} icon={<HardHat />} color="text-blue-600" bg="bg-blue-100" />
                 <StatCard title={t('ai_metric_human_needed')} value={formatNumberByLanguage(aiAnalytics.humanNeeded, language)} icon={<AlertCircle />} color="text-amber-600" bg="bg-amber-100" />
                 <StatCard title={t('ai_metric_satisfaction')} value={`${formatNumberByLanguage(aiAnalytics.averageSatisfaction, language)}%`} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
               </div>
@@ -15873,7 +15827,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <h4 className="text-base font-bold text-slate-900">{t('ai_recommendations')}</h4>
-                      <Bot className="h-5 w-5 text-blue-600" />
+                      <HardHat className="h-5 w-5 text-blue-600" />
                     </div>
                     <p className="mt-2 text-sm leading-6 text-slate-500">{t('ai_panel_recommendation_hint')}</p>
                     <div className="mt-4 space-y-3">
@@ -15890,10 +15844,6 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                       <Database className="h-5 w-5 text-slate-500" />
                     </div>
                     <div className="mt-4 space-y-3 text-sm text-slate-600">
-                      <div className="rounded-xl bg-slate-50 px-4 py-3">
-                        <div className="font-semibold text-slate-900">{aiAdminData.aiSettings.provider === 'openai' ? t('admin_ai_provider_openai') : t('admin_ai_provider_openrouter')}</div>
-                        <div className="mt-1 text-xs">{aiAdminData.aiSettings.model}</div>
-                      </div>
                       <div className={`rounded-xl px-4 py-3 font-medium ${aiSettingsReady ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
                         {t(aiSettingsReady ? 'admin_ai_status_ready' : 'admin_ai_status_missing')}
                       </div>
@@ -15910,7 +15860,6 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">{t('admin_chat_review_title')}</h3>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_chat_review_desc')}</p>
                   </div>
                   <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
                     {t('ai_review_queue')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(aiReviewQueue.length, language)}</span>
@@ -16081,7 +16030,6 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <h3 className="text-xl font-bold text-slate-900">{t('admin_ai_improvement_title')}</h3>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_ai_improvement_desc')}</p>
                     <p className="mt-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">{t('ai_status_note_live')}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -16099,7 +16047,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                 <StatCard title={t('ai_workflow_raw')} value={formatNumberByLanguage(aiImprovementInsights.totalItems, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
                 <StatCard title={t('ai_workflow_reviewed')} value={formatNumberByLanguage(reviewedExamples.length, language)} icon={<CheckCircle />} color="text-blue-600" bg="bg-blue-100" />
-                <StatCard title={t('ai_workflow_approved')} value={formatNumberByLanguage(approvedTrainingExamples.length, language)} icon={<Bot />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('ai_workflow_approved')} value={formatNumberByLanguage(approvedTrainingExamples.length, language)} icon={<HardHat />} color="text-green-600" bg="bg-green-100" />
                 <StatCard title={t('ai_workflow_rejected')} value={formatNumberByLanguage(rejectedExamples.length, language)} icon={<AlertCircle />} color="text-rose-600" bg="bg-rose-100" />
                 <StatCard title={t('ai_workflow_dataset_candidates')} value={formatNumberByLanguage(datasetCandidates.length, language)} icon={<Database />} color="text-violet-600" bg="bg-violet-100" />
               </div>
@@ -16337,14 +16285,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div>
                         <h4 className="font-semibold text-slate-800">{t('admin_ai_settings_title')}</h4>
-                        <p className="mt-1 text-sm text-slate-500">{t('admin_ai_settings_desc')}</p>
                         <p className={`mt-2 text-xs font-medium ${aiSettingsReady ? 'text-green-600' : 'text-amber-600'}`}>
                           {t(aiSettingsReady ? 'admin_ai_status_ready' : 'admin_ai_status_missing')}
                         </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                        <div className="font-semibold text-slate-800">{aiProviderConfig.provider === 'custom_openai' ? t('admin_ai_provider_custom_openai') : t('admin_ai_provider_openrouter')}</div>
-                        <div className="mt-1 text-xs">{aiProviderConfig.model}</div>
                       </div>
                     </div>
                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">

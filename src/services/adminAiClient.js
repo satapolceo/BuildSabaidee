@@ -12,7 +12,7 @@ export const ADMIN_AI_PROVIDER_DEFAULTS = {
 };
 
 export const DEFAULT_ADMIN_AI_SYSTEM_PROMPT = [
-  'You are BuildSabaidee Admin AI for construction and operations support.',
+  'You are AI น้องสบายดี for construction and operations support.',
   'Help summarize project updates, procurement issues, worker reports, site risks, owner communications, and next-step task lists.',
   'Keep responses practical, structured, concise, and suitable for a construction admin or project manager.',
   'When information is missing, state assumptions clearly instead of inventing facts.',
@@ -55,7 +55,7 @@ export function normalizeAdminAiSettings(settings = {}) {
 function buildEndpoint(baseUrl) {
   const normalizedBaseUrl = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!/^https?:\/\//i.test(normalizedBaseUrl)) {
-    throw createAdminAiError('invalid_endpoint', 'Invalid API base URL. Use a full http(s) URL.');
+    throw createAdminAiError('invalid_endpoint', 'Invalid connection URL. Use a full http(s) URL.');
   }
   return `${normalizedBaseUrl}/chat/completions`;
 }
@@ -93,7 +93,7 @@ function extractAssistantText(payload) {
     : '';
   if (outputText) return outputText;
 
-  throw createAdminAiError('invalid_response', 'The AI provider returned a response without assistant text.', { payload });
+  throw createAdminAiError('invalid_response', 'No response text was returned.', { payload });
 }
 
 async function parseJsonSafe(response) {
@@ -114,7 +114,7 @@ function extractErrorMessage(payload, fallbackMessage) {
 }
 
 function mapHttpError(response, payload) {
-  const baseMessage = extractErrorMessage(payload, `AI request failed with status ${response.status}.`);
+  const baseMessage = extractErrorMessage(payload, `Request failed with status ${response.status}.`);
   if (response.status === 404) {
     return createAdminAiError('invalid_endpoint', baseMessage, { status: response.status, payload });
   }
@@ -178,19 +178,19 @@ function createHeaders(config) {
 
 function validateConfig(config) {
   if (!config.enabled) {
-    throw createAdminAiError('disabled', 'AI test mode is disabled in Admin Settings.');
+    throw createAdminAiError('disabled', 'AI น้องสบายดี is disabled in Admin Settings.');
   }
   if (!config.apiKey) {
-    throw createAdminAiError('missing_key', 'Missing API key. Add an API key in Admin Settings.');
+    throw createAdminAiError('missing_key', 'Missing access key. Add an access key in Admin Settings.');
   }
   if (!config.model) {
-    throw createAdminAiError('missing_model', 'Missing model. Add a model name in Admin Settings.');
+    throw createAdminAiError('missing_model', 'Missing engine name. Add an engine name in Admin Settings.');
   }
   if (!config.baseUrl) {
-    throw createAdminAiError('invalid_endpoint', 'Missing API base URL. Add a valid base URL in Admin Settings.');
+    throw createAdminAiError('invalid_endpoint', 'Missing connection URL. Add a valid URL in Admin Settings.');
   }
   if (!config.endpoint) {
-    throw createAdminAiError('invalid_endpoint', 'Invalid API base URL. Use a full http(s) URL.');
+    throw createAdminAiError('invalid_endpoint', 'Invalid connection URL. Use a full http(s) URL.');
   }
 }
 
@@ -237,7 +237,7 @@ export async function sendAdminAiMessage({ settings = {}, messages = [], signal 
     });
   } catch (error) {
     if (error?.name === 'AbortError') throw error;
-    throw createAdminAiError('network_error', 'Network error. Check the API base URL and browser connectivity.', { cause: error });
+    throw createAdminAiError('network_error', 'Network error. Check the connection URL and browser connectivity.', { cause: error });
   }
 
   const payload = await parseJsonSafe(response);
@@ -259,7 +259,7 @@ export async function testAdminAiConnection({ settings = {}, signal } = {}) {
     messages: [
       {
         role: 'user',
-        content: 'Reply with a short confirmation that the BuildSabaidee admin AI connection is working.',
+        content: 'Reply with a short confirmation that AI น้องสบายดี is working.',
       },
     ],
   });
