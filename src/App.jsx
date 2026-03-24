@@ -205,6 +205,9 @@ const translations = {
     overview_open_tab: 'ເປີດສ່ວນນີ້',
     overview_supplier_status_active: 'ພ້ອມຮ່ວມງານ',
     overview_supplier_status_inactive: 'ຕ້ອງຕິດຕາມ',
+    dashboard_kiosk_on: 'ເປີດໂໝດ TV / Kiosk',
+    dashboard_kiosk_off: 'ອອກຈາກໂໝດ TV / Kiosk',
+    dashboard_kiosk_badge: 'TV Display Mode',
     daily_issue_severity_critical: 'ເລັ່ງດ່ວນຫຼາຍ',
     daily_issue_severity_high: 'ເລັ່ງດ່ວນ',
     daily_issue_severity_medium: 'ປານກາງ',
@@ -328,6 +331,9 @@ const translations = {
     overview_open_tab: 'เปิดส่วนนี้',
     overview_supplier_status_active: 'พร้อมทำงาน',
     overview_supplier_status_inactive: 'ต้องติดตาม',
+    dashboard_kiosk_on: 'เปิดโหมด TV / Kiosk',
+    dashboard_kiosk_off: 'ออกจากโหมด TV / Kiosk',
+    dashboard_kiosk_badge: 'TV Display Mode',
     daily_issue_severity_critical: 'เร่งด่วนมาก',
     daily_issue_severity_high: 'เร่งด่วน',
     daily_issue_severity_medium: 'ปานกลาง',
@@ -451,6 +457,9 @@ const translations = {
     overview_open_tab: 'Open Section',
     overview_supplier_status_active: 'Ready',
     overview_supplier_status_inactive: 'Follow up',
+    dashboard_kiosk_on: 'Enable TV / Kiosk Mode',
+    dashboard_kiosk_off: 'Exit TV / Kiosk Mode',
+    dashboard_kiosk_badge: 'TV Display Mode',
     daily_issue_severity_critical: 'Critical',
     daily_issue_severity_high: 'Urgent',
     daily_issue_severity_medium: 'Medium',
@@ -5117,6 +5126,13 @@ export default function BuildSabaideeApp() {
   const [language, setLanguage] = useState('LA');
   const [loginRole, setLoginRole] = useState('user');
   const [authErrorKey, setAuthErrorKey] = useState('');
+  const [isKioskMode, setIsKioskMode] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('kiosk') === '1';
+    } catch (error) {
+      return false;
+    }
+  });
   const [authSession, setAuthSession] = useState(() => {
     try {
       const storedSession = window.localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
@@ -5399,6 +5415,30 @@ export default function BuildSabaideeApp() {
     }
   }, [authSession]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      try {
+        setIsKioskMode(new URLSearchParams(window.location.search).get('kiosk') === '1');
+      } catch (error) {
+        setIsKioskMode(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const updateKioskQueryState = (enabled) => {
+    try {
+      const url = new URL(window.location.href);
+      if (enabled) url.searchParams.set('kiosk', '1');
+      else url.searchParams.delete('kiosk');
+      window.history.replaceState({}, '', url.toString());
+      setIsKioskMode(enabled);
+    } catch (error) {
+      setIsKioskMode(enabled);
+    }
+  };
+
   const navigateTo = (target) => {
     const normalizedTarget = typeof target === 'string' ? { view: target } : (target || {});
     const requestedView = normalizedTarget.view || 'landing';
@@ -5514,6 +5554,8 @@ export default function BuildSabaideeApp() {
       {currentView === 'manager' && (
         <ManagerDashboard 
           onNavigate={navigateTo} t={t} language={language}
+          isKioskMode={isKioskMode}
+          onToggleKioskMode={updateKioskQueryState}
           dashboardRole="user"
           projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
           companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
@@ -5539,6 +5581,8 @@ export default function BuildSabaideeApp() {
       {currentView === 'platform_owner_dashboard' && (
         <ManagerDashboard
           onNavigate={navigateTo} t={t} language={language}
+          isKioskMode={isKioskMode}
+          onToggleKioskMode={updateKioskQueryState}
           dashboardRole="platform_owner"
           adminNavOnly={true}
           projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
@@ -6754,7 +6798,7 @@ function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, work
 // ==========================================
 // 3. MANAGER DASHBOARD SIMULATOR 
 // ==========================================
-function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adminNavOnly = false, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
+function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onToggleKioskMode, dashboardRole = 'user', adminNavOnly = false, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
   const isPlatformAdmin = dashboardRole === 'admin' || dashboardRole === 'platform_owner';
   const [activeTab, setActiveTab] = useState(adminNavOnly ? 'admin_overview' : 'overview');
   const [weatherState, setWeatherState] = useState({ status: 'loading', data: null, errorKey: '' });
@@ -9309,15 +9353,15 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   const aiSettingsReady = isAiChatReady(adminSettingsForm);
 
   return (
-    <div className="min-h-dvh md:min-h-screen bg-slate-200/60 flex relative">
+    <div className={`min-h-dvh md:min-h-screen flex relative ${isKioskMode ? 'bg-slate-900' : 'bg-slate-200/60'}`}>
       {/* Sidebar */}
-      <div className="hidden w-72 shrink-0 bg-slate-950 text-white md:sticky md:top-0 md:flex md:h-dvh md:flex-col xl:w-80">
+      <div className={`hidden shrink-0 text-white md:sticky md:top-0 md:flex md:h-dvh md:flex-col ${isKioskMode ? 'w-64 bg-slate-950/96 xl:w-72' : 'w-72 bg-slate-950 xl:w-80'}`}>
         <div className="flex items-center space-x-3 border-b border-slate-800 px-5 py-5">
           <HardHat className="text-blue-400 h-8 w-8" />
           <span className="font-bold text-xl">BuildSabaidee</span>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-5 xl:px-5">
-          <div className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t('dashboard_main_menu')}</div>
+          {!isKioskMode && <div className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t('dashboard_main_menu')}</div>}
           <nav className="space-y-2.5">
             {navGroups.map((group) => {
               const GroupIcon = group.icon;
@@ -9399,22 +9443,27 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
             })}
           </nav>
         </div>
-        <div className="border-t border-slate-800 px-4 py-4 xl:px-5">
-          <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="flex items-center space-x-3 text-slate-400 hover:text-white w-full p-2">
-            <LogOut className="h-5 w-5" /> <span>{adminNavOnly ? t('admin_back_home') : t('manager_logout')}</span>
-          </button>
-        </div>
+        {!isKioskMode && (
+          <div className="border-t border-slate-800 px-4 py-4 xl:px-5">
+            <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="flex items-center space-x-3 text-slate-400 hover:text-white w-full p-2">
+              <LogOut className="h-5 w-5" /> <span>{adminNavOnly ? t('admin_back_home') : t('manager_logout')}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden bg-slate-100/70">
+      <div className={`flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden ${isKioskMode ? 'bg-slate-900' : 'bg-slate-100/70'}`}>
         {/* Header */}
-        <header className="z-10 flex h-[4.5rem] shrink-0 items-center justify-between border-b border-slate-200 bg-white/92 px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10">
-          <h1 className="text-xl font-bold text-slate-800">
+        <header className={`z-10 flex shrink-0 items-center justify-between px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10 ${isKioskMode ? 'h-16 border-b border-white/10 bg-slate-950/88' : 'h-[4.5rem] border-b border-slate-200 bg-white/92'}`}>
+          <div className="flex items-center gap-3">
+            {isKioskMode && <div className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-200">{t('dashboard_kiosk_badge')}</div>}
+            <h1 className={`text-xl font-bold ${isKioskMode ? 'text-white' : 'text-slate-800'}`}>
             {sectionTitleMap[activeTab] || t('manager_menu_' + activeTab)}
-          </h1>
+            </h1>
+          </div>
           <div className="flex items-center space-x-4">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium items-center hidden md:flex ${
+            {!isKioskMode && <div className={`px-3 py-1 rounded-full text-sm font-medium items-center hidden md:flex ${
               weatherState.status === 'success'
                 ? 'bg-blue-50 text-blue-700'
                 : weatherState.status === 'loading'
@@ -9422,16 +9471,19 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                   : 'bg-amber-50 text-amber-700'
             }`}>
               <CloudRain className="h-4 w-4 mr-2 shrink-0" /> {renderWeatherSummary()}
-            </div>
-            <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
-              MG
-            </div>
-            <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="md:hidden text-slate-500">
-              <X className="h-6 w-6" />
+            </div>}
+            <button onClick={() => onToggleKioskMode?.(!isKioskMode)} className={`hidden rounded-full px-4 py-2 text-sm font-semibold transition md:inline-flex ${isKioskMode ? 'border border-white/15 bg-white/8 text-white hover:bg-white/14' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+              {isKioskMode ? t('dashboard_kiosk_off') : t('dashboard_kiosk_on')}
             </button>
+            {!isKioskMode && <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
+              MG
+            </div>}
+            {!isKioskMode && <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="md:hidden text-slate-500">
+              <X className="h-6 w-6" />
+            </button>}
           </div>
         </header>
-        <div className="border-b border-slate-200 bg-white px-4 py-3 md:hidden">
+        <div className={`border-b px-4 py-3 md:hidden ${isKioskMode ? 'border-white/10 bg-slate-950 text-white' : 'border-slate-200 bg-white'}`}>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {mobileNavItems.map((item) => {
               const ItemIcon = item.icon;
@@ -9455,7 +9507,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
         </div>
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto bg-slate-100/70 px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10">
+        <div className={`flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10 ${isKioskMode ? 'bg-slate-900 text-white 2xl:px-8 2xl:py-5' : 'bg-slate-100/70'}`}>
           
           {isFirebaseConfigured && projectsList.length === 0 && activeTab === 'overview' && (
              <button onClick={seedDatabase} className="w-full bg-blue-100 text-blue-700 p-4 rounded-xl border border-blue-200 mb-6 font-bold hover:bg-blue-200 transition shadow-sm flex justify-center items-center">
