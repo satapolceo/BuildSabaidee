@@ -9309,16 +9309,16 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   const aiSettingsReady = isAiChatReady(adminSettingsForm);
 
   return (
-    <div className="min-h-dvh md:min-h-screen bg-slate-100 flex relative">
+    <div className="min-h-dvh md:min-h-screen bg-slate-200/60 flex relative">
       {/* Sidebar */}
-      <div className="hidden w-64 shrink-0 bg-slate-900 text-white md:sticky md:top-0 md:flex md:h-dvh md:flex-col">
-        <div className="p-4 flex items-center space-x-2 border-b border-slate-800">
+      <div className="hidden w-72 shrink-0 bg-slate-950 text-white md:sticky md:top-0 md:flex md:h-dvh md:flex-col xl:w-80">
+        <div className="flex items-center space-x-3 border-b border-slate-800 px-5 py-5">
           <HardHat className="text-blue-400 h-8 w-8" />
           <span className="font-bold text-xl">BuildSabaidee</span>
         </div>
-        <div className="p-4 flex-1 overflow-y-auto">
-          <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-4">{t('dashboard_main_menu')}</div>
-          <nav className="space-y-3">
+        <div className="flex-1 overflow-y-auto px-4 py-5 xl:px-5">
+          <div className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500">{t('dashboard_main_menu')}</div>
+          <nav className="space-y-2.5">
             {navGroups.map((group) => {
               const GroupIcon = group.icon;
               const isExpanded = expandedNavGroups[group.id];
@@ -9399,7 +9399,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
             })}
           </nav>
         </div>
-        <div className="p-4 border-t border-slate-800">
+        <div className="border-t border-slate-800 px-4 py-4 xl:px-5">
           <button onClick={() => onNavigate({ view: 'logout', role: adminNavOnly ? 'admin' : 'user', redirectTo: adminNavOnly ? 'platform_owner_access' : 'landing' })} className="flex items-center space-x-3 text-slate-400 hover:text-white w-full p-2">
             <LogOut className="h-5 w-5" /> <span>{adminNavOnly ? t('admin_back_home') : t('manager_logout')}</span>
           </button>
@@ -9407,9 +9407,9 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden bg-slate-50">
+      <div className="flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden bg-slate-100/70">
         {/* Header */}
-        <header className="bg-white shadow-sm h-16 flex items-center justify-between px-6 z-10 shrink-0">
+        <header className="z-10 flex h-[4.5rem] shrink-0 items-center justify-between border-b border-slate-200 bg-white/92 px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10">
           <h1 className="text-xl font-bold text-slate-800">
             {sectionTitleMap[activeTab] || t('manager_menu_' + activeTab)}
           </h1>
@@ -9455,7 +9455,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
         </div>
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+        <div className="flex-1 overflow-y-auto bg-slate-100/70 px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10">
           
           {isFirebaseConfigured && projectsList.length === 0 && activeTab === 'overview' && (
              <button onClick={seedDatabase} className="w-full bg-blue-100 text-blue-700 p-4 rounded-xl border border-blue-200 mb-6 font-bold hover:bg-blue-200 transition shadow-sm flex justify-center items-center">
@@ -9510,7 +9510,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
           {/* ----- TAB: OVERVIEW ----- */}
           {!adminNavOnly && activeTab === 'overview' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              <section className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_40%,#eef4ff_100%)] p-5 shadow-sm sm:p-6">
+              <section className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_40%,#eef4ff_100%)] p-5 shadow-sm sm:p-6 xl:p-7">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                   <div className="max-w-3xl">
                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('overview_exec_title')}</div>
@@ -9528,7 +9528,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                     </button>
                   </div>
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
+                <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6 2xl:gap-4">
                   {executiveSummaryCards.map((card) => {
                     const CardIcon = card.icon;
                     return (
@@ -9549,7 +9549,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
               </section>
 
               <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-                <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)] px-5 py-5 sm:px-6">
+                <div className="border-b border-slate-100 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#eef6ff_100%)] px-5 py-5 sm:px-6 xl:px-7 xl:py-6">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                     <div className="max-w-3xl">
                       <div className="flex items-center gap-3">
@@ -9588,9 +9588,9 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                     <div className="rounded-2xl border border-amber-100 bg-amber-50/80 px-4 py-4"><div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-500">{t('overview_daily_issues_waiting')}</div><div className="mt-2 text-[1.85rem] font-bold leading-none text-amber-700">{dailyIssueSummary.waiting}</div></div>
                   </div>
                 </div>
-                <div className="px-5 py-5 sm:px-6">
+                <div className="px-5 py-5 sm:px-6 xl:px-7 xl:py-6">
                   {filteredDailyIssuesDashboardItems.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:gap-5">
                       {filteredDailyIssuesDashboardItems.map((issue) => {
                         const severityTone = getDailyIssueSeverityTone(issue.severity);
                         return (
@@ -9638,11 +9638,11 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                 </div>
               </section>
 
-              <section className="grid grid-cols-1 gap-6 2xl:grid-cols-[1.35fr_1fr]">
+              <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.45fr_1fr] 2xl:gap-7">
                 <div className="space-y-6">
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 xl:p-7">
                     <div><div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('overview_operations_title')}</div><h3 className="mt-2 text-xl font-bold text-slate-900">{t('overview_operations_desc')}</h3></div>
-                    <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div className="mt-5 grid grid-cols-1 gap-4 2xl:grid-cols-2">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_documents_title')}</h4><button onClick={() => setActiveTab('docs')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPendingDocs.length > 0 ? recentPendingDocs.map((doc) => <div key={doc.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="text-sm font-semibold text-slate-800">{doc.title}</div><div className="mt-1 text-xs text-slate-500">{t('overview_by')} {doc.submittedBy} {Number(doc.amount) > 0 && `• ${formatMoneyByLanguage(doc.amount, language)}`}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_procurement_title')}</h4><button onClick={() => setActiveTab('purchase_orders')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentPurchaseOrders.length > 0 ? recentPurchaseOrders.map((order) => <div key={order.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-sm font-semibold text-slate-800">{order.poNumber || '-'}</div><div className="mt-1 truncate text-xs text-slate-500" title={order.supplierName}>{order.supplierName}</div></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">{t(`order_status_${order.status}`)}</span></div><div className="mt-2 text-xs font-medium text-slate-600">{formatMoneyByLanguage(order.total, language)}</div></div>) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
                       <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"><div className="flex items-center justify-between gap-3"><h4 className="font-bold text-slate-900">{t('overview_ops_inventory_title')}</h4><button onClick={() => setActiveTab('inventory')} className="text-sm font-semibold text-blue-600">{t('overview_open_tab')}</button></div><div className="mt-4 space-y-3">{recentInventoryRisks.length > 0 ? recentInventoryRisks.map((item) => { const statusKey = getMaterialStockStatusKey(item); return <div key={item.id} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-semibold text-slate-800" title={item.name}>{item.name}</div><div className="mt-1 text-xs text-slate-500">{item.category || '-'}</div></div><span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusKey === 'stock_status_out' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{t(statusKey)}</span></div><div className="mt-2 text-xs font-medium text-slate-600">{t('label_qty')}: {item.quantity || 0}</div></div>; }) : <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3.5 py-5 text-center text-sm text-slate-500">{t('overview_ops_empty')}</div>}</div></div>
