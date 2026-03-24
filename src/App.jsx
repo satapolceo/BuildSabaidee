@@ -1440,6 +1440,75 @@ Object.assign(translations.LA, {
   admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
   admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+  manager_menu_admin_chat_monitoring: 'ຕິດຕາມຄຸນນະພາບແຊທ',
+  manager_menu_admin_chat_review: 'ກວດທົບບົດສົນທະນາ',
+  manager_menu_admin_ai_improvement: 'ພັດທະນາ AI',
+  admin_chat_monitoring_title: 'Chat Monitoring',
+  admin_chat_monitoring_desc: 'dashboard ສຳລັບວິເຄາະປະລິມານແຊທ, quality, sentiment ແລະ ເຄສທີ່ຕ້ອງຕິດຕາມ.',
+  admin_chat_review_title: 'Chat Review',
+  admin_chat_review_desc: 'review queue ສຳລັບກວດສອບຄຸນນະພາບບົດສົນທະນາ, score ແລະ ການຕັດສິນໃຈ.',
+  admin_ai_improvement_title: 'AI Improvement',
+  admin_ai_improvement_desc: 'workflow ສຳລັບຄັດເລືອກຕົວຢ່າງ, ຊອກ knowledge gaps ແລະ ກຽມ dataset ສຳລັບການພັດທະນາ AI.',
+  ai_range_today: 'ມື້ນີ້',
+  ai_range_7d: '7 ມື້',
+  ai_range_14d: '14 ມື້',
+  ai_range_30d: '30 ມື້',
+  ai_metric_total_chats: 'ແຊທທັງໝົດ',
+  ai_metric_ai_handled: 'AI ຮັບມືໄດ້',
+  ai_metric_human_needed: 'ຕ້ອງໃຫ້ຄົນຊ່ວຍ',
+  ai_metric_satisfaction: 'ຄວາມພໍໃຈໂດຍປະມານ',
+  ai_metric_avg_response: 'ເວລາຕອບສະເລ່ຍ',
+  ai_sentiment_positive: 'ບວກ',
+  ai_sentiment_neutral: 'ກາງ',
+  ai_sentiment_negative: 'ລົບ',
+  ai_top_topics: 'Top topics',
+  ai_problem_categories: 'Top problem categories',
+  ai_interesting_chats: 'ແຊທທີ່ນ່າສົນໃຈ',
+  ai_review_needed: 'ແຊທທີ່ຄວນກວດ',
+  ai_recommendations: 'Recommendations',
+  ai_quality_score: 'Quality score',
+  ai_business_value_score: 'Business value',
+  ai_satisfaction_estimate: 'Satisfaction estimate',
+  ai_risk_score: 'Risk score',
+  ai_resolution_ai: 'AI resolved',
+  ai_resolution_human: 'Human needed',
+  ai_badge_good: 'ຕົວຢ່າງທີ່ດີ',
+  ai_badge_improve: 'ຄວນປັບປຸງ',
+  ai_badge_risk: 'ຄວາມສ່ຽງ',
+  ai_badge_review: 'ຕ້ອງ review',
+  ai_review_queue: 'Review queue',
+  ai_conversation_thread: 'Conversation thread',
+  ai_quality_analysis: 'ຜົນວິເຄາະຄຸນນະພາບ',
+  ai_improvement_recommendations: 'ຄຳແນະນຳການພັດທະນາ',
+  ai_mark_good_example: 'Mark as good example',
+  ai_needs_improvement: 'Needs improvement',
+  ai_escalate: 'Escalate',
+  ai_add_dataset: 'Add to dataset',
+  ai_workflow_raw: 'Raw conversations',
+  ai_workflow_reviewed: 'Reviewed examples',
+  ai_workflow_approved: 'Approved examples',
+  ai_workflow_rejected: 'Rejected examples',
+  ai_workflow_recommendations: 'Improvement recommendations',
+  ai_workflow_dataset_candidates: 'Dataset candidates',
+  ai_workflow_prompt_updates: 'Prompt suggestions',
+  ai_workflow_readiness: 'Fine-tune readiness',
+  ai_available_review: 'ບົດສົນທະນາພ້ອມ review',
+  ai_approved_examples: 'ຕົວຢ່າງທີ່ອະນຸມັດແລ້ວ',
+  ai_top_failures: 'Top recurring failures',
+  ai_knowledge_gaps: 'Suggested knowledge gaps',
+  ai_prompt_suggestions: 'Suggested prompt updates',
+  ai_mock_backend_note: 'ໜ້ານີ້ເປັນ mock workflow ສຳລັບ admin ແລະ ກຽມ schema ໄວ້ເພື່ອຕໍ່ backend / fine-tuning pipeline ໃນພາຍຫຼັງ.',
+  ai_category_procurement_delay: 'ຈັດຊື້ລ່າຊ້າ',
+  ai_category_site_safety: 'ຄວາມປອດໄພໜ້າງານ',
+  ai_category_daily_reporting: 'ລາຍງານປະຈຳວັນ',
+  ai_category_document_followup: 'ຕິດຕາມເອກະສານ',
+  ai_category_external_approval: 'ອະນຸມັດຈາກພາຍນອກ',
+  ai_panel_executive_view: 'Executive chat quality overview',
+  ai_panel_recommendation_hint: 'ເນັ້ນເຄສທີ່ຄວນເພີ່ມ knowledge, prompt ແລະ human handoff',
+  ai_detail_actions: 'Review actions',
+  ai_dataset_candidates_hint: 'ເຄສທີ່ຄະແນນດີ ຫຼື admin ເລືອກໄວ້ ສາມາດນຳໄປກຽມ dataset ຕໍ່ໄດ້',
+  ai_readiness_ready: 'ພ້ອມຕໍ່ dataset',
+  ai_readiness_in_progress: 'ກຳລັງກວດທົບ',
   admin_settings_reuse_notice: 'ຄ່າຊຸດນີ້ຖືກກຽມໄວ້ເພື່ອ reuse ຮ່ວມກັບ Supplier Agreements, Commission Billing, Settlements ແລະ future print/export',
   admin_settings_saved: 'ບັນທຶກຄ່າຕັ້ງ admin ແລ້ວ',
   admin_settings_section_defaults: 'Default settings',
@@ -1777,6 +1846,75 @@ Object.assign(translations.TH, {
   admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
   admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+  manager_menu_admin_chat_monitoring: 'ติดตามคุณภาพแชท',
+  manager_menu_admin_chat_review: 'ตรวจบทสนทนา',
+  manager_menu_admin_ai_improvement: 'พัฒนา AI',
+  admin_chat_monitoring_title: 'Chat Monitoring',
+  admin_chat_monitoring_desc: 'dashboard สำหรับวิเคราะห์ปริมาณแชท, quality, sentiment และเคสที่ควรติดตามต่อ.',
+  admin_chat_review_title: 'Chat Review',
+  admin_chat_review_desc: 'review queue สำหรับตรวจสอบคุณภาพบทสนทนา, score และการตัดสินใจของ admin.',
+  admin_ai_improvement_title: 'AI Improvement',
+  admin_ai_improvement_desc: 'workflow สำหรับคัดตัวอย่าง, หา knowledge gaps และเตรียม dataset เพื่อพัฒนา AI ต่อ.',
+  ai_range_today: 'วันนี้',
+  ai_range_7d: '7 วัน',
+  ai_range_14d: '14 วัน',
+  ai_range_30d: '30 วัน',
+  ai_metric_total_chats: 'แชททั้งหมด',
+  ai_metric_ai_handled: 'AI รับมือได้',
+  ai_metric_human_needed: 'ต้องให้คนช่วย',
+  ai_metric_satisfaction: 'ความพึงพอใจโดยประมาณ',
+  ai_metric_avg_response: 'เวลาตอบเฉลี่ย',
+  ai_sentiment_positive: 'บวก',
+  ai_sentiment_neutral: 'กลาง',
+  ai_sentiment_negative: 'ลบ',
+  ai_top_topics: 'Top topics',
+  ai_problem_categories: 'Top problem categories',
+  ai_interesting_chats: 'แชทที่น่าสนใจ',
+  ai_review_needed: 'แชทที่ควรตรวจ',
+  ai_recommendations: 'Recommendations',
+  ai_quality_score: 'Quality score',
+  ai_business_value_score: 'Business value',
+  ai_satisfaction_estimate: 'Satisfaction estimate',
+  ai_risk_score: 'Risk score',
+  ai_resolution_ai: 'AI resolved',
+  ai_resolution_human: 'Human needed',
+  ai_badge_good: 'ตัวอย่างที่ดี',
+  ai_badge_improve: 'ควรปรับปรุง',
+  ai_badge_risk: 'ความเสี่ยง',
+  ai_badge_review: 'ต้อง review',
+  ai_review_queue: 'Review queue',
+  ai_conversation_thread: 'Conversation thread',
+  ai_quality_analysis: 'ผลวิเคราะห์คุณภาพ',
+  ai_improvement_recommendations: 'คำแนะนำการพัฒนา',
+  ai_mark_good_example: 'Mark as good example',
+  ai_needs_improvement: 'Needs improvement',
+  ai_escalate: 'Escalate',
+  ai_add_dataset: 'Add to dataset',
+  ai_workflow_raw: 'Raw conversations',
+  ai_workflow_reviewed: 'Reviewed examples',
+  ai_workflow_approved: 'Approved examples',
+  ai_workflow_rejected: 'Rejected examples',
+  ai_workflow_recommendations: 'Improvement recommendations',
+  ai_workflow_dataset_candidates: 'Dataset candidates',
+  ai_workflow_prompt_updates: 'Prompt suggestions',
+  ai_workflow_readiness: 'Fine-tune readiness',
+  ai_available_review: 'บทสนทนาพร้อม review',
+  ai_approved_examples: 'ตัวอย่างที่อนุมัติแล้ว',
+  ai_top_failures: 'Top recurring failures',
+  ai_knowledge_gaps: 'Suggested knowledge gaps',
+  ai_prompt_suggestions: 'Suggested prompt updates',
+  ai_mock_backend_note: 'หน้านี้เป็น mock workflow สำหรับ admin และเตรียม schema ไว้เพื่อต่อ backend / fine-tuning pipeline ในรอบถัดไป.',
+  ai_category_procurement_delay: 'จัดซื้อล่าช้า',
+  ai_category_site_safety: 'ความปลอดภัยหน้างาน',
+  ai_category_daily_reporting: 'รายงานประจำวัน',
+  ai_category_document_followup: 'ติดตามเอกสาร',
+  ai_category_external_approval: 'อนุมัติภายนอก',
+  ai_panel_executive_view: 'Executive chat quality overview',
+  ai_panel_recommendation_hint: 'เน้นเคสที่ควรเพิ่ม knowledge, prompt และ human handoff',
+  ai_detail_actions: 'Review actions',
+  ai_dataset_candidates_hint: 'เคสที่คะแนนดีหรือ admin เลือกไว้ สามารถนำไปเตรียม dataset ต่อได้',
+  ai_readiness_ready: 'พร้อมต่อ dataset',
+  ai_readiness_in_progress: 'กำลังกวดทบทวน',
   admin_settings_reuse_notice: 'ค่าชุดนี้ถูกเตรียมไว้เพื่อ reuse ร่วมกับ Supplier Agreements, Commission Billing, Settlements และ future print/export',
   admin_settings_saved: 'บันทึกค่า admin settings แล้ว',
   admin_settings_section_defaults: 'Default settings',
@@ -2114,6 +2252,75 @@ Object.assign(translations.EN, {
   admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
   admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
   admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+  manager_menu_admin_chat_monitoring: 'Chat Monitoring',
+  manager_menu_admin_chat_review: 'Chat Review',
+  manager_menu_admin_ai_improvement: 'AI Improvement',
+  admin_chat_monitoring_title: 'Chat Monitoring',
+  admin_chat_monitoring_desc: 'Analytics dashboard for chat volume, quality, sentiment, and conversations that need follow-up.',
+  admin_chat_review_title: 'Chat Review',
+  admin_chat_review_desc: 'Review queue for conversation quality checks, scoring, and admin decisions.',
+  admin_ai_improvement_title: 'AI Improvement',
+  admin_ai_improvement_desc: 'Workflow to curate examples, identify knowledge gaps, and prepare future improvement datasets.',
+  ai_range_today: 'Today',
+  ai_range_7d: '7 Days',
+  ai_range_14d: '14 Days',
+  ai_range_30d: '30 Days',
+  ai_metric_total_chats: 'Total chats',
+  ai_metric_ai_handled: 'AI handled',
+  ai_metric_human_needed: 'Human needed',
+  ai_metric_satisfaction: 'Satisfaction estimate',
+  ai_metric_avg_response: 'Avg. response time',
+  ai_sentiment_positive: 'Positive',
+  ai_sentiment_neutral: 'Neutral',
+  ai_sentiment_negative: 'Negative',
+  ai_top_topics: 'Top topics',
+  ai_problem_categories: 'Top problem categories',
+  ai_interesting_chats: 'Interesting chats',
+  ai_review_needed: 'Needs review',
+  ai_recommendations: 'Recommendations',
+  ai_quality_score: 'Quality score',
+  ai_business_value_score: 'Business value',
+  ai_satisfaction_estimate: 'Satisfaction estimate',
+  ai_risk_score: 'Risk score',
+  ai_resolution_ai: 'AI resolved',
+  ai_resolution_human: 'Human needed',
+  ai_badge_good: 'Good example',
+  ai_badge_improve: 'Needs improvement',
+  ai_badge_risk: 'Risk',
+  ai_badge_review: 'Needs review',
+  ai_review_queue: 'Review queue',
+  ai_conversation_thread: 'Conversation thread',
+  ai_quality_analysis: 'Quality analysis',
+  ai_improvement_recommendations: 'Improvement recommendations',
+  ai_mark_good_example: 'Mark as good example',
+  ai_needs_improvement: 'Needs improvement',
+  ai_escalate: 'Escalate',
+  ai_add_dataset: 'Add to dataset',
+  ai_workflow_raw: 'Raw conversations',
+  ai_workflow_reviewed: 'Reviewed examples',
+  ai_workflow_approved: 'Approved examples',
+  ai_workflow_rejected: 'Rejected examples',
+  ai_workflow_recommendations: 'Improvement recommendations',
+  ai_workflow_dataset_candidates: 'Dataset candidates',
+  ai_workflow_prompt_updates: 'Prompt suggestions',
+  ai_workflow_readiness: 'Fine-tune readiness',
+  ai_available_review: 'Conversations ready for review',
+  ai_approved_examples: 'Approved training examples',
+  ai_top_failures: 'Top recurring failures',
+  ai_knowledge_gaps: 'Suggested knowledge gaps',
+  ai_prompt_suggestions: 'Suggested prompt updates',
+  ai_mock_backend_note: 'This page is a production-like mock admin workflow with schema-ready structures for future backend analytics and fine-tuning pipelines.',
+  ai_category_procurement_delay: 'Procurement Delay',
+  ai_category_site_safety: 'Site Safety',
+  ai_category_daily_reporting: 'Daily Reporting',
+  ai_category_document_followup: 'Document Follow-up',
+  ai_category_external_approval: 'External Approval',
+  ai_panel_executive_view: 'Executive chat quality overview',
+  ai_panel_recommendation_hint: 'Focuses on cases that need more knowledge, stronger prompts, or faster human handoff',
+  ai_detail_actions: 'Review actions',
+  ai_dataset_candidates_hint: 'High-quality examples or admin-selected conversations can be prepared as dataset candidates next.',
+  ai_readiness_ready: 'Ready for dataset',
+  ai_readiness_in_progress: 'Review in progress',
   admin_settings_reuse_notice: 'These settings are prepared to be reused by Supplier Agreements, Commission Billing, Settlements, and future print/export flows.',
   admin_settings_saved: 'Admin settings saved',
   admin_settings_section_defaults: 'Default Settings',
@@ -5149,6 +5356,388 @@ function inferDailyIssueSeverity(title, desc, fallbackSeverity = 'medium') {
   return fallbackSeverity;
 }
 
+const AI_CHAT_RANGE_DAYS = {
+  today: 1,
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+};
+
+function createAiConversationMocks(language = 'TH') {
+  const localized = {
+    TH: [
+      {
+        id: 'conv-material-shortage',
+        title: 'สอบถามวัสดุคอนกรีตขาดหน้างาน',
+        intent: 'ติดตามวัสดุขาดและขอเร่งจัดซื้อ',
+        topic: 'วัสดุขาด',
+        category: 'Procurement Delay',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 72,
+        businessValueScore: 91,
+        satisfactionEstimate: 61,
+        riskScore: 85,
+        avgResponseMinutes: 18,
+        aiHandled: false,
+        statusLabel: 'needs_review',
+        thread: [
+          { speaker: 'ผู้รับเหมา', role: 'user', text: 'คอนกรีตเทฐานขาดอีก 6 คิว ต้องเลื่อนงานบ่ายนี้ไหม' },
+          { speaker: 'AI', role: 'ai', text: 'ระบบพบว่า PO ล่าสุดยังไม่ยืนยันการส่งมอบ แนะนำตรวจ supplier และอนุมัติสำรองวัสดุทันที' },
+          { speaker: 'ผู้รับเหมา', role: 'user', text: 'ถ้าส่งไม่ทันวันนี้ควรแจ้งลูกค้าอย่างไร' },
+          { speaker: 'หัวหน้าจัดซื้อ', role: 'human', text: 'กำลังติดต่อ supplier สำรองและจะสรุป ETA ภายใน 15 นาที' },
+        ],
+        recommendations: ['เพิ่มตัวอย่างคำตอบเรื่องวัสดุขาดเร่งด่วน', 'ให้ AI ดึง ETA จาก purchase orders ก่อนตอบ'],
+      },
+      {
+        id: 'conv-safety-rail',
+        title: 'แจ้งราวกันตกชั้น 3 ติดตั้งไม่ครบ',
+        intent: 'ประเมินความเสี่ยงด้านความปลอดภัย',
+        topic: 'ความปลอดภัย',
+        category: 'Site Safety',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 68,
+        businessValueScore: 95,
+        satisfactionEstimate: 54,
+        riskScore: 93,
+        avgResponseMinutes: 9,
+        aiHandled: false,
+        statusLabel: 'risk',
+        thread: [
+          { speaker: 'วิศวกรสนาม', role: 'user', text: 'ชั้น 3 ยังขาด edge protection ฝั่งทิศตะวันตก ควรหยุดงานบริเวณนี้เลยไหม' },
+          { speaker: 'AI', role: 'ai', text: 'แนะนำหยุดงานในจุดเสี่ยงทันทีและแจ้ง safety lead เพื่อกั้นพื้นที่' },
+          { speaker: 'เจ้าของโครงการ', role: 'user', text: 'ขออัปเดตว่ากระทบ timeline แค่ไหน' },
+          { speaker: 'Safety Lead', role: 'human', text: 'ทีมกำลังแก้ไขและจะส่งภาพยืนยันหลังติดตั้งครบ' },
+        ],
+        recommendations: ['บังคับ route เคส safety ให้คนเข้าช่วยเร็วขึ้น', 'เพิ่ม prompt สำหรับสรุปผลกระทบ timeline ในเหตุฉุกเฉิน'],
+      },
+      {
+        id: 'conv-progress-summary',
+        title: 'ขอสรุปความคืบหน้างานฉาบผนังประจำวัน',
+        intent: 'สรุปงานหน้างานและเตรียมรายงานลูกค้า',
+        topic: 'Progress Update',
+        category: 'Daily Reporting',
+        sentiment: 'positive',
+        resolutionStatus: 'ai_resolved',
+        qualityScore: 91,
+        businessValueScore: 84,
+        satisfactionEstimate: 88,
+        riskScore: 22,
+        avgResponseMinutes: 4,
+        aiHandled: true,
+        statusLabel: 'good',
+        thread: [
+          { speaker: 'ผู้จัดการโครงการ', role: 'user', text: 'ช่วยสรุปงานฉาบผนังวันนี้ให้พร้อมส่งลูกค้า' },
+          { speaker: 'AI', role: 'ai', text: 'งานฉาบผนังชั้น 1 เสร็จ 100% และชั้น 2 ดำเนินการได้ 65% พร้อมรูปประกอบ 12 ภาพ' },
+          { speaker: 'ผู้จัดการโครงการ', role: 'user', text: 'ขอเน้นประเด็นแรงงานและแผนพรุ่งนี้ด้วย' },
+          { speaker: 'AI', role: 'ai', text: 'พรุ่งนี้ใช้ทีม 8 คนและจะเข้าพื้นที่โซนบันไดก่อนเพื่อรักษา milestone เดิม' },
+        ],
+        recommendations: ['ใช้เป็น good example สำหรับ daily progress summary', 'เพิ่ม template summary สำหรับผู้บริหาร'],
+      },
+      {
+        id: 'conv-payment-doc',
+        title: 'ลูกค้าถามสถานะใบวางบิลและยอดค้างชำระ',
+        intent: 'ตอบคำถามด้านเอกสารการเงินและสถานะอนุมัติ',
+        topic: 'Billing Status',
+        category: 'Document Follow-up',
+        sentiment: 'neutral',
+        resolutionStatus: 'ai_resolved',
+        qualityScore: 83,
+        businessValueScore: 79,
+        satisfactionEstimate: 76,
+        riskScore: 36,
+        avgResponseMinutes: 6,
+        aiHandled: true,
+        statusLabel: 'review',
+        thread: [
+          { speaker: 'ลูกค้า', role: 'user', text: 'ใบวางบิลงวดล่าสุดถึงขั้นตอนไหนแล้ว' },
+          { speaker: 'AI', role: 'ai', text: 'ขณะนี้เอกสารอยู่ในสถานะ pending review และมียอดคงค้าง 240,000 บาท' },
+          { speaker: 'ลูกค้า', role: 'user', text: 'คาดว่าจะอนุมัติได้เมื่อไร' },
+          { speaker: 'AI', role: 'ai', text: 'จากค่าเฉลี่ยรอบที่ผ่านมาใช้เวลาตรวจ 1-2 วันทำการ และควรมีคนช่วยติดตามกรณีเร่งด่วน' },
+        ],
+        recommendations: ['เชื่อม SLA เอกสารจริงจาก billing records ในขั้น backend', 'เพิ่มข้อความเตือนถ้าต้องใช้คนช่วยติดตาม'],
+      },
+      {
+        id: 'conv-permit-delay',
+        title: 'ติดตามใบอนุญาตเข้าหน้างานล่าช้า',
+        intent: 'ประเมินผลกระทบต่อ timeline และเสนอทางเลือก',
+        topic: 'Permit Delay',
+        category: 'External Approval',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 74,
+        businessValueScore: 82,
+        satisfactionEstimate: 59,
+        riskScore: 71,
+        avgResponseMinutes: 21,
+        aiHandled: false,
+        statusLabel: 'needs_review',
+        thread: [
+          { speaker: 'ผู้รับเหมา', role: 'user', text: 'ใบอนุญาตเข้าพื้นที่ล่าช้าอีก 2 วัน งานฐานรากจะกระทบมากไหม' },
+          { speaker: 'AI', role: 'ai', text: 'มีความเสี่ยงกระทบ milestone ต้นสัปดาห์หน้า ควรวางแผนงานในพื้นที่พร้อมก่อน' },
+          { speaker: 'ผู้รับเหมา', role: 'user', text: 'มีงานไหนสลับทำก่อนได้บ้าง' },
+          { speaker: 'ผู้ประสานงานโครงการ', role: 'human', text: 'เสนอให้ย้ายทีมไปงานเตรียมเหล็กและงานสำนักงานชั่วคราวก่อน' },
+        ],
+        recommendations: ['เพิ่ม playbook เรื่อง external approval delays', 'สร้าง answer pattern สำหรับงานสลับคิวหน้างาน'],
+      },
+    ],
+    LA: [
+      {
+        id: 'conv-material-shortage',
+        title: 'ສອບຖາມເລື່ອງວັດສະດຸຄອນກຣີດຂາດໜ້າງານ',
+        intent: 'ຕິດຕາມວັດສະດຸຂາດ ແລະ ຂໍເລັ່ງຈັດຊື້',
+        topic: 'ວັດສະດຸຂາດ',
+        category: 'Procurement Delay',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 72,
+        businessValueScore: 91,
+        satisfactionEstimate: 61,
+        riskScore: 85,
+        avgResponseMinutes: 18,
+        aiHandled: false,
+        statusLabel: 'needs_review',
+        thread: [
+          { speaker: 'ຜູ້ຮັບເໝົາ', role: 'user', text: 'ຄອນກຣີດສຳລັບເທຖານຂາດອີກ 6 ຄິວ ຈະຕ້ອງເລື່ອນງານບ່າຍນີ້ບໍ' },
+          { speaker: 'AI', role: 'ai', text: 'ລະບົບພົບວ່າ PO ລ່າສຸດຍັງບໍ່ຢືນຢັນການສົ່ງ ແນະນຳໃຫ້ກວດ supplier ແລະ ອະນຸມັດສຳຮອງທັນທີ' },
+          { speaker: 'ຜູ້ຮັບເໝົາ', role: 'user', text: 'ຖ້າສົ່ງບໍ່ທັນມື້ນີ້ຄວນແຈ້ງລູກຄ້າແນວໃດ' },
+          { speaker: 'ຫົວໜ້າຈັດຊື້', role: 'human', text: 'ກຳລັງຕິດຕໍ່ supplier ສຳຮອງ ແລະ ຈະສະຫຼຸບ ETA ໃນ 15 ນາທີ' },
+        ],
+        recommendations: ['ເພີ່ມຕົວຢ່າງຄຳຕອບເລື່ອງວັດສະດຸຂາດດ່ວນ', 'ໃຫ້ AI ດຶງ ETA ຈາກ purchase orders ກ່ອນຕອບ'],
+      },
+      {
+        id: 'conv-safety-rail',
+        title: 'ແຈ້ງລາວກັ້ນຕົກຊັ້ນ 3 ຕິດຕັ້ງບໍ່ຄົບ',
+        intent: 'ປະເມີນຄວາມສ່ຽງດ້ານຄວາມປອດໄພ',
+        topic: 'ຄວາມປອດໄພ',
+        category: 'Site Safety',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 68,
+        businessValueScore: 95,
+        satisfactionEstimate: 54,
+        riskScore: 93,
+        avgResponseMinutes: 9,
+        aiHandled: false,
+        statusLabel: 'risk',
+        thread: [
+          { speaker: 'ວິສະວະກອນໜ້າງານ', role: 'user', text: 'ຊັ້ນ 3 ຍັງຂາດ edge protection ຝັ່ງຕາເວັນຕົກ ຄວນຢຸດງານບໍລິເວນນີ້ທັນທີບໍ' },
+          { speaker: 'AI', role: 'ai', text: 'ແນະນຳໃຫ້ຢຸດງານໃນຈຸດສ່ຽງທັນທີ ແລະ ແຈ້ງ safety lead ເພື່ອກັ້ນພື້ນທີ່' },
+          { speaker: 'ເຈົ້າຂອງໂຄງການ', role: 'user', text: 'ຂໍອັບເດດວ່າກະທົບ timeline ແຄ່ໃດ' },
+          { speaker: 'Safety Lead', role: 'human', text: 'ທີມກຳລັງແກ້ໄຂ ແລະ ຈະສົ່ງຮູບຢືນຢັນຫຼັງຕິດຕັ້ງຄົບ' },
+        ],
+        recommendations: ['ບັງຄັບ route ເຄສ safety ໃຫ້ຄົນເຂົ້າຊ່ວຍໄວຂຶ້ນ', 'ເພີ່ມ prompt ສຳລັບສະຫຼຸບຜົນກະທົບ timeline ໃນເຫດສຸກເສີນ'],
+      },
+      {
+        id: 'conv-progress-summary',
+        title: 'ຂໍສະຫຼຸບຄວາມຄືບໜ້າງານສາບຜະໜັງປະຈຳວັນ',
+        intent: 'ສະຫຼຸບງານໜ້າງານ ແລະ ກຽມລາຍງານໃຫ້ລູກຄ້າ',
+        topic: 'Progress Update',
+        category: 'Daily Reporting',
+        sentiment: 'positive',
+        resolutionStatus: 'ai_resolved',
+        qualityScore: 91,
+        businessValueScore: 84,
+        satisfactionEstimate: 88,
+        riskScore: 22,
+        avgResponseMinutes: 4,
+        aiHandled: true,
+        statusLabel: 'good',
+        thread: [
+          { speaker: 'ຜູ້ຈັດການໂຄງການ', role: 'user', text: 'ຊ່ວຍສະຫຼຸບງານສາບຜະໜັງຂອງມື້ນີ້ໃຫ້ພ້ອມສົ່ງລູກຄ້າ' },
+          { speaker: 'AI', role: 'ai', text: 'ງານສາບຜະໜັງຊັ້ນ 1 ສຳເລັດ 100% ແລະ ຊັ້ນ 2 ຄືບໜ້າ 65% ພ້ອມຮູບ 12 ຮູບ' },
+          { speaker: 'ຜູ້ຈັດການໂຄງການ', role: 'user', text: 'ຂໍເນັ້ນເລື່ອງກຳລັງຄົນ ແລະ ແຜນພຸ່ງນີ້ນຳ' },
+          { speaker: 'AI', role: 'ai', text: 'ພຸ່ງນີ້ໃຊ້ທີມ 8 ຄົນ ແລະ ຈະເຂົ້າໂຊນບັນໄດກ່ອນເພື່ອຮັກສາ milestone' },
+        ],
+        recommendations: ['ໃຊ້ເປັນ good example ສຳລັບ daily progress summary', 'ເພີ່ມ template summary ສຳລັບຜູ້ບໍລິຫານ'],
+      },
+      {
+        id: 'conv-payment-doc',
+        title: 'ລູກຄ້າຖາມສະຖານະໃບວາງບິນ ແລະ ຍອດຄ້າງຊຳລະ',
+        intent: 'ຕອບຄຳຖາມດ້ານເອກະສານການເງິນ ແລະ ສະຖານະອະນຸມັດ',
+        topic: 'Billing Status',
+        category: 'Document Follow-up',
+        sentiment: 'neutral',
+        resolutionStatus: 'ai_resolved',
+        qualityScore: 83,
+        businessValueScore: 79,
+        satisfactionEstimate: 76,
+        riskScore: 36,
+        avgResponseMinutes: 6,
+        aiHandled: true,
+        statusLabel: 'review',
+        thread: [
+          { speaker: 'ລູກຄ້າ', role: 'user', text: 'ໃບວາງບິນງວດລ່າສຸດໄປເຖິງຂັ້ນຕອນໃດແລ້ວ' },
+          { speaker: 'AI', role: 'ai', text: 'ເອກະສານຢູ່ໃນສະຖານະ pending review ແລະ ມີຍອດຄົງຄ້າງ 240,000 ບາດ' },
+          { speaker: 'ລູກຄ້າ', role: 'user', text: 'ຄາດວ່າຈະອະນຸມັດໄດ້ເມື່ອໃດ' },
+          { speaker: 'AI', role: 'ai', text: 'ຈາກຄ່າສະເລ່ຍຮອບທີ່ຜ່ານມາໃຊ້ເວລາ 1-2 ວັນເຮັດການ ແລະ ຄວນມີຄົນຊ່ວຍຕິດຕາມຖ້າເປັນກໍລະນີດ່ວນ' },
+        ],
+        recommendations: ['ເຊື່ອມ SLA ເອກະສານຈິງຈາກ billing records ໃນຂັ້ນ backend', 'ເພີ່ມຂໍ້ຄວາມເຕືອນຖ້າຕ້ອງໃຊ້ຄົນຊ່ວຍຕິດຕາມ'],
+      },
+      {
+        id: 'conv-permit-delay',
+        title: 'ຕິດຕາມໃບອະນຸຍາດເຂົ້າໜ້າງານລ່າຊ້າ',
+        intent: 'ປະເມີນຜົນກະທົບຕໍ່ timeline ແລະ ເສະໜີທາງເລືອກ',
+        topic: 'Permit Delay',
+        category: 'External Approval',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 74,
+        businessValueScore: 82,
+        satisfactionEstimate: 59,
+        riskScore: 71,
+        avgResponseMinutes: 21,
+        aiHandled: false,
+        statusLabel: 'needs_review',
+        thread: [
+          { speaker: 'ຜູ້ຮັບເໝົາ', role: 'user', text: 'ໃບອະນຸຍາດເຂົ້າພື້ນທີ່ຊ້າອີກ 2 ມື້ ງານຖານຮາກຈະກະທົບຫຼາຍບໍ' },
+          { speaker: 'AI', role: 'ai', text: 'ມີຄວາມສ່ຽງກະທົບ milestone ຕົ້ນອາທິດໜ້າ ຄວນວາງແຜນງານໃນພື້ນທີ່ພ້ອມກ່ອນ' },
+          { speaker: 'ຜູ້ຮັບເໝົາ', role: 'user', text: 'ມີງານໃດສະຫຼັບເຮັດກ່ອນໄດ້ບໍ' },
+          { speaker: 'ຜູ້ປະສານງານໂຄງການ', role: 'human', text: 'ແນະນຳໃຫ້ຍ້າຍທີມໄປເຮັດງານກຽມເຫຼັກ ແລະ ວຽກສຳນັກງານຊົ່ວຄາວກ່ອນ' },
+        ],
+        recommendations: ['ເພີ່ມ playbook ເລື່ອງ external approval delays', 'ສ້າງ answer pattern ສຳລັບງານສະຫຼັບຄິວໜ້າງານ'],
+      },
+    ],
+    EN: [
+      {
+        id: 'conv-material-shortage',
+        title: 'Concrete shortage reported for the foundation pour',
+        intent: 'Track shortage risk and accelerate procurement',
+        topic: 'Material Shortage',
+        category: 'Procurement Delay',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 72,
+        businessValueScore: 91,
+        satisfactionEstimate: 61,
+        riskScore: 85,
+        avgResponseMinutes: 18,
+        aiHandled: false,
+        statusLabel: 'needs_review',
+        thread: [
+          { speaker: 'Contractor', role: 'user', text: 'We are short 6 cubic meters of concrete. Should the afternoon pour be delayed?' },
+          { speaker: 'AI', role: 'ai', text: 'The latest PO is still missing delivery confirmation. Check the supplier and approve backup sourcing immediately.' },
+          { speaker: 'Contractor', role: 'user', text: 'How should we explain the delay risk to the client if delivery slips today?' },
+          { speaker: 'Procurement Lead', role: 'human', text: 'A backup supplier is being contacted and ETA will be confirmed within 15 minutes.' },
+        ],
+        recommendations: ['Add stronger answer examples for urgent material shortages', 'Let AI read ETA from purchase orders before drafting the reply'],
+      },
+      {
+        id: 'conv-safety-rail',
+        title: 'Level 3 edge protection remains incomplete',
+        intent: 'Assess a safety-critical issue and next steps',
+        topic: 'Safety',
+        category: 'Site Safety',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 68,
+        businessValueScore: 95,
+        satisfactionEstimate: 54,
+        riskScore: 93,
+        avgResponseMinutes: 9,
+        aiHandled: false,
+        statusLabel: 'risk',
+        thread: [
+          { speaker: 'Site Engineer', role: 'user', text: 'Edge protection on level 3 is incomplete on the west side. Should work stop immediately?' },
+          { speaker: 'AI', role: 'ai', text: 'Yes. Stop work in the affected zone immediately and escalate to the safety lead to isolate the area.' },
+          { speaker: 'Project Owner', role: 'user', text: 'How much timeline impact should we expect?' },
+          { speaker: 'Safety Lead', role: 'human', text: 'The team is fixing it now and will share completion photos once the barrier is installed.' },
+        ],
+        recommendations: ['Route safety-critical chats to a human faster', 'Improve the prompt for timeline impact summaries in emergency cases'],
+      },
+      {
+        id: 'conv-progress-summary',
+        title: 'Daily wall plastering progress summary request',
+        intent: 'Summarize site progress for a customer update',
+        topic: 'Progress Update',
+        category: 'Daily Reporting',
+        sentiment: 'positive',
+        resolutionStatus: 'ai_resolved',
+        qualityScore: 91,
+        businessValueScore: 84,
+        satisfactionEstimate: 88,
+        riskScore: 22,
+        avgResponseMinutes: 4,
+        aiHandled: true,
+        statusLabel: 'good',
+        thread: [
+          { speaker: 'Project Manager', role: 'user', text: 'Summarize today’s plastering progress so I can send it to the customer.' },
+          { speaker: 'AI', role: 'ai', text: 'Level 1 plastering is 100% complete and level 2 reached 65%, supported by 12 site photos.' },
+          { speaker: 'Project Manager', role: 'user', text: 'Please highlight manpower and tomorrow’s next step too.' },
+          { speaker: 'AI', role: 'ai', text: 'Eight workers are planned tomorrow, starting at the stair zone first to protect the milestone.' },
+        ],
+        recommendations: ['Use this as a good example for daily progress summaries', 'Create an executive-ready summary template from this pattern'],
+      },
+      {
+        id: 'conv-payment-doc',
+        title: 'Customer asks about billing document status',
+        intent: 'Answer document and payment status questions',
+        topic: 'Billing Status',
+        category: 'Document Follow-up',
+        sentiment: 'neutral',
+        resolutionStatus: 'ai_resolved',
+        qualityScore: 83,
+        businessValueScore: 79,
+        satisfactionEstimate: 76,
+        riskScore: 36,
+        avgResponseMinutes: 6,
+        aiHandled: true,
+        statusLabel: 'review',
+        thread: [
+          { speaker: 'Customer', role: 'user', text: 'What is the current status of the latest billing document?' },
+          { speaker: 'AI', role: 'ai', text: 'The document is currently pending review and the outstanding amount is 240,000 THB.' },
+          { speaker: 'Customer', role: 'user', text: 'When should approval be expected?' },
+          { speaker: 'AI', role: 'ai', text: 'Based on recent turnaround, approval normally takes 1-2 business days. A human follow-up is recommended for urgent cases.' },
+        ],
+        recommendations: ['Connect document SLA from real billing records later', 'Add a clearer warning when a human follow-up is recommended'],
+      },
+      {
+        id: 'conv-permit-delay',
+        title: 'Site access permit approval is delayed',
+        intent: 'Estimate schedule impact and alternatives',
+        topic: 'Permit Delay',
+        category: 'External Approval',
+        sentiment: 'negative',
+        resolutionStatus: 'human_needed',
+        qualityScore: 74,
+        businessValueScore: 82,
+        satisfactionEstimate: 59,
+        riskScore: 71,
+        avgResponseMinutes: 21,
+        aiHandled: false,
+        statusLabel: 'needs_review',
+        thread: [
+          { speaker: 'Contractor', role: 'user', text: 'The site access permit is delayed by another two days. How much will the foundation schedule slip?' },
+          { speaker: 'AI', role: 'ai', text: 'There is a real risk to early next week’s milestone. Prepare alternate pre-site work first.' },
+          { speaker: 'Contractor', role: 'user', text: 'What tasks can be pulled forward while we wait?' },
+          { speaker: 'Project Coordinator', role: 'human', text: 'Shift the team to rebar preparation and temporary office work in the meantime.' },
+        ],
+        recommendations: ['Add a playbook for external approval delays', 'Create better answer patterns for task resequencing scenarios'],
+      },
+    ],
+  };
+
+  return localized[language] || localized.TH;
+}
+
+function getAiSentimentTone(sentiment) {
+  if (sentiment === 'positive') return 'bg-emerald-100 text-emerald-700';
+  if (sentiment === 'negative') return 'bg-rose-100 text-rose-700';
+  return 'bg-slate-100 text-slate-700';
+}
+
+function getAiResolutionTone(status) {
+  return status === 'ai_resolved' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
+}
+
+function getAiReviewStatusTone(status) {
+  if (status === 'good') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'risk') return 'bg-rose-100 text-rose-700';
+  if (status === 'needs_review') return 'bg-amber-100 text-amber-700';
+  return 'bg-blue-100 text-blue-700';
+}
+
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 
 function getWeatherConditionKey(code) {
@@ -7001,6 +7590,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const [pricingPackageFormData, setPricingPackageFormData] = useState(createPricingPackageEntry());
   const [dailyIssueStatusOverrides, setDailyIssueStatusOverrides] = useState({});
   const [dailyIssueSiteFilter, setDailyIssueSiteFilter] = useState('all');
+  const [aiMonitoringRange, setAiMonitoringRange] = useState('7d');
+  const [reviewDecisionOverrides, setReviewDecisionOverrides] = useState(() => loadFromStorage(`buildsabaidee.ai-review-decisions.${dashboardRole}`, {}));
+  const [selectedReviewConversationId, setSelectedReviewConversationId] = useState('');
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState('');
   const [purchaseOrderForm, setPurchaseOrderForm] = useState(createPurchaseOrderEntry());
   const [orderStatusSearchQuery, setOrderStatusSearchQuery] = useState('');
@@ -9363,6 +9955,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       icon: Database,
       items: [
         { tab: 'admin_supplier_management', labelKey: 'manager_menu_admin_supplier_management', icon: Building },
+        { tab: 'admin_chat_monitoring', labelKey: 'manager_menu_admin_chat_monitoring', icon: BarChart3 },
+        { tab: 'admin_chat_review', labelKey: 'manager_menu_admin_chat_review', icon: MessageSquare },
+        { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: Bot },
         { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
         { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
         { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
@@ -9381,6 +9976,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         { tab: 'admin_supplier_management', labelKey: 'manager_menu_admin_supplier_management', icon: Building },
         { tab: 'admin_pricing_management', labelKey: 'manager_menu_admin_pricing_management', icon: DollarSign },
         { tab: 'admin_supplier_agreements', labelKey: 'manager_menu_admin_supplier_agreements', icon: FileText },
+        { tab: 'admin_chat_monitoring', labelKey: 'manager_menu_admin_chat_monitoring', icon: BarChart3 },
+        { tab: 'admin_chat_review', labelKey: 'manager_menu_admin_chat_review', icon: MessageSquare },
+        { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: Bot },
         { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
         { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
         { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
@@ -9398,6 +9996,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
     admin_pricing_management: t('admin_pricing_management_title'),
     admin_supplier_agreements: t('admin_supplier_agreements_title'),
     admin_commission_billing: t('admin_commission_billing_title'),
+    admin_chat_monitoring: t('admin_chat_monitoring_title'),
+    admin_chat_review: t('admin_chat_review_title'),
+    admin_ai_improvement: t('admin_ai_improvement_title'),
     projects: t('manager_tab_projects_title'),
     workers: t('manager_tab_workers_title'),
     docs: t('manager_tab_docs_title'),
@@ -9591,7 +10192,169 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const recommendedPricingPackage = pricingPackages.find((entry) => entry.isRecommended) || null;
   const aiProviderConfig = getAiProviderConfig(adminSettingsForm);
   const aiSettingsReady = isAiChatReady(adminSettingsForm);
+  const aiReviewStorageKey = `buildsabaidee.ai-review-decisions.${dashboardRole}`;
+  const localeCode = language === 'EN' ? 'en-US' : language === 'TH' ? 'th-TH' : 'lo-LA';
+  const aiCategoryLabels = {
+    'Procurement Delay': t('ai_category_procurement_delay'),
+    'Site Safety': t('ai_category_site_safety'),
+    'Daily Reporting': t('ai_category_daily_reporting'),
+    'Document Follow-up': t('ai_category_document_followup'),
+    'External Approval': t('ai_category_external_approval'),
+  };
+  const aiRangeOptions = [
+    { value: 'today', label: t('ai_range_today') },
+    { value: '7d', label: t('ai_range_7d') },
+    { value: '14d', label: t('ai_range_14d') },
+    { value: '30d', label: t('ai_range_30d') },
+  ];
+  const aiConversations = useMemo(() => {
+    const now = Date.now();
+    const ageOffsets = [0.25, 1.5, 4, 10, 19];
+    return createAiConversationMocks(language).map((conversation, index) => {
+      const occurredAt = now - Math.round((ageOffsets[index] || index + 1) * 24 * 60 * 60 * 1000);
+      return {
+        ...conversation,
+        occurredAt,
+        occurredAtLabel: new Date(occurredAt).toLocaleString(localeCode, {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      };
+    });
+  }, [language, localeCode]);
+  const getAiReviewBadgeKey = (conversation) => {
+    const override = reviewDecisionOverrides[conversation.id];
+    if (override === 'good_example') return 'ai_badge_good';
+    if (override === 'needs_improvement') return 'ai_badge_improve';
+    if (override === 'escalated') return 'ai_badge_risk';
+    if (override === 'dataset_candidate') return 'ai_badge_review';
+    if (conversation.statusLabel === 'good') return 'ai_badge_good';
+    if (conversation.statusLabel === 'risk') return 'ai_badge_risk';
+    if (conversation.statusLabel === 'needs_review') return 'ai_badge_improve';
+    return 'ai_badge_review';
+  };
+  const filteredAiConversations = useMemo(() => {
+    const rangeDays = AI_CHAT_RANGE_DAYS[aiMonitoringRange] || AI_CHAT_RANGE_DAYS['7d'];
+    const threshold = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
+    return aiConversations.filter((conversation) => conversation.occurredAt >= threshold);
+  }, [aiConversations, aiMonitoringRange]);
+  const aiReviewQueue = useMemo(
+    () => [...filteredAiConversations].sort((a, b) => (b.riskScore * 2 + b.businessValueScore) - (a.riskScore * 2 + a.businessValueScore)),
+    [filteredAiConversations],
+  );
+  const selectedReviewConversation = aiReviewQueue.find((conversation) => conversation.id === selectedReviewConversationId) || aiReviewQueue[0] || null;
+  const aiAnalytics = useMemo(() => {
+    const total = filteredAiConversations.length;
+    const aiHandled = filteredAiConversations.filter((conversation) => conversation.aiHandled).length;
+    const humanNeeded = total - aiHandled;
+    const averageSatisfaction = total ? Math.round(filteredAiConversations.reduce((sum, conversation) => sum + conversation.satisfactionEstimate, 0) / total) : 0;
+    const averageResponse = total ? Math.round(filteredAiConversations.reduce((sum, conversation) => sum + conversation.avgResponseMinutes, 0) / total) : 0;
+    const sentiment = filteredAiConversations.reduce((accumulator, conversation) => {
+      accumulator[conversation.sentiment] = (accumulator[conversation.sentiment] || 0) + 1;
+      return accumulator;
+    }, { positive: 0, neutral: 0, negative: 0 });
+    const topTopics = Object.entries(filteredAiConversations.reduce((accumulator, conversation) => {
+      accumulator[conversation.topic] = (accumulator[conversation.topic] || 0) + 1;
+      return accumulator;
+    }, {}))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([topic, count]) => ({ label: topic, count }));
+    const topCategories = Object.entries(filteredAiConversations.reduce((accumulator, conversation) => {
+      const label = aiCategoryLabels[conversation.category] || conversation.category;
+      accumulator[label] = (accumulator[label] || 0) + 1;
+      return accumulator;
+    }, {}))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([label, count]) => ({ label, count }));
+    const interestingChats = [...filteredAiConversations]
+      .sort((a, b) => (b.businessValueScore + b.qualityScore) - (a.businessValueScore + a.qualityScore))
+      .slice(0, 3);
+    const reviewNeeded = [...filteredAiConversations]
+      .sort((a, b) => (b.riskScore + (b.aiHandled ? 0 : 25)) - (a.riskScore + (a.aiHandled ? 0 : 25)))
+      .slice(0, 3);
+    const recommendations = Array.from(new Set(reviewNeeded.concat(interestingChats).flatMap((conversation) => conversation.recommendations || []))).slice(0, 5);
+    return {
+      total,
+      aiHandled,
+      humanNeeded,
+      averageSatisfaction,
+      averageResponse,
+      sentiment,
+      topTopics,
+      topCategories,
+      interestingChats,
+      reviewNeeded,
+      recommendations,
+    };
+  }, [aiCategoryLabels, filteredAiConversations]);
+  const approvedTrainingExamples = useMemo(
+    () => aiConversations.filter((conversation) => reviewDecisionOverrides[conversation.id] === 'good_example' || (!reviewDecisionOverrides[conversation.id] && conversation.statusLabel === 'good')),
+    [aiConversations, reviewDecisionOverrides],
+  );
+  const reviewedExamples = useMemo(
+    () => aiConversations.filter((conversation) => Boolean(reviewDecisionOverrides[conversation.id]) || ['good', 'review', 'needs_review', 'risk'].includes(conversation.statusLabel)),
+    [aiConversations, reviewDecisionOverrides],
+  );
+  const rejectedExamples = useMemo(
+    () => aiConversations.filter((conversation) => reviewDecisionOverrides[conversation.id] === 'escalated'),
+    [aiConversations, reviewDecisionOverrides],
+  );
+  const datasetCandidates = useMemo(
+    () => aiConversations.filter((conversation) => ['dataset_candidate', 'good_example'].includes(reviewDecisionOverrides[conversation.id]) || conversation.qualityScore >= 88),
+    [aiConversations, reviewDecisionOverrides],
+  );
+  const recurringFailures = useMemo(
+    () => [...aiConversations].filter((conversation) => conversation.riskScore >= 70 || !conversation.aiHandled).sort((a, b) => b.riskScore - a.riskScore).slice(0, 3),
+    [aiConversations],
+  );
+  const improvementSuggestions = useMemo(
+    () => Array.from(new Set(aiConversations.filter((conversation) => conversation.riskScore >= 60 || conversation.satisfactionEstimate <= 70).flatMap((conversation) => conversation.recommendations || []))).slice(0, 6),
+    [aiConversations],
+  );
+  const promptSuggestions = useMemo(
+    () => Array.from(new Set(aiConversations.filter((conversation) => conversation.resolutionStatus === 'human_needed' || conversation.qualityScore < 80).flatMap((conversation) => conversation.recommendations || []))).slice(0, 4),
+    [aiConversations],
+  );
+  const knowledgeGapSummaries = useMemo(
+    () => Object.entries(aiConversations.reduce((accumulator, conversation) => {
+      if (conversation.riskScore >= 60 || conversation.satisfactionEstimate < 70) {
+        const label = aiCategoryLabels[conversation.category] || conversation.category;
+        accumulator[label] = (accumulator[label] || 0) + 1;
+      }
+      return accumulator;
+    }, {})).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([label, count]) => ({ label, count })),
+    [aiCategoryLabels, aiConversations],
+  );
+  const futureFineTuneReadiness = approvedTrainingExamples.length >= 3 ? t('ai_readiness_ready') : t('ai_readiness_in_progress');
+  const aiAdminData = useMemo(() => ({
+    aiSettings: aiProviderConfig,
+    chatConversations: aiConversations,
+    chatAnalytics: aiAnalytics,
+    reviewQueue: aiReviewQueue,
+    approvedTrainingExamples,
+    improvementSuggestions,
+  }), [aiAnalytics, aiConversations, aiProviderConfig, aiReviewQueue, approvedTrainingExamples, improvementSuggestions]);
   const isDashboardThemeActive = isKioskMode || activeTab === 'overview' || activeTab === 'admin_overview';
+
+  useEffect(() => {
+    saveToStorage(aiReviewStorageKey, reviewDecisionOverrides);
+  }, [aiReviewStorageKey, reviewDecisionOverrides]);
+
+  useEffect(() => {
+    if (!aiReviewQueue.length) {
+      if (selectedReviewConversationId) {
+        setSelectedReviewConversationId('');
+      }
+      return;
+    }
+    if (!selectedReviewConversationId || !aiReviewQueue.some((conversation) => conversation.id === selectedReviewConversationId)) {
+      setSelectedReviewConversationId(aiReviewQueue[0].id);
+    }
+  }, [aiReviewQueue, selectedReviewConversationId]);
 
   return (
     <div className={`min-h-dvh md:min-h-screen flex relative ${isDashboardThemeActive ? 'bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12)_0%,_rgba(11,31,58,0.96)_26%,_#0F172A_72%,_#13315C_100%)] text-[#EAF2FF]' : 'bg-slate-200/60'}`}>
@@ -9783,6 +10546,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   { tab: 'admin_supplier_management', titleKey: 'admin_supplier_management_title', descKey: 'admin_supplier_management_desc', icon: Building },
                   { tab: 'admin_pricing_management', titleKey: 'admin_pricing_management_title', descKey: 'admin_pricing_management_desc', icon: DollarSign },
                   { tab: 'admin_supplier_agreements', titleKey: 'admin_supplier_agreements_title', descKey: 'admin_supplier_agreements_desc', icon: FileText },
+                  { tab: 'admin_chat_monitoring', titleKey: 'admin_chat_monitoring_title', descKey: 'admin_chat_monitoring_desc', icon: BarChart3 },
+                  { tab: 'admin_chat_review', titleKey: 'admin_chat_review_title', descKey: 'admin_chat_review_desc', icon: MessageSquare },
+                  { tab: 'admin_ai_improvement', titleKey: 'admin_ai_improvement_title', descKey: 'admin_ai_improvement_desc', icon: Bot },
                   { tab: 'admin_commission_billing', titleKey: 'admin_commission_billing_title', descKey: 'admin_commission_billing_desc', icon: Receipt },
                   { tab: 'admin_platform_revenue', titleKey: 'admin_platform_revenue_title', descKey: 'admin_platform_revenue_desc', icon: DollarSign },
                   { tab: 'admin_settlements', titleKey: 'admin_settlements_title', descKey: 'admin_settlements_desc', icon: Receipt },
@@ -14314,6 +15080,404 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   <div className="mt-2 text-sm text-slate-500">{t('admin_pricing_empty_hint')}</div>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'admin_chat_monitoring' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{t('ai_panel_executive_view')}</div>
+                    <h3 className="mt-3 text-xl font-bold text-slate-900">{t('admin_chat_monitoring_title')}</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_chat_monitoring_desc')}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {aiRangeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setAiMonitoringRange(option.value)}
+                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                          aiMonitoringRange === option.value
+                            ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <StatCard title={t('ai_metric_total_chats')} value={formatNumberByLanguage(aiAnalytics.total, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('ai_metric_ai_handled')} value={formatNumberByLanguage(aiAnalytics.aiHandled, language)} icon={<Bot />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('ai_metric_human_needed')} value={formatNumberByLanguage(aiAnalytics.humanNeeded, language)} icon={<Users />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('ai_metric_satisfaction')} value={`${formatNumberByLanguage(aiAnalytics.averageSatisfaction, language)}%`} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('ai_metric_avg_response')} value={`${formatNumberByLanguage(aiAnalytics.averageResponse, language)} min`} icon={<Clock />} color="text-violet-600" bg="bg-violet-100" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {[
+                      { label: t('ai_sentiment_positive'), value: aiAnalytics.sentiment.positive, tone: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+                      { label: t('ai_sentiment_neutral'), value: aiAnalytics.sentiment.neutral, tone: 'bg-slate-50 border-slate-200 text-slate-700' },
+                      { label: t('ai_sentiment_negative'), value: aiAnalytics.sentiment.negative, tone: 'bg-rose-50 border-rose-200 text-rose-700' },
+                    ].map((item) => (
+                      <div key={item.label} className={`rounded-2xl border p-5 shadow-sm ${item.tone}`}>
+                        <div className="text-xs font-semibold uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+                        <div className="mt-3 text-3xl font-bold">{formatNumberByLanguage(item.value, language)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="text-base font-bold text-slate-900">{t('ai_top_topics')}</h4>
+                        <BarChart3 className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {aiAnalytics.topTopics.map((topic) => (
+                          <div key={topic.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                            <div className="min-w-0 pr-4 text-sm font-medium text-slate-700">{topic.label}</div>
+                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">{formatNumberByLanguage(topic.count, language)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <h4 className="text-base font-bold text-slate-900">{t('ai_problem_categories')}</h4>
+                        <AlertCircle className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {aiAnalytics.topCategories.map((category) => (
+                          <div key={category.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                            <div className="min-w-0 pr-4 text-sm font-medium text-slate-700">{category.label}</div>
+                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">{formatNumberByLanguage(category.count, language)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_interesting_chats')}</h4>
+                      <div className="mt-4 space-y-3">
+                        {aiAnalytics.interestingChats.map((conversation) => (
+                          <button key={conversation.id} onClick={() => { setSelectedReviewConversationId(conversation.id); setActiveTab('admin_chat_review'); }} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-200 hover:bg-blue-50">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-semibold text-slate-900">{conversation.title}</div>
+                                <div className="mt-1 text-xs text-slate-500">{conversation.occurredAtLabel}</div>
+                              </div>
+                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${getAiReviewStatusTone(conversation.statusLabel)}`}>{t(getAiReviewBadgeKey(conversation))}</span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                              <span>{t('ai_quality_score')}: {formatNumberByLanguage(conversation.qualityScore, language)}</span>
+                              <span>{t('ai_business_value_score')}: {formatNumberByLanguage(conversation.businessValueScore, language)}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_review_needed')}</h4>
+                      <div className="mt-4 space-y-3">
+                        {aiAnalytics.reviewNeeded.map((conversation) => (
+                          <button key={conversation.id} onClick={() => { setSelectedReviewConversationId(conversation.id); setActiveTab('admin_chat_review'); }} className="w-full rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-left transition hover:bg-amber-50">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-semibold text-slate-900">{conversation.title}</div>
+                                <div className="mt-1 text-xs text-slate-500">{conversation.intent}</div>
+                              </div>
+                              <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700">{formatNumberByLanguage(conversation.riskScore, language)}</span>
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                              <span className={`rounded-full px-2.5 py-1 font-medium ${getAiResolutionTone(conversation.resolutionStatus)}`}>{t(conversation.resolutionStatus === 'ai_resolved' ? 'ai_resolution_ai' : 'ai_resolution_human')}</span>
+                              <span className={`rounded-full px-2.5 py-1 font-medium ${getAiSentimentTone(conversation.sentiment)}`}>{t(`ai_sentiment_${conversation.sentiment}`)}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_recommendations')}</h4>
+                      <Bot className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">{t('ai_panel_recommendation_hint')}</p>
+                    <div className="mt-4 space-y-3">
+                      {aiAnalytics.recommendations.map((recommendation) => (
+                        <div key={recommendation} className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700">
+                          {recommendation}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-base font-bold text-slate-900">{t('admin_ai_settings_title')}</h4>
+                      <Database className="h-5 w-5 text-slate-500" />
+                    </div>
+                    <div className="mt-4 space-y-3 text-sm text-slate-600">
+                      <div className="rounded-xl bg-slate-50 px-4 py-3">
+                        <div className="font-semibold text-slate-900">{aiAdminData.aiSettings.provider === 'openai' ? t('admin_ai_provider_openai') : t('admin_ai_provider_openrouter')}</div>
+                        <div className="mt-1 text-xs">{aiAdminData.aiSettings.model}</div>
+                      </div>
+                      <div className={`rounded-xl px-4 py-3 font-medium ${aiSettingsReady ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                        {t(aiSettingsReady ? 'admin_ai_status_ready' : 'admin_ai_status_missing')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_chat_review' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{t('admin_chat_review_title')}</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_chat_review_desc')}</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {t('ai_review_queue')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(aiReviewQueue.length, language)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.35fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h4 className="text-base font-bold text-slate-900">{t('ai_review_queue')}</h4>
+                  <div className="mt-4 space-y-3">
+                    {aiReviewQueue.map((conversation) => {
+                      const isActive = selectedReviewConversation?.id === conversation.id;
+                      return (
+                        <button
+                          key={conversation.id}
+                          onClick={() => setSelectedReviewConversationId(conversation.id)}
+                          className={`w-full rounded-2xl border p-4 text-left transition ${
+                            isActive ? 'border-blue-500 bg-blue-600 text-white shadow-sm' : 'border-slate-200 bg-slate-50 hover:border-blue-200 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold">{conversation.title}</div>
+                              <div className={`mt-1 text-xs ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>{conversation.intent}</div>
+                            </div>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive ? 'bg-white/15 text-white' : getAiReviewStatusTone(conversation.statusLabel)}`}>{t(getAiReviewBadgeKey(conversation))}</span>
+                          </div>
+                          <div className={`mt-3 flex flex-wrap gap-2 text-xs ${isActive ? 'text-blue-100' : 'text-slate-600'}`}>
+                            <span>{t('ai_quality_score')}: {formatNumberByLanguage(conversation.qualityScore, language)}</span>
+                            <span>{t('ai_risk_score')}: {formatNumberByLanguage(conversation.riskScore, language)}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  {selectedReviewConversation ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiReviewStatusTone(selectedReviewConversation.statusLabel)}`}>{t(getAiReviewBadgeKey(selectedReviewConversation))}</span>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiResolutionTone(selectedReviewConversation.resolutionStatus)}`}>{t(selectedReviewConversation.resolutionStatus === 'ai_resolved' ? 'ai_resolution_ai' : 'ai_resolution_human')}</span>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiSentimentTone(selectedReviewConversation.sentiment)}`}>{t(`ai_sentiment_${selectedReviewConversation.sentiment}`)}</span>
+                          </div>
+                          <h4 className="mt-3 text-2xl font-bold text-slate-900">{selectedReviewConversation.title}</h4>
+                          <p className="mt-2 text-sm leading-6 text-slate-600">{selectedReviewConversation.intent}</p>
+                          <div className="mt-3 text-xs text-slate-500">{selectedReviewConversation.occurredAtLabel}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                          <div>{t('ai_business_value_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</span></div>
+                          <div className="mt-1">{t('ai_satisfaction_estimate')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</span></div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                        <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('ai_quality_score')}</div><div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.qualityScore, language)}</div></div>
+                        <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('ai_business_value_score')}</div><div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</div></div>
+                        <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('ai_satisfaction_estimate')}</div><div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</div></div>
+                        <div className="rounded-2xl bg-slate-50 p-4"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('ai_risk_score')}</div><div className="mt-2 text-2xl font-bold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.riskScore, language)}</div></div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                          <h5 className="text-base font-bold text-slate-900">{t('ai_conversation_thread')}</h5>
+                          <div className="mt-4 space-y-3">
+                            {selectedReviewConversation.thread.map((message, index) => (
+                              <div key={`${selectedReviewConversation.id}-thread-${index}`} className={`rounded-2xl px-4 py-3 ${message.role === 'user' ? 'bg-white border border-slate-200' : message.role === 'ai' ? 'bg-blue-50 border border-blue-100' : 'bg-amber-50 border border-amber-100'}`}>
+                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{message.speaker}</div>
+                                <div className="mt-2 text-sm leading-6 text-slate-700">{message.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <h5 className="text-base font-bold text-slate-900">{t('ai_quality_analysis')}</h5>
+                            <div className="mt-4 space-y-3 text-sm text-slate-600">
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_quality_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.qualityScore, language)}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_business_value_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_satisfaction_estimate')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_risk_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.riskScore, language)}</span></div>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <h5 className="text-base font-bold text-slate-900">{t('ai_improvement_recommendations')}</h5>
+                            <div className="mt-4 space-y-3">
+                              {selectedReviewConversation.recommendations.map((recommendation) => (
+                                <div key={recommendation} className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-slate-700">{recommendation}</div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                            <h5 className="text-base font-bold text-slate-900">{t('ai_detail_actions')}</h5>
+                            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'good_example' }))} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">{t('ai_mark_good_example')}</button>
+                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'needs_improvement' }))} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">{t('ai_needs_improvement')}</button>
+                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'escalated' }))} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100">{t('ai_escalate')}</button>
+                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'dataset_candidate' }))} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100">{t('ai_add_dataset')}</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">
+                      {t('ai_review_queue')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'admin_ai_improvement' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900">{t('admin_ai_improvement_title')}</h3>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_ai_improvement_desc')}</p>
+                <p className="mt-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">{t('ai_mock_backend_note')}</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <StatCard title={t('ai_workflow_raw')} value={formatNumberByLanguage(aiAdminData.chatConversations.length, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('ai_workflow_reviewed')} value={formatNumberByLanguage(reviewedExamples.length, language)} icon={<CheckCircle />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('ai_workflow_approved')} value={formatNumberByLanguage(approvedTrainingExamples.length, language)} icon={<Bot />} color="text-green-600" bg="bg-green-100" />
+                <StatCard title={t('ai_workflow_rejected')} value={formatNumberByLanguage(rejectedExamples.length, language)} icon={<AlertCircle />} color="text-rose-600" bg="bg-rose-100" />
+                <StatCard title={t('ai_workflow_dataset_candidates')} value={formatNumberByLanguage(datasetCandidates.length, language)} icon={<Database />} color="text-violet-600" bg="bg-violet-100" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      { label: t('ai_available_review'), value: filteredAiConversations.length },
+                      { label: t('ai_approved_examples'), value: approvedTrainingExamples.length },
+                      { label: t('ai_top_failures'), value: recurringFailures.length },
+                      { label: t('ai_workflow_prompt_updates'), value: promptSuggestions.length },
+                    ].map((item) => (
+                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="text-sm font-medium text-slate-500">{item.label}</div>
+                        <div className="mt-3 text-3xl font-bold text-slate-900">{formatNumberByLanguage(item.value, language)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_top_failures')}</h4>
+                      <div className="mt-4 space-y-3">
+                        {recurringFailures.map((conversation) => (
+                          <div key={conversation.id} className="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3">
+                            <div className="text-sm font-semibold text-slate-900">{conversation.title}</div>
+                            <div className="mt-1 text-xs text-slate-500">{aiCategoryLabels[conversation.category] || conversation.category}</div>
+                            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                              <span>{t('ai_risk_score')}: {formatNumberByLanguage(conversation.riskScore, language)}</span>
+                              <span>{t('ai_satisfaction_estimate')}: {formatNumberByLanguage(conversation.satisfactionEstimate, language)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_knowledge_gaps')}</h4>
+                      <div className="mt-4 space-y-3">
+                        {knowledgeGapSummaries.map((gap) => (
+                          <div key={gap.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                            <div className="text-sm font-medium text-slate-700">{gap.label}</div>
+                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">{formatNumberByLanguage(gap.count, language)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_workflow_dataset_candidates')}</h4>
+                      <p className="mt-2 text-sm leading-6 text-slate-500">{t('ai_dataset_candidates_hint')}</p>
+                      <div className="mt-4 space-y-3">
+                        {datasetCandidates.map((conversation) => (
+                          <div key={conversation.id} className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3">
+                            <div className="text-sm font-semibold text-slate-900">{conversation.title}</div>
+                            <div className="mt-1 text-xs text-slate-500">{conversation.occurredAtLabel}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <h4 className="text-base font-bold text-slate-900">{t('ai_workflow_prompt_updates')}</h4>
+                      <div className="mt-4 space-y-3">
+                        {promptSuggestions.map((suggestion) => (
+                          <div key={suggestion} className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{suggestion}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h4 className="text-base font-bold text-slate-900">{t('ai_workflow_recommendations')}</h4>
+                    <div className="mt-4 space-y-3">
+                      {improvementSuggestions.map((suggestion) => (
+                        <div key={suggestion} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{suggestion}</div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h4 className="text-base font-bold text-slate-900">{t('ai_workflow_readiness')}</h4>
+                    <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                      <div className="text-sm font-medium text-slate-500">{futureFineTuneReadiness}</div>
+                      <div className="mt-3 text-xs leading-6 text-slate-600">
+                        {t('ai_workflow_approved')}: {formatNumberByLanguage(approvedTrainingExamples.length, language)} | {t('ai_workflow_dataset_candidates')}: {formatNumberByLanguage(datasetCandidates.length, language)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
