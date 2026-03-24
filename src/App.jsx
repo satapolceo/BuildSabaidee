@@ -39,6 +39,13 @@ import {
   sendAdminAiMessage,
   testAdminAiConnection,
 } from './services/adminAiClient';
+import { buildAiImprovementInsights, generateAiImprovementRecommendations } from './services/aiImprovementInsights';
+import {
+  fetchAiReviewItems,
+  seedAiReviewItemsFromConversations,
+  subscribeToAiReviewItems,
+  updateAiReviewItem,
+} from './services/aiImprovementService';
 import { 
   CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
   BarChart3, Users, FileText, MessageSquare, Clock, 
@@ -2961,6 +2968,25 @@ Object.assign(translations.LA, {
   auth_loading: 'ກຳລັງດຳເນີນການ...',
   auth_register_link: 'ສ້າງບັນຊີ',
   auth_back_to_sign_in: 'ກັບໄປເຂົ້າລະບົບ',
+  ai_status_pending: 'Pending review',
+  ai_status_approved: 'Approved',
+  ai_status_rejected: 'Rejected',
+  ai_status_dataset_candidate: 'Dataset candidate',
+  ai_review_notes: 'Review notes',
+  ai_refresh: 'Refresh',
+  ai_loading: 'Loading review items...',
+  ai_error_load: 'Unable to load AI review items from Firestore.',
+  ai_empty: 'No AI review items yet.',
+  ai_seed_button: 'Seed review items',
+  ai_seed_desc: 'Admin-only helper to create the first review items from current chat data.',
+  ai_status_note_live: 'This page now uses live Firestore review items and computed insights.',
+  ai_filter_status: 'Status',
+  ai_filter_category: 'Category',
+  ai_filter_all_statuses: 'All statuses',
+  ai_filter_all_categories: 'All categories',
+  ai_recommendations_live: 'Live recommendations',
+  ai_recommendations_ai: 'AI-enhanced recommendations',
+  ai_recommendations_rules: 'Rule-based recommendations',
 });
 
 Object.assign(translations.TH, {
@@ -3038,6 +3064,25 @@ Object.assign(translations.TH, {
   auth_loading: 'กำลังดำเนินการ...',
   auth_register_link: 'สร้างบัญชี',
   auth_back_to_sign_in: 'กลับไปเข้าสู่ระบบ',
+  ai_status_pending: 'รอตรวจ',
+  ai_status_approved: 'อนุมัติแล้ว',
+  ai_status_rejected: 'ปฏิเสธแล้ว',
+  ai_status_dataset_candidate: 'ตัวอย่างเข้าชุดข้อมูล',
+  ai_review_notes: 'โน้ตการรีวิว',
+  ai_refresh: 'รีเฟรช',
+  ai_loading: 'กำลังโหลดรายการรีวิว...',
+  ai_error_load: 'ไม่สามารถโหลดรายการ AI review จาก Firestore ได้',
+  ai_empty: 'ยังไม่มี AI review items',
+  ai_seed_button: 'สร้าง seed review items',
+  ai_seed_desc: 'ปุ่มช่วยสำหรับแอดมิน เพื่อสร้างรายการรีวิวชุดแรกจากข้อมูลแชทปัจจุบัน',
+  ai_status_note_live: 'หน้านี้ใช้ข้อมูล review items จาก Firestore และคำนวณ insight แบบสดแล้ว',
+  ai_filter_status: 'สถานะ',
+  ai_filter_category: 'หมวด',
+  ai_filter_all_statuses: 'ทุกสถานะ',
+  ai_filter_all_categories: 'ทุกหมวด',
+  ai_recommendations_live: 'คำแนะนำจากข้อมูลจริง',
+  ai_recommendations_ai: 'คำแนะนำเสริมจาก AI',
+  ai_recommendations_rules: 'คำแนะนำแบบ rule-based',
 });
 
 Object.assign(translations.EN, {
@@ -3115,6 +3160,25 @@ Object.assign(translations.EN, {
   auth_loading: 'Processing...',
   auth_register_link: 'Create account',
   auth_back_to_sign_in: 'Back to sign in',
+  ai_status_pending: 'Pending review',
+  ai_status_approved: 'Approved',
+  ai_status_rejected: 'Rejected',
+  ai_status_dataset_candidate: 'Dataset candidate',
+  ai_review_notes: 'Review notes',
+  ai_refresh: 'Refresh',
+  ai_loading: 'Loading review items...',
+  ai_error_load: 'Unable to load AI review items from Firestore.',
+  ai_empty: 'No AI review items yet.',
+  ai_seed_button: 'Seed review items',
+  ai_seed_desc: 'Admin-only helper to create the first review items from current chat data.',
+  ai_status_note_live: 'This page now uses live Firestore review items and computed insights.',
+  ai_filter_status: 'Status',
+  ai_filter_category: 'Category',
+  ai_filter_all_statuses: 'All statuses',
+  ai_filter_all_categories: 'All categories',
+  ai_recommendations_live: 'Live recommendations',
+  ai_recommendations_ai: 'AI-enhanced recommendations',
+  ai_recommendations_rules: 'Rule-based recommendations',
 });
 
 Object.assign(translations.LA, {
@@ -5931,9 +5995,9 @@ function getAiResolutionTone(status) {
 }
 
 function getAiReviewStatusTone(status) {
-  if (status === 'good') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'risk') return 'bg-rose-100 text-rose-700';
-  if (status === 'needs_review') return 'bg-amber-100 text-amber-700';
+  if (status === 'approved' || status === 'good') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'rejected' || status === 'risk') return 'bg-rose-100 text-rose-700';
+  if (status === 'pending' || status === 'needs_review') return 'bg-amber-100 text-amber-700';
   return 'bg-blue-100 text-blue-700';
 }
 
@@ -6586,6 +6650,7 @@ export default function BuildSabaideeApp() {
           isKioskMode={isKioskMode}
           onToggleKioskMode={updateKioskQueryState}
           dashboardRole="user"
+          authSession={authSession}
           projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
           companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
           quotationDraft={quotationDraft} setQuotationDraft={setQuotationDraft}
@@ -6614,6 +6679,7 @@ export default function BuildSabaideeApp() {
           onToggleKioskMode={updateKioskQueryState}
           dashboardRole="platform_owner"
           adminNavOnly={true}
+          authSession={authSession}
           projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
           companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
           quotationDraft={quotationDraft} setQuotationDraft={setQuotationDraft}
@@ -7926,7 +7992,7 @@ function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, work
 // ==========================================
 // 3. MANAGER DASHBOARD SIMULATOR 
 // ==========================================
-function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onToggleKioskMode, dashboardRole = 'user', adminNavOnly = false, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
+function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onToggleKioskMode, dashboardRole = 'user', adminNavOnly = false, authSession = null, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
   const isPlatformAdmin = dashboardRole === 'admin' || dashboardRole === 'platform_owner';
   const [activeTab, setActiveTab] = useState(adminNavOnly ? 'admin_overview' : 'overview');
   const [weatherState, setWeatherState] = useState({ status: 'loading', data: null, errorKey: '' });
@@ -8050,8 +8116,18 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const [dailyIssueStatusOverrides, setDailyIssueStatusOverrides] = useState({});
   const [dailyIssueSiteFilter, setDailyIssueSiteFilter] = useState('all');
   const [aiMonitoringRange, setAiMonitoringRange] = useState('7d');
-  const [reviewDecisionOverrides, setReviewDecisionOverrides] = useState(() => loadFromStorage(`buildsabaidee.ai-review-decisions.${dashboardRole}`, {}));
+  const [aiReviewItems, setAiReviewItems] = useState([]);
+  const [aiReviewLoading, setAiReviewLoading] = useState(isPlatformAdmin);
+  const [aiReviewErrorKey, setAiReviewErrorKey] = useState('');
   const [selectedReviewConversationId, setSelectedReviewConversationId] = useState('');
+  const [aiReviewStatusFilter, setAiReviewStatusFilter] = useState('all');
+  const [aiReviewCategoryFilter, setAiReviewCategoryFilter] = useState('all');
+  const [aiReviewNotesDraft, setAiReviewNotesDraft] = useState({});
+  const [aiReviewSavingId, setAiReviewSavingId] = useState('');
+  const [aiEnhancedRecommendations, setAiEnhancedRecommendations] = useState([]);
+  const [aiEnhancedRecommendationsLoading, setAiEnhancedRecommendationsLoading] = useState(false);
+  const [aiEnhancedRecommendationsError, setAiEnhancedRecommendationsError] = useState('');
+  const [aiRecommendationsMode, setAiRecommendationsMode] = useState('rules');
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState('');
   const [purchaseOrderForm, setPurchaseOrderForm] = useState(createPurchaseOrderEntry());
   const [orderStatusSearchQuery, setOrderStatusSearchQuery] = useState('');
@@ -10667,7 +10743,6 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const recommendedPricingPackage = pricingPackages.find((entry) => entry.isRecommended) || null;
   const aiProviderConfig = getAiProviderConfig(adminSettingsForm);
   const aiSettingsReady = isAiChatReady(adminSettingsForm);
-  const aiReviewStorageKey = `buildsabaidee.ai-review-decisions.${dashboardRole}`;
   const localeCode = language === 'EN' ? 'en-US' : language === 'TH' ? 'th-TH' : 'lo-LA';
   const aiCategoryLabels = {
     'Procurement Delay': t('ai_category_procurement_delay'),
@@ -10675,6 +10750,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
     'Daily Reporting': t('ai_category_daily_reporting'),
     'Document Follow-up': t('ai_category_document_followup'),
     'External Approval': t('ai_category_external_approval'),
+    'General Coordination': 'General Coordination',
   };
   const aiRangeOptions = [
     { value: 'today', label: t('ai_range_today') },
@@ -10690,7 +10766,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   }, [globalChats, demoChatMessages]);
   const aiDataSourceLabel = Array.isArray(globalChats) && globalChats.length > 0 ? t('ai_source_firestore') : t('ai_source_local');
   const aiConversations = useMemo(
-    () => buildChatConversations(aiRawChatMessages, reviewDecisionOverrides).map((conversation) => ({
+    () => buildChatConversations(aiRawChatMessages, {}).map((conversation) => ({
       ...conversation,
       occurredAtLabel: new Date(conversation.occurredAt).toLocaleString(localeCode, {
         month: 'short',
@@ -10699,29 +10775,23 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         minute: '2-digit',
       }),
     })),
-    [aiRawChatMessages, localeCode, reviewDecisionOverrides],
+    [aiRawChatMessages, localeCode],
   );
   const getAiReviewBadgeKey = (conversation) => {
-    const override = reviewDecisionOverrides[conversation.id];
-    if (override === 'good_example') return 'ai_badge_good';
-    if (override === 'needs_improvement') return 'ai_badge_improve';
-    if (override === 'escalated') return 'ai_badge_risk';
-    if (override === 'dataset_candidate') return 'ai_badge_review';
+    if (conversation.status === 'approved') return 'ai_status_approved';
+    if (conversation.status === 'rejected') return 'ai_status_rejected';
+    if (conversation.status === 'dataset_candidate') return 'ai_status_dataset_candidate';
     if (conversation.statusLabel === 'good') return 'ai_badge_good';
     if (conversation.statusLabel === 'risk') return 'ai_badge_risk';
     if (conversation.statusLabel === 'needs_review') return 'ai_badge_improve';
-    return 'ai_badge_review';
+    if (conversation.statusLabel === 'review') return 'ai_badge_review';
+    return 'ai_status_pending';
   };
   const filteredAiConversations = useMemo(() => {
     const rangeDays = AI_CHAT_RANGE_DAYS[aiMonitoringRange] || AI_CHAT_RANGE_DAYS['7d'];
     const threshold = Date.now() - rangeDays * 24 * 60 * 60 * 1000;
     return aiConversations.filter((conversation) => conversation.occurredAt >= threshold);
   }, [aiConversations, aiMonitoringRange]);
-  const aiReviewQueue = useMemo(
-    () => [...filteredAiConversations].sort((a, b) => (b.riskScore * 2 + b.businessValueScore) - (a.riskScore * 2 + a.businessValueScore)),
-    [filteredAiConversations],
-  );
-  const selectedReviewConversation = aiReviewQueue.find((conversation) => conversation.id === selectedReviewConversationId) || aiReviewQueue[0] || null;
   const aiAnalyticsBase = useMemo(() => buildChatAnalytics(filteredAiConversations), [filteredAiConversations]);
   const aiAnalytics = useMemo(() => ({
     ...aiAnalyticsBase,
@@ -10732,45 +10802,62 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       label: aiCategoryLabels[category.label] || category.label,
     })),
   }), [aiAnalyticsBase, aiCategoryLabels, filteredAiConversations]);
-  const approvedTrainingExamples = useMemo(
-    () => aiConversations.filter((conversation) => reviewDecisionOverrides[conversation.id] === 'good_example' || (!reviewDecisionOverrides[conversation.id] && conversation.statusLabel === 'good')),
-    [aiConversations, reviewDecisionOverrides],
+  const aiReviewItemsWithLabels = useMemo(
+    () => aiReviewItems.map((item) => ({
+      ...item,
+      categoryLabel: aiCategoryLabels[item.category] || item.category,
+      occurredAtLabel: new Date(item.updatedAt || item.createdAt || Date.now()).toLocaleString(localeCode, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    })),
+    [aiCategoryLabels, aiReviewItems, localeCode],
   );
+  const aiReviewStatusOptions = useMemo(() => ([
+    { value: 'all', label: t('ai_filter_all_statuses') },
+    { value: 'pending', label: t('ai_status_pending') },
+    { value: 'approved', label: t('ai_status_approved') },
+    { value: 'rejected', label: t('ai_status_rejected') },
+    { value: 'dataset_candidate', label: t('ai_status_dataset_candidate') },
+  ]), [t]);
+  const aiReviewCategoryOptions = useMemo(() => ([
+    { value: 'all', label: t('ai_filter_all_categories') },
+    ...Array.from(new Set(aiReviewItemsWithLabels.map((item) => item.category).filter(Boolean))).sort((left, right) => left.localeCompare(right)).map((category) => ({
+      value: category,
+      label: aiCategoryLabels[category] || category,
+    })),
+  ]), [aiCategoryLabels, aiReviewItemsWithLabels, t]);
+  const filteredAiReviewItems = useMemo(
+    () => aiReviewItemsWithLabels.filter((item) => {
+      const matchesStatus = aiReviewStatusFilter === 'all' || item.status === aiReviewStatusFilter;
+      const matchesCategory = aiReviewCategoryFilter === 'all' || item.category === aiReviewCategoryFilter;
+      return matchesStatus && matchesCategory;
+    }),
+    [aiReviewCategoryFilter, aiReviewItemsWithLabels, aiReviewStatusFilter],
+  );
+  const aiReviewQueue = useMemo(
+    () => [...filteredAiReviewItems].sort((a, b) => (b.riskScore * 2 + b.businessValueScore) - (a.riskScore * 2 + a.businessValueScore)),
+    [filteredAiReviewItems],
+  );
+  const selectedReviewConversation = aiReviewQueue.find((conversation) => conversation.id === selectedReviewConversationId) || aiReviewQueue[0] || null;
+  const aiImprovementInsights = useMemo(() => buildAiImprovementInsights(aiReviewItemsWithLabels), [aiReviewItemsWithLabels]);
+  const approvedTrainingExamples = aiImprovementInsights.approvedItems;
   const reviewedExamples = useMemo(
-    () => aiConversations.filter((conversation) => Boolean(reviewDecisionOverrides[conversation.id]) || ['good', 'review', 'needs_review', 'risk'].includes(conversation.statusLabel)),
-    [aiConversations, reviewDecisionOverrides],
+    () => aiReviewItemsWithLabels.filter((item) => item.status !== 'pending'),
+    [aiReviewItemsWithLabels],
   );
-  const rejectedExamples = useMemo(
-    () => aiConversations.filter((conversation) => reviewDecisionOverrides[conversation.id] === 'escalated'),
-    [aiConversations, reviewDecisionOverrides],
-  );
-  const datasetCandidates = useMemo(
-    () => aiConversations.filter((conversation) => ['dataset_candidate', 'good_example'].includes(reviewDecisionOverrides[conversation.id]) || conversation.qualityScore >= 88),
-    [aiConversations, reviewDecisionOverrides],
-  );
-  const recurringFailures = useMemo(
-    () => [...aiConversations].filter((conversation) => conversation.riskScore >= 70 || !conversation.aiHandled).sort((a, b) => b.riskScore - a.riskScore).slice(0, 3),
-    [aiConversations],
-  );
-  const improvementSuggestions = useMemo(
-    () => Array.from(new Set(aiConversations.filter((conversation) => conversation.riskScore >= 60 || conversation.satisfactionEstimate <= 70).flatMap((conversation) => conversation.recommendations || []))).slice(0, 6),
-    [aiConversations],
-  );
-  const promptSuggestions = useMemo(
-    () => Array.from(new Set(aiConversations.filter((conversation) => conversation.resolutionStatus === 'human_needed' || conversation.qualityScore < 80).flatMap((conversation) => conversation.recommendations || []))).slice(0, 4),
-    [aiConversations],
-  );
-  const knowledgeGapSummaries = useMemo(
-    () => Object.entries(aiConversations.reduce((accumulator, conversation) => {
-      if (conversation.riskScore >= 60 || conversation.satisfactionEstimate < 70) {
-        const label = aiCategoryLabels[conversation.category] || conversation.category;
-        accumulator[label] = (accumulator[label] || 0) + 1;
-      }
-      return accumulator;
-    }, {})).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([label, count]) => ({ label, count })),
-    [aiCategoryLabels, aiConversations],
-  );
-  const futureFineTuneReadiness = approvedTrainingExamples.length >= 3 ? t('ai_readiness_ready') : t('ai_readiness_in_progress');
+  const rejectedExamples = aiImprovementInsights.rejectedItems;
+  const datasetCandidates = aiImprovementInsights.datasetCandidates;
+  const recurringFailures = aiImprovementInsights.recurringFailures;
+  const improvementSuggestions = aiImprovementInsights.recommendations;
+  const promptSuggestions = aiImprovementInsights.tagCounts.map((tag) => `Standardize prompt and notes handling for "${tag.label}" cases.`).slice(0, 4);
+  const knowledgeGapSummaries = aiImprovementInsights.knowledgeGaps.map((gap) => ({
+    ...gap,
+    label: aiCategoryLabels[gap.label] || gap.label,
+  }));
+  const futureFineTuneReadiness = t(aiImprovementInsights.readinessLabel);
   const aiAdminData = useMemo(() => ({
     aiSettings: aiProviderConfig,
     chatConversations: aiConversations,
@@ -10783,8 +10870,29 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const isDashboardThemeActive = isKioskMode || activeTab === 'overview' || activeTab === 'admin_overview';
 
   useEffect(() => {
-    saveToStorage(aiReviewStorageKey, reviewDecisionOverrides);
-  }, [aiReviewStorageKey, reviewDecisionOverrides]);
+    if (!isPlatformAdmin || !db) {
+      setAiReviewLoading(false);
+      return undefined;
+    }
+
+    setAiReviewLoading(true);
+    setAiReviewErrorKey('');
+
+    const unsubscribe = subscribeToAiReviewItems(
+      db,
+      (items) => {
+        setAiReviewItems(items);
+        setAiReviewLoading(false);
+        setAiReviewErrorKey('');
+      },
+      () => {
+        setAiReviewLoading(false);
+        setAiReviewErrorKey('ai_error_load');
+      },
+    );
+
+    return () => unsubscribe();
+  }, [isPlatformAdmin]);
 
   useEffect(() => {
     if (!aiReviewQueue.length) {
@@ -10797,6 +10905,96 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       setSelectedReviewConversationId(aiReviewQueue[0].id);
     }
   }, [aiReviewQueue, selectedReviewConversationId]);
+
+  useEffect(() => {
+    if (!selectedReviewConversation) return;
+    setAiReviewNotesDraft((prev) => {
+      if (Object.prototype.hasOwnProperty.call(prev, selectedReviewConversation.id)) return prev;
+      return { ...prev, [selectedReviewConversation.id]: selectedReviewConversation.notes || '' };
+    });
+  }, [selectedReviewConversation]);
+
+  const handleRefreshAiReviewItems = async () => {
+    if (!db) return;
+    setAiReviewLoading(true);
+    setAiReviewErrorKey('');
+    try {
+      const items = await fetchAiReviewItems(db);
+      setAiReviewItems(items);
+    } catch (error) {
+      setAiReviewErrorKey('ai_error_load');
+    } finally {
+      setAiReviewLoading(false);
+    }
+  };
+
+  const handleSeedAiReviewItems = async () => {
+    if (!db || aiReviewItems.length > 0) return;
+    setAiReviewSavingId('seed');
+    setAiReviewErrorKey('');
+    try {
+      await seedAiReviewItemsFromConversations(db, filteredAiConversations, authSession?.email || '');
+      await handleRefreshAiReviewItems();
+    } catch (error) {
+      setAiReviewErrorKey('ai_error_load');
+    } finally {
+      setAiReviewSavingId('');
+    }
+  };
+
+  const handleUpdateAiReviewStatus = async (itemId, status) => {
+    if (!db || !itemId) return;
+    setAiReviewSavingId(itemId);
+    setAiReviewErrorKey('');
+    try {
+      await updateAiReviewItem(db, itemId, {
+        status,
+        reviewedBy: authSession?.email || '',
+        notes: aiReviewNotesDraft[itemId] ?? aiReviewItemsWithLabels.find((item) => item.id === itemId)?.notes ?? '',
+      });
+    } catch (error) {
+      setAiReviewErrorKey('ai_error_load');
+    } finally {
+      setAiReviewSavingId('');
+    }
+  };
+
+  const handleSaveAiReviewNotes = async (itemId) => {
+    if (!db || !itemId) return;
+    setAiReviewSavingId(itemId);
+    setAiReviewErrorKey('');
+    try {
+      await updateAiReviewItem(db, itemId, {
+        notes: aiReviewNotesDraft[itemId] || '',
+        reviewedBy: authSession?.email || '',
+      });
+    } catch (error) {
+      setAiReviewErrorKey('ai_error_load');
+    } finally {
+      setAiReviewSavingId('');
+    }
+  };
+
+  const handleGenerateAiImprovementRecommendations = async () => {
+    if (!aiSettingsReady) {
+      setAiRecommendationsMode('rules');
+      return;
+    }
+
+    setAiEnhancedRecommendationsLoading(true);
+    setAiEnhancedRecommendationsError('');
+
+    try {
+      const recommendations = await generateAiImprovementRecommendations(adminPlatformSettings, aiImprovementInsights);
+      setAiEnhancedRecommendations(recommendations);
+      setAiRecommendationsMode(recommendations.length > 0 ? 'ai' : 'rules');
+    } catch (error) {
+      setAiEnhancedRecommendationsError(error?.message || 'Unable to generate AI recommendations.');
+      setAiRecommendationsMode('rules');
+    } finally {
+      setAiEnhancedRecommendationsLoading(false);
+    }
+  };
 
   return (
     <div className={`min-h-dvh md:min-h-screen flex relative ${isDashboardThemeActive ? 'bg-[radial-gradient(circle_at_top_left,_rgba(96,165,250,0.12)_0%,_rgba(11,31,58,0.96)_26%,_#0F172A_72%,_#13315C_100%)] text-[#EAF2FF]' : 'bg-slate-200/60'}`}>
@@ -15722,7 +15920,44 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.35fr]">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h4 className="text-base font-bold text-slate-900">{t('ai_review_queue')}</h4>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h4 className="text-base font-bold text-slate-900">{t('ai_review_queue')}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        value={aiReviewStatusFilter}
+                        onChange={(event) => setAiReviewStatusFilter(event.target.value)}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                      >
+                        {aiReviewStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <button onClick={handleRefreshAiReviewItems} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{t('ai_refresh')}</button>
+                    </div>
+                  </div>
+                  {aiReviewErrorKey ? (
+                    <div className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{t(aiReviewErrorKey)}</div>
+                  ) : null}
+                  {aiReviewLoading ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">{t('ai_loading')}</div>
+                  ) : null}
+                  {!aiReviewLoading && !aiReviewQueue.length ? (
+                    <div className="mt-4 space-y-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                      <div className="text-sm text-slate-500">{t('ai_empty')}</div>
+                      {aiReviewItems.length === 0 ? (
+                        <div className="space-y-3">
+                          <p className="text-xs leading-5 text-slate-500">{t('ai_seed_desc')}</p>
+                          <button
+                            onClick={handleSeedAiReviewItems}
+                            disabled={aiReviewSavingId === 'seed'}
+                            className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
+                          >
+                            {t('ai_seed_button')}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="mt-4 space-y-3">
                     {aiReviewQueue.map((conversation) => {
                       const isActive = selectedReviewConversation?.id === conversation.id;
@@ -15737,14 +15972,14 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="truncate text-sm font-semibold">{conversation.title}</div>
-                              <div className={`mt-1 text-xs ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>{conversation.intent}</div>
+                              <div className={`mt-1 text-xs ${isActive ? 'text-blue-100' : 'text-slate-500'}`}>{conversation.categoryLabel}</div>
                             </div>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive ? 'bg-white/15 text-white' : getAiReviewStatusTone(conversation.statusLabel)}`}>{t(getAiReviewBadgeKey(conversation))}</span>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${isActive ? 'bg-white/15 text-white' : getAiReviewStatusTone(conversation.status)}`}>{t(getAiReviewBadgeKey(conversation))}</span>
                           </div>
                           <div className={`mt-3 flex flex-wrap gap-2 text-xs ${isActive ? 'text-blue-100' : 'text-slate-600'}`}>
                             <span>{t('ai_quality_score')}: {formatNumberByLanguage(conversation.qualityScore, language)}</span>
                             <span>{t('ai_risk_score')}: {formatNumberByLanguage(conversation.riskScore, language)}</span>
-                            <span>{t('ai_message_count')}: {formatNumberByLanguage(conversation.messageCount, language)}</span>
+                            <span>{t('ai_satisfaction_estimate')}: {formatNumberByLanguage(conversation.satisfactionEstimate, language)}%</span>
                           </div>
                         </button>
                       );
@@ -15758,19 +15993,19 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                           <div className="flex flex-wrap gap-2">
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiReviewStatusTone(selectedReviewConversation.statusLabel)}`}>{t(getAiReviewBadgeKey(selectedReviewConversation))}</span>
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiResolutionTone(selectedReviewConversation.resolutionStatus)}`}>{t(selectedReviewConversation.resolutionStatus === 'ai_resolved' ? 'ai_resolution_ai' : 'ai_resolution_human')}</span>
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiSentimentTone(selectedReviewConversation.sentiment)}`}>{t(`ai_sentiment_${selectedReviewConversation.sentiment}`)}</span>
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getAiReviewStatusTone(selectedReviewConversation.status)}`}>{t(getAiReviewBadgeKey(selectedReviewConversation))}</span>
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{selectedReviewConversation.categoryLabel}</span>
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{selectedReviewConversation.sourceType}</span>
                           </div>
                           <h4 className="mt-3 text-2xl font-bold text-slate-900">{selectedReviewConversation.title}</h4>
-                          <p className="mt-2 text-sm leading-6 text-slate-600">{selectedReviewConversation.intent}</p>
+                          <p className="mt-2 text-sm leading-6 text-slate-600">{selectedReviewConversation.conversationText || selectedReviewConversation.transcript || '-'}</p>
                           <div className="mt-3 text-xs text-slate-500">{selectedReviewConversation.occurredAtLabel}</div>
                         </div>
                         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
                           <div>{t('ai_business_value_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</span></div>
                           <div className="mt-1">{t('ai_satisfaction_estimate')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</span></div>
-                          <div className="mt-1">{t('ai_message_count')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.messageCount, language)}</span></div>
-                          <div className="mt-1">{t('ai_participants')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.participantsLabel || '-'}</span></div>
+                          <div className="mt-1">{t('ai_review_notes')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.reviewedBy || '-'}</span></div>
+                          <div className="mt-1">{t('ai_workflow_dataset_candidates')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.tags.join(', ') || '-'}</span></div>
                         </div>
                       </div>
 
@@ -15784,19 +16019,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                           <h5 className="text-base font-bold text-slate-900">{t('ai_conversation_thread')}</h5>
-                          <div className="mt-4 space-y-3">
-                            {selectedReviewConversation.thread.map((message, index) => (
-                              <div key={`${selectedReviewConversation.id}-thread-${index}`} className={`rounded-2xl px-4 py-3 ${message.role === 'user' ? 'bg-white border border-slate-200' : message.role === 'ai' ? 'bg-blue-50 border border-blue-100' : 'bg-amber-50 border border-amber-100'}`}>
-                                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{message.speaker}</div>
-                                {message.text ? <div className="mt-2 text-sm leading-6 text-slate-700">{message.text}</div> : null}
-                                {message.audioUrl ? (
-                                  <div className="mt-3 rounded-2xl bg-white/70 p-2">
-                                    <audio controls src={message.audioUrl} className="h-10 w-full" />
-                                  </div>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
+                          <pre className="mt-4 whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-700">{selectedReviewConversation.transcript || selectedReviewConversation.conversationText || '-'}</pre>
                         </div>
 
                         <div className="space-y-6">
@@ -15807,15 +16030,15 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                               <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_business_value_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</span></div>
                               <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_satisfaction_estimate')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</span></div>
                               <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_risk_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.riskScore, language)}</span></div>
-                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_message_count')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.messageCount, language)}</span></div>
-                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_participants')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.participantsLabel || '-'}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_filter_category')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.categoryLabel}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_review_notes')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.reviewedBy || '-'}</span></div>
                             </div>
                           </div>
 
                           <div className="rounded-2xl border border-slate-200 bg-white p-5">
                             <h5 className="text-base font-bold text-slate-900">{t('ai_improvement_recommendations')}</h5>
                             <div className="mt-4 space-y-3">
-                              {selectedReviewConversation.recommendations.map((recommendation) => (
+                              {(selectedReviewConversation.tags.length ? selectedReviewConversation.tags : improvementSuggestions.slice(0, 3)).map((recommendation) => (
                                 <div key={recommendation} className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-slate-700">{recommendation}</div>
                               ))}
                             </div>
@@ -15823,11 +16046,20 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
                           <div className="rounded-2xl border border-slate-200 bg-white p-5">
                             <h5 className="text-base font-bold text-slate-900">{t('ai_detail_actions')}</h5>
-                            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'good_example' }))} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">{t('ai_mark_good_example')}</button>
-                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'needs_improvement' }))} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">{t('ai_needs_improvement')}</button>
-                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'escalated' }))} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100">{t('ai_escalate')}</button>
-                              <button onClick={() => setReviewDecisionOverrides((prev) => ({ ...prev, [selectedReviewConversation.id]: 'dataset_candidate' }))} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100">{t('ai_add_dataset')}</button>
+                            <div className="mt-4 space-y-4">
+                              <textarea
+                                value={aiReviewNotesDraft[selectedReviewConversation.id] ?? selectedReviewConversation.notes ?? ''}
+                                onChange={(event) => setAiReviewNotesDraft((prev) => ({ ...prev, [selectedReviewConversation.id]: event.target.value }))}
+                                rows={5}
+                                className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700"
+                                placeholder={t('ai_review_notes')}
+                              />
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <button onClick={() => handleUpdateAiReviewStatus(selectedReviewConversation.id, 'approved')} disabled={aiReviewSavingId === selectedReviewConversation.id} className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300">{t('ai_status_approved')}</button>
+                                <button onClick={() => handleSaveAiReviewNotes(selectedReviewConversation.id)} disabled={aiReviewSavingId === selectedReviewConversation.id} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100">{t('ai_review_notes')}</button>
+                                <button onClick={() => handleUpdateAiReviewStatus(selectedReviewConversation.id, 'rejected')} disabled={aiReviewSavingId === selectedReviewConversation.id} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-rose-100/70">{t('ai_status_rejected')}</button>
+                                <button onClick={() => handleUpdateAiReviewStatus(selectedReviewConversation.id, 'dataset_candidate')} disabled={aiReviewSavingId === selectedReviewConversation.id} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:bg-blue-100/70">{t('ai_status_dataset_candidate')}</button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -15846,24 +16078,72 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
           {activeTab === 'admin_ai_improvement' && (
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h3 className="text-xl font-bold text-slate-900">{t('admin_ai_improvement_title')}</h3>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_ai_improvement_desc')}</p>
-                <p className="mt-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">{t('ai_mock_backend_note')}</p>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{t('admin_ai_improvement_title')}</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{t('admin_ai_improvement_desc')}</p>
+                    <p className="mt-3 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-700">{t('ai_status_note_live')}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={handleRefreshAiReviewItems} className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">{t('ai_refresh')}</button>
+                    {aiReviewItems.length === 0 ? (
+                      <button onClick={handleSeedAiReviewItems} disabled={aiReviewSavingId === 'seed'} className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300">{t('ai_seed_button')}</button>
+                    ) : null}
+                    {aiSettingsReady ? (
+                      <button onClick={handleGenerateAiImprovementRecommendations} disabled={aiEnhancedRecommendationsLoading} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400">{t('ai_recommendations_ai')}</button>
+                    ) : null}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <StatCard title={t('ai_workflow_raw')} value={formatNumberByLanguage(aiAdminData.chatConversations.length, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('ai_workflow_raw')} value={formatNumberByLanguage(aiImprovementInsights.totalItems, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
                 <StatCard title={t('ai_workflow_reviewed')} value={formatNumberByLanguage(reviewedExamples.length, language)} icon={<CheckCircle />} color="text-blue-600" bg="bg-blue-100" />
                 <StatCard title={t('ai_workflow_approved')} value={formatNumberByLanguage(approvedTrainingExamples.length, language)} icon={<Bot />} color="text-green-600" bg="bg-green-100" />
                 <StatCard title={t('ai_workflow_rejected')} value={formatNumberByLanguage(rejectedExamples.length, language)} icon={<AlertCircle />} color="text-rose-600" bg="bg-rose-100" />
                 <StatCard title={t('ai_workflow_dataset_candidates')} value={formatNumberByLanguage(datasetCandidates.length, language)} icon={<Database />} color="text-violet-600" bg="bg-violet-100" />
               </div>
 
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr_1.1fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-500">{t('ai_filter_status')}</div>
+                  <select value={aiReviewStatusFilter} onChange={(event) => setAiReviewStatusFilter(event.target.value)} className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                    {aiReviewStatusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-500">{t('ai_filter_category')}</div>
+                  <select value={aiReviewCategoryFilter} onChange={(event) => setAiReviewCategoryFilter(event.target.value)} className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+                    {aiReviewCategoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-500">{t('ai_recommendations_live')}</div>
+                  <div className="mt-3 text-sm text-slate-700">
+                    {aiRecommendationsMode === 'ai' ? t('ai_recommendations_ai') : t('ai_recommendations_rules')}
+                  </div>
+                </div>
+              </div>
+
+              {aiReviewErrorKey ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">{t(aiReviewErrorKey)}</div>
+              ) : null}
+              {aiEnhancedRecommendationsError ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-700">{aiEnhancedRecommendationsError}</div>
+              ) : null}
+              {aiReviewLoading ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">{t('ai_loading')}</div>
+              ) : null}
+
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     {[
-                      { label: t('ai_available_review'), value: filteredAiConversations.length },
+                      { label: t('ai_available_review'), value: aiReviewQueue.length },
                       { label: t('ai_approved_examples'), value: approvedTrainingExamples.length },
                       { label: t('ai_top_failures'), value: recurringFailures.length },
                       { label: t('ai_workflow_prompt_updates'), value: promptSuggestions.length },
@@ -15882,7 +16162,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                         {recurringFailures.map((conversation) => (
                           <div key={conversation.id} className="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3">
                             <div className="text-sm font-semibold text-slate-900">{conversation.title}</div>
-                            <div className="mt-1 text-xs text-slate-500">{aiCategoryLabels[conversation.category] || conversation.category}</div>
+                            <div className="mt-1 text-xs text-slate-500">{conversation.categoryLabel || aiCategoryLabels[conversation.category] || conversation.category}</div>
                             <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
                               <span>{t('ai_risk_score')}: {formatNumberByLanguage(conversation.riskScore, language)}</span>
                               <span>{t('ai_satisfaction_estimate')}: {formatNumberByLanguage(conversation.satisfactionEstimate, language)}%</span>
@@ -15934,9 +16214,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <h4 className="text-base font-bold text-slate-900">{t('ai_workflow_recommendations')}</h4>
                     <div className="mt-4 space-y-3">
-                      {improvementSuggestions.map((suggestion) => (
+                      {(aiRecommendationsMode === 'ai' && aiEnhancedRecommendations.length > 0 ? aiEnhancedRecommendations : improvementSuggestions).map((suggestion) => (
                         <div key={suggestion} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">{suggestion}</div>
                       ))}
+                      {aiEnhancedRecommendationsLoading ? (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">{t('ai_loading')}</div>
+                      ) : null}
                     </div>
                   </div>
 
@@ -15945,7 +16228,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                     <div className="mt-4 rounded-2xl bg-slate-50 p-4">
                       <div className="text-sm font-medium text-slate-500">{futureFineTuneReadiness}</div>
                       <div className="mt-3 text-xs leading-6 text-slate-600">
-                        {t('ai_workflow_approved')}: {formatNumberByLanguage(approvedTrainingExamples.length, language)} | {t('ai_workflow_dataset_candidates')}: {formatNumberByLanguage(datasetCandidates.length, language)}
+                        {t('ai_workflow_approved')}: {formatNumberByLanguage(approvedTrainingExamples.length, language)} | {t('ai_workflow_dataset_candidates')}: {formatNumberByLanguage(datasetCandidates.length, language)} | {t('ai_status_pending')}: {formatNumberByLanguage(aiImprovementInsights.statusCounts.pending, language)}
                       </div>
                     </div>
                   </div>
