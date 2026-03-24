@@ -9353,11 +9353,11 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const aiSettingsReady = isAiChatReady(adminSettingsForm);
 
   return (
-    <div className={`min-h-dvh md:min-h-screen flex relative ${isKioskMode ? 'bg-slate-900' : 'bg-slate-200/60'}`}>
+    <div className={`min-h-dvh md:min-h-screen flex relative ${isKioskMode ? 'bg-[radial-gradient(circle_at_top_left,_#dbeafe_0%,_#eff6ff_34%,_#f8fbff_65%,_#eef4ff_100%)] text-slate-900' : 'bg-slate-200/60'}`}>
       {/* Sidebar */}
-      <div className={`hidden shrink-0 text-white md:sticky md:top-0 md:flex md:h-dvh md:flex-col ${isKioskMode ? 'w-64 bg-slate-950/96 xl:w-72' : 'w-72 bg-slate-950 xl:w-80'}`}>
-        <div className="flex items-center space-x-3 border-b border-slate-800 px-5 py-5">
-          <HardHat className="text-blue-400 h-8 w-8" />
+      <div className={`hidden shrink-0 md:sticky md:top-0 md:flex md:h-dvh md:flex-col ${isKioskMode ? 'w-64 border-r border-blue-100/80 bg-white/78 text-slate-800 shadow-[0_18px_60px_rgba(37,99,235,0.08)] backdrop-blur-xl xl:w-72' : 'w-72 bg-slate-950 text-white xl:w-80'}`}>
+        <div className={`flex items-center space-x-3 px-5 py-5 ${isKioskMode ? 'border-b border-blue-100/80' : 'border-b border-slate-800'}`}>
+          <HardHat className={`h-8 w-8 ${isKioskMode ? 'text-blue-600' : 'text-blue-400'}`} />
           <span className="font-bold text-xl">BuildSabaidee</span>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-5 xl:px-5">
@@ -9378,13 +9378,17 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                     onClick={() => setActiveTab(overviewItem.tab)}
                     className={`w-full rounded-xl border px-4 py-3 text-left transition ${
                       isActive
-                        ? 'border-blue-500 bg-blue-600 text-white shadow-sm'
-                        : 'border-slate-800 bg-slate-950/40 text-slate-100 hover:bg-slate-800/70'
+                        ? isKioskMode
+                          ? 'border-blue-600 bg-blue-600 text-white shadow-[0_16px_35px_rgba(37,99,235,0.2)]'
+                          : 'border-blue-500 bg-blue-600 text-white shadow-sm'
+                        : isKioskMode
+                          ? 'border-blue-100 bg-white/78 text-slate-700 hover:border-blue-200 hover:bg-blue-50/80'
+                          : 'border-slate-800 bg-slate-950/40 text-slate-100 hover:bg-slate-800/70'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center space-x-3">
-                        <OverviewIcon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-300'}`} />
+                        <OverviewIcon className={`h-5 w-5 ${isActive ? 'text-white' : isKioskMode ? 'text-blue-600' : 'text-slate-300'}`} />
                         <span className="text-sm font-semibold">{t(overviewItem.labelKey)}</span>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -9399,16 +9403,16 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
               }
 
               return (
-                <div key={group.id} className="rounded-xl border border-slate-800 bg-slate-950/40 overflow-hidden">
-                  <button onClick={() => toggleNavGroup(group.id)} className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-800/70 transition">
+                <div key={group.id} className={`overflow-hidden rounded-xl border ${isKioskMode ? 'border-blue-100 bg-white/72 shadow-[0_10px_30px_rgba(59,130,246,0.08)]' : 'border-slate-800 bg-slate-950/40'}`}>
+                  <button onClick={() => toggleNavGroup(group.id)} className={`w-full flex items-center justify-between px-4 py-3 text-left transition ${isKioskMode ? 'hover:bg-blue-50/80' : 'hover:bg-slate-800/70'}`}>
                     <div className="flex items-center space-x-3">
-                      <GroupIcon className="h-5 w-5 text-slate-300" />
-                      <span className="text-sm font-semibold text-slate-100">{t(group.labelKey)}</span>
+                      <GroupIcon className={`h-5 w-5 ${isKioskMode ? 'text-blue-600' : 'text-slate-300'}`} />
+                      <span className={`text-sm font-semibold ${isKioskMode ? 'text-slate-800' : 'text-slate-100'}`}>{t(group.labelKey)}</span>
                     </div>
-                    {isExpanded ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
+                    {isExpanded ? <ChevronDown className={`h-4 w-4 ${isKioskMode ? 'text-slate-400' : 'text-slate-400'}`} /> : <ChevronRight className={`h-4 w-4 ${isKioskMode ? 'text-slate-400' : 'text-slate-400'}`} />}
                   </button>
                   {isExpanded && (
-                    <div className="px-2 pb-2 space-y-1 border-t border-slate-800/80">
+                    <div className={`space-y-1 px-2 pb-2 ${isKioskMode ? 'border-t border-blue-100/90 bg-[linear-gradient(180deg,rgba(239,246,255,0.72),rgba(255,255,255,0.9))]' : 'border-t border-slate-800/80'}`}>
                       {group.items.map((item) => {
                         const ItemIcon = item.icon;
                         const isActive = activeTab === item.tab;
@@ -9420,7 +9424,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                             className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
                               isActive
                                 ? 'bg-blue-600 text-white'
-                                : 'text-slate-300 hover:bg-slate-800'
+                                : isKioskMode
+                                  ? 'text-slate-600 hover:bg-blue-50 hover:text-slate-800'
+                                  : 'text-slate-300 hover:bg-slate-800'
                             }`}
                           >
                             <div className="flex items-center space-x-3">
@@ -9453,12 +9459,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden ${isKioskMode ? 'bg-slate-900' : 'bg-slate-100/70'}`}>
+      <div className={`flex-1 min-w-0 flex flex-col min-h-dvh md:h-dvh overflow-hidden ${isKioskMode ? 'bg-[linear-gradient(180deg,rgba(248,251,255,0.98)_0%,rgba(239,246,255,0.92)_52%,rgba(255,255,255,0.96)_100%)]' : 'bg-slate-100/70'}`}>
         {/* Header */}
-        <header className={`z-10 flex shrink-0 items-center justify-between px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10 ${isKioskMode ? 'h-16 border-b border-white/10 bg-slate-950/88' : 'h-[4.5rem] border-b border-slate-200 bg-white/92'}`}>
+        <header className={`z-10 flex shrink-0 items-center justify-between px-5 backdrop-blur md:px-6 xl:px-8 2xl:px-10 ${isKioskMode ? 'h-16 border-b border-blue-100/80 bg-white/72 shadow-[0_8px_32px_rgba(37,99,235,0.08)]' : 'h-[4.5rem] border-b border-slate-200 bg-white/92'}`}>
           <div className="flex items-center gap-3">
-            {isKioskMode && <div className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-200">{t('dashboard_kiosk_badge')}</div>}
-            <h1 className={`text-xl font-bold ${isKioskMode ? 'text-white' : 'text-slate-800'}`}>
+            {isKioskMode && <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-700 shadow-sm">{t('dashboard_kiosk_badge')}</div>}
+            <h1 className={`text-xl font-bold ${isKioskMode ? 'text-slate-900' : 'text-slate-800'}`}>
             {sectionTitleMap[activeTab] || t('manager_menu_' + activeTab)}
             </h1>
           </div>
@@ -9472,7 +9478,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
             }`}>
               <CloudRain className="h-4 w-4 mr-2 shrink-0" /> {renderWeatherSummary()}
             </div>}
-            <button onClick={() => onToggleKioskMode?.(!isKioskMode)} className={`hidden rounded-full px-4 py-2 text-sm font-semibold transition md:inline-flex ${isKioskMode ? 'border border-white/15 bg-white/8 text-white hover:bg-white/14' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+            <button onClick={() => onToggleKioskMode?.(!isKioskMode)} className={`hidden rounded-full px-4 py-2 text-sm font-semibold transition md:inline-flex ${isKioskMode ? 'border border-blue-200 bg-white text-blue-700 shadow-sm hover:border-blue-300 hover:bg-blue-50' : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
               {isKioskMode ? t('dashboard_kiosk_off') : t('dashboard_kiosk_on')}
             </button>
             {!isKioskMode && <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-600">
@@ -9483,7 +9489,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
             </button>}
           </div>
         </header>
-        <div className={`border-b px-4 py-3 md:hidden ${isKioskMode ? 'border-white/10 bg-slate-950 text-white' : 'border-slate-200 bg-white'}`}>
+        <div className={`border-b px-4 py-3 md:hidden ${isKioskMode ? 'border-blue-100/80 bg-white/85 text-slate-900 backdrop-blur' : 'border-slate-200 bg-white'}`}>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {mobileNavItems.map((item) => {
               const ItemIcon = item.icon;
@@ -9495,7 +9501,9 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                   className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition ${
                     isActive
                       ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-200 bg-slate-50 text-slate-600'
+                      : isKioskMode
+                        ? 'border-blue-100 bg-blue-50/80 text-slate-700'
+                        : 'border-slate-200 bg-slate-50 text-slate-600'
                   }`}
                 >
                   <ItemIcon className="h-4 w-4" />
@@ -9507,7 +9515,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         </div>
 
         {/* Dashboard Content */}
-        <div className={`flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10 ${isKioskMode ? 'bg-slate-900 text-white 2xl:px-8 2xl:py-5' : 'bg-slate-100/70'}`}>
+        <div className={`flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10 ${isKioskMode ? 'bg-transparent text-slate-900 2xl:px-8 2xl:py-5' : 'bg-slate-100/70'}`}>
           
           {isFirebaseConfigured && projectsList.length === 0 && activeTab === 'overview' && (
              <button onClick={seedDatabase} className="w-full bg-blue-100 text-blue-700 p-4 rounded-xl border border-blue-200 mb-6 font-bold hover:bg-blue-200 transition shadow-sm flex justify-center items-center">
