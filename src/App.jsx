@@ -16,6 +16,7 @@ import {
 } from './workerStorage';
 import WorkerAppV2 from './WorkerAppV2';
 import WorkerMobileTestPage from './WorkerMobileTestPage';
+import { buildChatAnalytics, buildChatConversations } from './chatAnalytics';
 import { 
   CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
   BarChart3, Users, FileText, MessageSquare, Clock, 
@@ -1454,10 +1455,16 @@ Object.assign(translations.LA, {
   ai_range_14d: '14 ມື້',
   ai_range_30d: '30 ມື້',
   ai_metric_total_chats: 'ແຊທທັງໝົດ',
+  ai_metric_conversations: 'Conversations',
+  ai_metric_total_messages: 'Messages',
+  ai_metric_voice_messages: 'Voice messages',
+  ai_metric_ai_messages: 'AI messages',
+  ai_metric_human_messages: 'Human messages',
   ai_metric_ai_handled: 'AI ຮັບມືໄດ້',
   ai_metric_human_needed: 'ຕ້ອງໃຫ້ຄົນຊ່ວຍ',
   ai_metric_satisfaction: 'ຄວາມພໍໃຈໂດຍປະມານ',
   ai_metric_avg_response: 'ເວລາຕອບສະເລ່ຍ',
+  ai_metric_estimated: 'Estimated',
   ai_sentiment_positive: 'ບວກ',
   ai_sentiment_neutral: 'ກາງ',
   ai_sentiment_negative: 'ລົບ',
@@ -1472,6 +1479,8 @@ Object.assign(translations.LA, {
   ai_risk_score: 'Risk score',
   ai_resolution_ai: 'AI resolved',
   ai_resolution_human: 'Human needed',
+  ai_resolution_resolved: 'Resolved',
+  ai_resolution_pending: 'Pending',
   ai_badge_good: 'ຕົວຢ່າງທີ່ດີ',
   ai_badge_improve: 'ຄວນປັບປຸງ',
   ai_badge_risk: 'ຄວາມສ່ຽງ',
@@ -1498,6 +1507,12 @@ Object.assign(translations.LA, {
   ai_knowledge_gaps: 'Suggested knowledge gaps',
   ai_prompt_suggestions: 'Suggested prompt updates',
   ai_mock_backend_note: 'ໜ້ານີ້ເປັນ mock workflow ສຳລັບ admin ແລະ ກຽມ schema ໄວ້ເພື່ອຕໍ່ backend / fine-tuning pipeline ໃນພາຍຫຼັງ.',
+  ai_message_count: 'ຈຳນວນຂໍ້ຄວາມ',
+  ai_participants: 'Participants',
+  ai_data_source: 'Chat source',
+  ai_source_firestore: 'Firestore chats',
+  ai_source_local: 'Local in-app chat fallback',
+  ai_estimated_metrics_note: 'ບາງ metric ເປັນຄ່າຄາດຄະເນຈາກ timestamp ແລະ ການ grouping ຂໍ້ຄວາມຈິງ',
   ai_category_procurement_delay: 'ຈັດຊື້ລ່າຊ້າ',
   ai_category_site_safety: 'ຄວາມປອດໄພໜ້າງານ',
   ai_category_daily_reporting: 'ລາຍງານປະຈຳວັນ',
@@ -1860,10 +1875,16 @@ Object.assign(translations.TH, {
   ai_range_14d: '14 วัน',
   ai_range_30d: '30 วัน',
   ai_metric_total_chats: 'แชททั้งหมด',
+  ai_metric_conversations: 'Conversations',
+  ai_metric_total_messages: 'Messages',
+  ai_metric_voice_messages: 'Voice messages',
+  ai_metric_ai_messages: 'AI messages',
+  ai_metric_human_messages: 'Human messages',
   ai_metric_ai_handled: 'AI รับมือได้',
   ai_metric_human_needed: 'ต้องให้คนช่วย',
   ai_metric_satisfaction: 'ความพึงพอใจโดยประมาณ',
   ai_metric_avg_response: 'เวลาตอบเฉลี่ย',
+  ai_metric_estimated: 'Estimated',
   ai_sentiment_positive: 'บวก',
   ai_sentiment_neutral: 'กลาง',
   ai_sentiment_negative: 'ลบ',
@@ -1878,6 +1899,8 @@ Object.assign(translations.TH, {
   ai_risk_score: 'Risk score',
   ai_resolution_ai: 'AI resolved',
   ai_resolution_human: 'Human needed',
+  ai_resolution_resolved: 'Resolved',
+  ai_resolution_pending: 'Pending',
   ai_badge_good: 'ตัวอย่างที่ดี',
   ai_badge_improve: 'ควรปรับปรุง',
   ai_badge_risk: 'ความเสี่ยง',
@@ -1904,6 +1927,12 @@ Object.assign(translations.TH, {
   ai_knowledge_gaps: 'Suggested knowledge gaps',
   ai_prompt_suggestions: 'Suggested prompt updates',
   ai_mock_backend_note: 'หน้านี้เป็น mock workflow สำหรับ admin และเตรียม schema ไว้เพื่อต่อ backend / fine-tuning pipeline ในรอบถัดไป.',
+  ai_message_count: 'จำนวนข้อความ',
+  ai_participants: 'Participants',
+  ai_data_source: 'Chat source',
+  ai_source_firestore: 'Firestore chats',
+  ai_source_local: 'Local in-app chat fallback',
+  ai_estimated_metrics_note: 'บาง metric เป็นค่าประมาณจาก timestamp และการ grouping ข้อความจริง',
   ai_category_procurement_delay: 'จัดซื้อล่าช้า',
   ai_category_site_safety: 'ความปลอดภัยหน้างาน',
   ai_category_daily_reporting: 'รายงานประจำวัน',
@@ -2266,10 +2295,16 @@ Object.assign(translations.EN, {
   ai_range_14d: '14 Days',
   ai_range_30d: '30 Days',
   ai_metric_total_chats: 'Total chats',
+  ai_metric_conversations: 'Conversations',
+  ai_metric_total_messages: 'Messages',
+  ai_metric_voice_messages: 'Voice messages',
+  ai_metric_ai_messages: 'AI messages',
+  ai_metric_human_messages: 'Human messages',
   ai_metric_ai_handled: 'AI handled',
   ai_metric_human_needed: 'Human needed',
   ai_metric_satisfaction: 'Satisfaction estimate',
   ai_metric_avg_response: 'Avg. response time',
+  ai_metric_estimated: 'Estimated',
   ai_sentiment_positive: 'Positive',
   ai_sentiment_neutral: 'Neutral',
   ai_sentiment_negative: 'Negative',
@@ -2284,6 +2319,8 @@ Object.assign(translations.EN, {
   ai_risk_score: 'Risk score',
   ai_resolution_ai: 'AI resolved',
   ai_resolution_human: 'Human needed',
+  ai_resolution_resolved: 'Resolved',
+  ai_resolution_pending: 'Pending',
   ai_badge_good: 'Good example',
   ai_badge_improve: 'Needs improvement',
   ai_badge_risk: 'Risk',
@@ -2310,6 +2347,12 @@ Object.assign(translations.EN, {
   ai_knowledge_gaps: 'Suggested knowledge gaps',
   ai_prompt_suggestions: 'Suggested prompt updates',
   ai_mock_backend_note: 'This page is a production-like mock admin workflow with schema-ready structures for future backend analytics and fine-tuning pipelines.',
+  ai_message_count: 'Message count',
+  ai_participants: 'Participants',
+  ai_data_source: 'Chat source',
+  ai_source_firestore: 'Firestore chats',
+  ai_source_local: 'Local in-app chat fallback',
+  ai_estimated_metrics_note: 'Some metrics are estimated from real timestamps and heuristic message grouping.',
   ai_category_procurement_delay: 'Procurement Delay',
   ai_category_site_safety: 'Site Safety',
   ai_category_daily_reporting: 'Daily Reporting',
@@ -10207,23 +10250,25 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
     { value: '14d', label: t('ai_range_14d') },
     { value: '30d', label: t('ai_range_30d') },
   ];
-  const aiConversations = useMemo(() => {
-    const now = Date.now();
-    const ageOffsets = [0.25, 1.5, 4, 10, 19];
-    return createAiConversationMocks(language).map((conversation, index) => {
-      const occurredAt = now - Math.round((ageOffsets[index] || index + 1) * 24 * 60 * 60 * 1000);
-      return {
-        ...conversation,
-        occurredAt,
-        occurredAtLabel: new Date(occurredAt).toLocaleString(localeCode, {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      };
-    });
-  }, [language, localeCode]);
+  const aiRawChatMessages = useMemo(() => {
+    if (Array.isArray(globalChats) && globalChats.length > 0) {
+      return globalChats;
+    }
+    return demoChatMessages.filter((message) => !['demo-worker-1', 'demo-owner-1'].includes(message.id));
+  }, [globalChats, demoChatMessages]);
+  const aiDataSourceLabel = Array.isArray(globalChats) && globalChats.length > 0 ? t('ai_source_firestore') : t('ai_source_local');
+  const aiConversations = useMemo(
+    () => buildChatConversations(aiRawChatMessages, reviewDecisionOverrides).map((conversation) => ({
+      ...conversation,
+      occurredAtLabel: new Date(conversation.occurredAt).toLocaleString(localeCode, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    })),
+    [aiRawChatMessages, localeCode, reviewDecisionOverrides],
+  );
   const getAiReviewBadgeKey = (conversation) => {
     const override = reviewDecisionOverrides[conversation.id];
     if (override === 'good_example') return 'ai_badge_good';
@@ -10245,52 +10290,16 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
     [filteredAiConversations],
   );
   const selectedReviewConversation = aiReviewQueue.find((conversation) => conversation.id === selectedReviewConversationId) || aiReviewQueue[0] || null;
-  const aiAnalytics = useMemo(() => {
-    const total = filteredAiConversations.length;
-    const aiHandled = filteredAiConversations.filter((conversation) => conversation.aiHandled).length;
-    const humanNeeded = total - aiHandled;
-    const averageSatisfaction = total ? Math.round(filteredAiConversations.reduce((sum, conversation) => sum + conversation.satisfactionEstimate, 0) / total) : 0;
-    const averageResponse = total ? Math.round(filteredAiConversations.reduce((sum, conversation) => sum + conversation.avgResponseMinutes, 0) / total) : 0;
-    const sentiment = filteredAiConversations.reduce((accumulator, conversation) => {
-      accumulator[conversation.sentiment] = (accumulator[conversation.sentiment] || 0) + 1;
-      return accumulator;
-    }, { positive: 0, neutral: 0, negative: 0 });
-    const topTopics = Object.entries(filteredAiConversations.reduce((accumulator, conversation) => {
-      accumulator[conversation.topic] = (accumulator[conversation.topic] || 0) + 1;
-      return accumulator;
-    }, {}))
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([topic, count]) => ({ label: topic, count }));
-    const topCategories = Object.entries(filteredAiConversations.reduce((accumulator, conversation) => {
-      const label = aiCategoryLabels[conversation.category] || conversation.category;
-      accumulator[label] = (accumulator[label] || 0) + 1;
-      return accumulator;
-    }, {}))
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([label, count]) => ({ label, count }));
-    const interestingChats = [...filteredAiConversations]
-      .sort((a, b) => (b.businessValueScore + b.qualityScore) - (a.businessValueScore + a.qualityScore))
-      .slice(0, 3);
-    const reviewNeeded = [...filteredAiConversations]
-      .sort((a, b) => (b.riskScore + (b.aiHandled ? 0 : 25)) - (a.riskScore + (a.aiHandled ? 0 : 25)))
-      .slice(0, 3);
-    const recommendations = Array.from(new Set(reviewNeeded.concat(interestingChats).flatMap((conversation) => conversation.recommendations || []))).slice(0, 5);
-    return {
-      total,
-      aiHandled,
-      humanNeeded,
-      averageSatisfaction,
-      averageResponse,
-      sentiment,
-      topTopics,
-      topCategories,
-      interestingChats,
-      reviewNeeded,
-      recommendations,
-    };
-  }, [aiCategoryLabels, filteredAiConversations]);
+  const aiAnalyticsBase = useMemo(() => buildChatAnalytics(filteredAiConversations), [filteredAiConversations]);
+  const aiAnalytics = useMemo(() => ({
+    ...aiAnalyticsBase,
+    total: aiAnalyticsBase.totalConversations,
+    humanNeeded: filteredAiConversations.filter((conversation) => conversation.resolutionStatus === 'human_needed').length,
+    topCategories: aiAnalyticsBase.topCategories.map((category) => ({
+      ...category,
+      label: aiCategoryLabels[category.label] || category.label,
+    })),
+  }), [aiAnalyticsBase, aiCategoryLabels, filteredAiConversations]);
   const approvedTrainingExamples = useMemo(
     () => aiConversations.filter((conversation) => reviewDecisionOverrides[conversation.id] === 'good_example' || (!reviewDecisionOverrides[conversation.id] && conversation.statusLabel === 'good')),
     [aiConversations, reviewDecisionOverrides],
@@ -10333,11 +10342,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const aiAdminData = useMemo(() => ({
     aiSettings: aiProviderConfig,
     chatConversations: aiConversations,
+    chatSource: aiDataSourceLabel,
     chatAnalytics: aiAnalytics,
     reviewQueue: aiReviewQueue,
     approvedTrainingExamples,
     improvementSuggestions,
-  }), [aiAnalytics, aiConversations, aiProviderConfig, aiReviewQueue, approvedTrainingExamples, improvementSuggestions]);
+  }), [aiAnalytics, aiConversations, aiDataSourceLabel, aiProviderConfig, aiReviewQueue, approvedTrainingExamples, improvementSuggestions]);
   const isDashboardThemeActive = isKioskMode || activeTab === 'overview' || activeTab === 'admin_overview';
 
   useEffect(() => {
@@ -15110,12 +15120,33 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <StatCard title={t('ai_metric_total_chats')} value={formatNumberByLanguage(aiAnalytics.total, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('ai_metric_conversations')} value={formatNumberByLanguage(aiAnalytics.totalConversations, language)} icon={<MessageSquare />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('ai_metric_total_messages')} value={formatNumberByLanguage(aiAnalytics.totalMessages, language)} icon={<FileText />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('ai_metric_voice_messages')} value={formatNumberByLanguage(aiAnalytics.totalVoiceMessages, language)} icon={<Mic />} color="text-violet-600" bg="bg-violet-100" />
+                <StatCard title={t('ai_metric_human_messages')} value={formatNumberByLanguage(aiAnalytics.humanMessages, language)} icon={<Users />} color="text-amber-600" bg="bg-amber-100" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('ai_metric_ai_messages')} value={formatNumberByLanguage(aiAnalytics.aiMessages, language)} icon={<Bot />} color="text-cyan-600" bg="bg-cyan-100" />
                 <StatCard title={t('ai_metric_ai_handled')} value={formatNumberByLanguage(aiAnalytics.aiHandled, language)} icon={<Bot />} color="text-blue-600" bg="bg-blue-100" />
-                <StatCard title={t('ai_metric_human_needed')} value={formatNumberByLanguage(aiAnalytics.humanNeeded, language)} icon={<Users />} color="text-amber-600" bg="bg-amber-100" />
+                <StatCard title={t('ai_metric_human_needed')} value={formatNumberByLanguage(aiAnalytics.humanNeeded, language)} icon={<AlertCircle />} color="text-amber-600" bg="bg-amber-100" />
                 <StatCard title={t('ai_metric_satisfaction')} value={`${formatNumberByLanguage(aiAnalytics.averageSatisfaction, language)}%`} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
-                <StatCard title={t('ai_metric_avg_response')} value={`${formatNumberByLanguage(aiAnalytics.averageResponse, language)} min`} icon={<Clock />} color="text-violet-600" bg="bg-violet-100" />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('ai_data_source')}</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-900">{aiAdminData.chatSource}</div>
+                  {aiAnalytics.hasEstimatedMetrics && <div className="mt-2 text-xs text-amber-700">{t('ai_estimated_metrics_note')}</div>}
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{t('ai_metric_avg_response')}</div>
+                  <div className="mt-2 text-2xl font-bold text-slate-900">
+                    {aiAnalytics.averageResponse === null ? '-' : `${formatNumberByLanguage(aiAnalytics.averageResponse, language)} min`}
+                  </div>
+                  {aiAnalytics.averageResponse === null && <div className="mt-2 text-xs text-slate-500">{t('ai_metric_estimated')}</div>}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.95fr]">
@@ -15281,6 +15312,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                           <div className={`mt-3 flex flex-wrap gap-2 text-xs ${isActive ? 'text-blue-100' : 'text-slate-600'}`}>
                             <span>{t('ai_quality_score')}: {formatNumberByLanguage(conversation.qualityScore, language)}</span>
                             <span>{t('ai_risk_score')}: {formatNumberByLanguage(conversation.riskScore, language)}</span>
+                            <span>{t('ai_message_count')}: {formatNumberByLanguage(conversation.messageCount, language)}</span>
                           </div>
                         </button>
                       );
@@ -15305,6 +15337,8 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
                           <div>{t('ai_business_value_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</span></div>
                           <div className="mt-1">{t('ai_satisfaction_estimate')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</span></div>
+                          <div className="mt-1">{t('ai_message_count')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.messageCount, language)}</span></div>
+                          <div className="mt-1">{t('ai_participants')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.participantsLabel || '-'}</span></div>
                         </div>
                       </div>
 
@@ -15322,7 +15356,12 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                             {selectedReviewConversation.thread.map((message, index) => (
                               <div key={`${selectedReviewConversation.id}-thread-${index}`} className={`rounded-2xl px-4 py-3 ${message.role === 'user' ? 'bg-white border border-slate-200' : message.role === 'ai' ? 'bg-blue-50 border border-blue-100' : 'bg-amber-50 border border-amber-100'}`}>
                                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{message.speaker}</div>
-                                <div className="mt-2 text-sm leading-6 text-slate-700">{message.text}</div>
+                                {message.text ? <div className="mt-2 text-sm leading-6 text-slate-700">{message.text}</div> : null}
+                                {message.audioUrl ? (
+                                  <div className="mt-3 rounded-2xl bg-white/70 p-2">
+                                    <audio controls src={message.audioUrl} className="h-10 w-full" />
+                                  </div>
+                                ) : null}
                               </div>
                             ))}
                           </div>
@@ -15336,6 +15375,8 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                               <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_business_value_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.businessValueScore, language)}</span></div>
                               <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_satisfaction_estimate')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.satisfactionEstimate, language)}%</span></div>
                               <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_risk_score')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.riskScore, language)}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_message_count')}: <span className="font-semibold text-slate-900">{formatNumberByLanguage(selectedReviewConversation.messageCount, language)}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3">{t('ai_participants')}: <span className="font-semibold text-slate-900">{selectedReviewConversation.participantsLabel || '-'}</span></div>
                             </div>
                           </div>
 
