@@ -23,7 +23,7 @@ import {
   Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
   LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
   UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
-  Send, Database, Eye, Printer, Percent, Download, Home
+  Send, Database, Eye, Printer, Percent, Download, Home, Bot
 } from 'lucide-react';
 
 // ========================================================
@@ -142,6 +142,25 @@ const translations = {
     pricing_basic_desc: 'ສຳລັບຄົນງານທົ່ວໄປ', pricing_basic_item1: 'ລົງເວລາເຂົ້າ-ອອກວຽກ (GPS)', pricing_basic_item2: 'ເບິ່ງວຽກທີ່ຕ້ອງເຮັດມື້ນີ້', pricing_basic_item3: 'ອັບໂຫຼດຮູບສົ່ງວຽກ', pricing_basic_item4: 'ໂໝດ Offline', pricing_start_cta: 'ເລີ່ມໃຊ້ງານ',
     pricing_popular: 'ຍອດນິຍົມ', pricing_pro_desc: 'ສຳລັບຫົວໜ້າຄົນງານ / ໂຟແມນ', pricing_pro_item1: 'ຟີເຈີທັງໝົດໃນ Basic', pricing_pro_item2: 'ລາຍງານບັນຫາ', pricing_pro_item3: 'ລະບົບເບີກວັດສະດຸ', pricing_pro_item4: 'ບັນທຶກເງິນສົດຍ່ອຍ', pricing_pro_item5: 'ອັບເດດ % ຄວາມຄືບໜ້າໂຄງການ', pricing_trial_cta: 'ທົດລອງໃຊ້ຟຣີ 14 ມື້',
     pricing_owner_desc: 'ສຳລັບເຈົ້າຂອງບ້ານ / ຜູ້ວ່າຈ້າງ', pricing_owner_item1: 'ເບິ່ງຄວາມຄືບໜ້າແບບ Real-time', pricing_owner_item2: 'ເບິ່ງຮູບອັບເດດໜ້າວຽກ', pricing_owner_item3: 'ກົດອະນຸມັດການເບີກຈ່າຍງວດງານ', pricing_owner_item4: 'ແຊັດຕົງກັບຜູ້ຈັດການໂຄງການ', pricing_owner_cta: 'ເບິ່ງຕົວຢ່າງແອັບເຈົ້າຂອງບ້ານ',
+    pricing_currency_hint: 'ລາຄາຈະສະແດງຕາມພາສາທີ່ເລືອກ ແລະ ມີມູນຄ່າເທົ່າກັນໃຫ້ເບິ່ງເພີ່ມ',
+    pricing_equivalent_label: 'ມູນຄ່າເທົ່າກັນ',
+    ai_chat_launcher: 'AI',
+    ai_chat_title: 'AI Assistant',
+    ai_chat_status_enabled: 'ພ້ອມໃຊ້ງານ',
+    ai_chat_status_disabled: 'ຍັງບໍ່ພ້ອມ',
+    ai_chat_powered_by: 'Provider',
+    ai_chat_welcome_ready: 'AI ພ້ອມຊ່ວຍຕອບຄຳຖາມ, ຮ່າງໂຄງການ, ຄຳນວນຂໍ້ມູນ ແລະ ສະຫຼຸບຂໍ້ມູນເບື້ອງຕົ້ນ.',
+    ai_chat_welcome_fallback: 'AI chat ຍັງບໍ່ພ້ອມໃຊ້ງານ. ກະລຸນາເປີດໃຊ້ ແລະ ຕັ້ງ API key ໃນ Admin settings.',
+    ai_chat_input_placeholder: 'ຖາມເລື່ອງວຽກ, ຮ່າງໂຄງການ ຫຼື ໃຫ້ AI ສະຫຼຸບ...',
+    ai_chat_send: 'ສົ່ງ',
+    ai_chat_thinking: 'AI ກຳລັງກະກຽມຄຳຕອບ...',
+    ai_chat_capability_questions: 'ຕອບຄຳຖາມເກືອບທັນທີ',
+    ai_chat_capability_drafts: 'ຊ່ວຍຮ່າງໂຄງການແລະງານ',
+    ai_chat_capability_calculations: 'ຊ່ວຍຄຳນວນຕົວເລກພື້ນຖານ',
+    ai_chat_capability_summary: 'ຊ່ວຍສະຫຼຸບຂໍ້ມູນເບື້ອງຕົ້ນ',
+    ai_chat_not_ready_detail: 'AI chat ຈະເຮັດວຽກເມື່ອເປີດ enabled, ເລືອກ provider, ກຳນົດ model ແລະ ໃສ່ API key ໃນຝັ່ງ Admin.',
+    ai_chat_demo_reply_intro: 'ລະບົບໄດ້ກຽມ request ສຳລັບ AI ໄວ້ແລ້ວ.',
+    ai_chat_demo_reply_followup: 'ສຳລັບຄຳຖາມນີ້ AI ສາມາດຊ່ວຍຈັດໂຄງສ້າງຄຳຕອບ, ຮ່າງຂັ້ນຕອນ, ຄຳນວນເບື້ອງຕົ້ນ ແລະ ສະຫຼຸບປະເດັນໃຫ້.',
     dashboard_main_menu: 'ເມນູຫຼັກ', dashboard_seed: 'ກົດທີ່ນີ້ເພື່ອຈຳລອງຂໍ້ມູນຕົວຢ່າງເຂົ້າ Firebase', dashboard_view_all: 'ເບິ່ງທັງໝົດ', dashboard_edit: 'ແກ້ໄຂ',
     weather_loading: 'ກຳລັງກວດຈັບຕຳແໜ່ງ ແລະ ດຶງຂໍ້ມູນອາກາດ...', weather_permission_denied: 'ບໍ່ໄດ້ອະນຸຍາດຕຳແໜ່ງ ຈຶ່ງບໍ່ສາມາດສະແດງອາກາດຈິງໄດ້', weather_unavailable: 'ດຶງຂໍ້ມູນອາກາດບໍ່ສຳເລັດ ກະລຸນາລອງໃໝ່', weather_not_supported: 'ອຸປະກອນນີ້ບໍ່ຮອງຮັບການລະບຸຕຳແໜ່ງ', weather_now: 'ຕອນນີ້', weather_tomorrow: 'ມື້ອື່ນ', weather_rain_chance: 'ໂອກາດຝົນ', weather_at_location: 'ຕຳແໜ່ງປັດຈຸບັນ', weather_clear: 'ແຈ້ງໃສ', weather_mainly_clear: 'ແຈ້ງສ່ວນໃຫຍ່', weather_partly_cloudy: 'ມີເມກບາງສ່ວນ', weather_overcast: 'ຟ້າປິດ', weather_fog: 'ໝອກ', weather_drizzle: 'ຝົນຝອຍ', weather_rain: 'ຝົນຕົກ', weather_snow: 'ຫິມະ', weather_thunderstorm: 'ພາຍຸຝົນຟ້າຄະນອງ', firebase_required: 'ກະລຸນາຕັ້ງຄ່າ Firebase Config ກ່ອນ', seed_success: 'ເພີ່ມຂໍ້ມູນຕົວຢ່າງສຳເລັດ', seed_error: 'ເກີດຂໍ້ຜິດພາດ: ກະລຸນາຕັ້ງ Firestore Rule ເປັນ Test Mode', boq_import_success: 'ນຳເຂົ້າຂໍ້ມູນ BOQ ສຳເລັດ', receipt_scan_success: 'ສະແກນ ແລະ ບັນທຶກບິນສຳເລັດ',
     overview_stat_active_sites: 'ໄຊຕ໌ງານທີ່ກຳລັງດຳເນີນການ', overview_stat_attendance: 'ພະນັກງານມາເຮັດວຽກມື້ນີ້', overview_stat_sos: 'ບັນຫາແຈ້ງເຕືອນ (SOS)', overview_stat_requests: 'ຄຳຂໍເບີກວັດສະດຸໃໝ່',
@@ -199,6 +218,25 @@ const translations = {
     pricing_basic_desc: 'สำหรับคนงานทั่วไป', pricing_basic_item1: 'ลงเวลาเข้า-ออกงาน (GPS)', pricing_basic_item2: 'ดูงานที่ต้องทำวันนี้', pricing_basic_item3: 'อัปโหลดรูปส่งงาน (Visual UI)', pricing_basic_item4: 'โหมด Offline', pricing_start_cta: 'เริ่มต้นใช้งาน',
     pricing_popular: 'ยอดนิยม', pricing_pro_desc: 'สำหรับหัวหน้าคนงาน / โฟร์แมน', pricing_pro_item1: 'ฟีเจอร์ทั้งหมดใน Basic', pricing_pro_item2: 'รายงานปัญหา (Issue Reporting)', pricing_pro_item3: 'ระบบเบิกวัสดุ (Inventory Request)', pricing_pro_item4: 'บันทึกเงินสดย่อย (Petty Cash)', pricing_pro_item5: 'อัปเดต % ความคืบหน้าโครงการ', pricing_trial_cta: 'ทดลองใช้ฟรี 14 วัน',
     pricing_owner_desc: 'สำหรับเจ้าของบ้าน / ผู้ว่าจ้าง', pricing_owner_item1: 'ดูความคืบหน้า Real-time', pricing_owner_item2: 'ดูรูปภาพอัปเดตหน้างาน', pricing_owner_item3: 'กดอนุมัติการเบิกจ่ายงวดงาน', pricing_owner_item4: 'แชทตรงกับผู้จัดการโครงการ', pricing_owner_cta: 'ดูตัวอย่างแอปเจ้าของบ้าน',
+    pricing_currency_hint: 'ราคาแสดงตามภาษาที่เลือก และมีค่าเทียบสกุลเงินอื่นให้ดูเพิ่ม',
+    pricing_equivalent_label: 'ราคาเทียบเท่า',
+    ai_chat_launcher: 'AI',
+    ai_chat_title: 'AI Assistant',
+    ai_chat_status_enabled: 'พร้อมใช้งาน',
+    ai_chat_status_disabled: 'ยังไม่พร้อม',
+    ai_chat_powered_by: 'Provider',
+    ai_chat_welcome_ready: 'AI พร้อมช่วยตอบคำถาม ร่างโครงการ คำนวณข้อมูล และสรุปข้อมูลเบื้องต้นให้คุณ',
+    ai_chat_welcome_fallback: 'AI chat ยังไม่พร้อมใช้งาน กรุณาเปิดใช้งานและตั้ง API key ใน Admin settings ก่อน',
+    ai_chat_input_placeholder: 'ถามเรื่องงาน ให้ช่วยร่างโครงการ หรือให้ AI สรุปข้อมูล...',
+    ai_chat_send: 'ส่ง',
+    ai_chat_thinking: 'AI กำลังเตรียมคำตอบ...',
+    ai_chat_capability_questions: 'ช่วยตอบคำถามได้รวดเร็ว',
+    ai_chat_capability_drafts: 'ช่วยร่างโครงการและงานเบื้องต้น',
+    ai_chat_capability_calculations: 'ช่วยคำนวณตัวเลขทั่วไปในระบบ',
+    ai_chat_capability_summary: 'ช่วยสรุปข้อมูลเบื้องต้น',
+    ai_chat_not_ready_detail: 'AI chat จะทำงานเมื่อเปิด enabled, เลือก provider, กำหนด model และใส่ API key ในฝั่ง Admin ให้ครบ',
+    ai_chat_demo_reply_intro: 'ระบบได้เตรียม request สำหรับ AI ไว้แล้ว',
+    ai_chat_demo_reply_followup: 'สำหรับคำถามนี้ AI สามารถช่วยจัดโครงคำตอบ ร่างขั้นตอน คำนวณเบื้องต้น และสรุปประเด็นสำคัญให้ได้',
     dashboard_main_menu: 'เมนูหลัก', dashboard_seed: 'คลิกที่นี่เพื่อจำลองข้อมูลตัวอย่าง (Seed Mock Data) ลงฐานข้อมูล Firebase', dashboard_view_all: 'ดูทั้งหมด', dashboard_edit: 'แก้ไข',
     weather_loading: 'กำลังตรวจตำแหน่งและดึงข้อมูลอากาศจริง...', weather_permission_denied: 'ไม่ได้รับสิทธิ์ตำแหน่ง จึงไม่สามารถแสดงสภาพอากาศจริงได้', weather_unavailable: 'ดึงข้อมูลอากาศไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', weather_not_supported: 'อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง', weather_now: 'ตอนนี้', weather_tomorrow: 'พรุ่งนี้', weather_rain_chance: 'โอกาสฝน', weather_at_location: 'ตำแหน่งปัจจุบัน', weather_clear: 'ท้องฟ้าแจ่มใส', weather_mainly_clear: 'ค่อนข้างแจ่มใส', weather_partly_cloudy: 'มีเมฆบางส่วน', weather_overcast: 'เมฆมาก', weather_fog: 'มีหมอก', weather_drizzle: 'ฝนปรอย', weather_rain: 'ฝนตก', weather_snow: 'หิมะ', weather_thunderstorm: 'พายุฝนฟ้าคะนอง', firebase_required: 'โปรดใส่ Firebase Config ก่อน', seed_success: 'เพิ่มข้อมูลตัวอย่างสำเร็จ', seed_error: 'เกิดข้อผิดพลาด: โปรดตั้งค่า Firestore Rule เป็น Test Mode', boq_import_success: 'นำเข้าข้อมูล BOQ สำเร็จ', receipt_scan_success: 'สแกนและบันทึกบิลสำเร็จ',
     overview_stat_active_sites: 'ไซต์งานกำลังดำเนินการ', overview_stat_attendance: 'พนักงานมาทำงานวันนี้', overview_stat_sos: 'ปัญหาแจ้งเตือน (SOS)', overview_stat_requests: 'คำขอเบิกวัสดุใหม่',
@@ -256,6 +294,25 @@ const translations = {
     pricing_basic_desc: 'For general workers', pricing_basic_item1: 'GPS attendance check-in/out', pricing_basic_item2: 'See today’s assigned tasks', pricing_basic_item3: 'Upload work photos', pricing_basic_item4: 'Offline mode', pricing_start_cta: 'Get Started',
     pricing_popular: 'Most Popular', pricing_pro_desc: 'For foremen and supervisors', pricing_pro_item1: 'Everything in Basic', pricing_pro_item2: 'Issue reporting', pricing_pro_item3: 'Inventory requests', pricing_pro_item4: 'Petty cash records', pricing_pro_item5: 'Project progress updates', pricing_trial_cta: 'Start 14-Day Free Trial',
     pricing_owner_desc: 'For homeowners / clients', pricing_owner_item1: 'View real-time progress', pricing_owner_item2: 'See updated site photos', pricing_owner_item3: 'Approve milestone payments', pricing_owner_item4: 'Chat with the project manager', pricing_owner_cta: 'View Owner App Demo',
+    pricing_currency_hint: 'Prices follow the selected UI language, with equivalent currencies shown below when helpful.',
+    pricing_equivalent_label: 'Equivalent prices',
+    ai_chat_launcher: 'AI',
+    ai_chat_title: 'AI Assistant',
+    ai_chat_status_enabled: 'Ready',
+    ai_chat_status_disabled: 'Not ready',
+    ai_chat_powered_by: 'Provider',
+    ai_chat_welcome_ready: 'AI is ready to answer questions, draft projects, calculate figures, and summarize key information.',
+    ai_chat_welcome_fallback: 'AI chat is not ready yet. Enable it and add an API key in Admin Settings first.',
+    ai_chat_input_placeholder: 'Ask a question, draft a project, or request a quick summary...',
+    ai_chat_send: 'Send',
+    ai_chat_thinking: 'AI is preparing a response...',
+    ai_chat_capability_questions: 'Answer operational questions quickly',
+    ai_chat_capability_drafts: 'Draft project outlines and work plans',
+    ai_chat_capability_calculations: 'Calculate general system figures',
+    ai_chat_capability_summary: 'Summarize early-stage information',
+    ai_chat_not_ready_detail: 'AI chat becomes available after enabling it, selecting a provider, setting a model, and adding the matching API key in Admin Settings.',
+    ai_chat_demo_reply_intro: 'The app has already prepared the AI request structure.',
+    ai_chat_demo_reply_followup: 'For this prompt, AI can structure an answer, draft the next steps, estimate basic figures, and summarize the key points.',
     dashboard_main_menu: 'Main Menu', dashboard_seed: 'Click here to seed sample data into Firebase', dashboard_view_all: 'View All', dashboard_edit: 'Edit',
     weather_loading: 'Detecting your location and loading live weather...', weather_permission_denied: 'Location access was denied, so live weather could not be loaded', weather_unavailable: 'Weather data could not be loaded. Please try again.', weather_not_supported: 'This device does not support geolocation', weather_now: 'Now', weather_tomorrow: 'Tomorrow', weather_rain_chance: 'Rain chance', weather_at_location: 'Current location', weather_clear: 'Clear', weather_mainly_clear: 'Mostly clear', weather_partly_cloudy: 'Partly cloudy', weather_overcast: 'Overcast', weather_fog: 'Foggy', weather_drizzle: 'Drizzle', weather_rain: 'Rain', weather_snow: 'Snow', weather_thunderstorm: 'Thunderstorm', firebase_required: 'Please configure Firebase first', seed_success: 'Sample data added successfully', seed_error: 'An error occurred: please set Firestore Rules to Test Mode', boq_import_success: 'BOQ import completed', receipt_scan_success: 'Receipt scanned and saved successfully',
     overview_stat_active_sites: 'Active Sites', overview_stat_attendance: 'Workers Present Today', overview_stat_sos: 'SOS Alerts', overview_stat_requests: 'New Material Requests',
@@ -1135,6 +1192,25 @@ Object.assign(translations.LA, {
   admin_platform_revenue_desc: 'ເຕັຽມ shell ສຳລັບສະຫຼຸບລາຍຮັບ platform, commission ແລະ ຕົວຊີ້ວັດທາງການເງິນ',
   admin_settlements_desc: 'ເຕັຽມພື້ນທີ່ສຳລັບການກະທົບຍອດ, ການຈ່າຍຄືນ ແລະ ສະຖານະການຊຳລະ',
   admin_settings_desc: 'ຕັ້ງຄ່າ default ລະດັບ platform ສຳລັບ commission, billing, settlement ແລະ ຂໍ້ມູນທີ່ໃຊ້ຮ່ວມກັນໃນ print/export',
+  admin_ai_settings_title: 'AI Provider & API',
+  admin_ai_settings_desc: 'ຕັ້ງ provider, API key, model ແລະ system prompt ສຳລັບ AI chat ຂອງເວັບໄຊต์',
+  admin_ai_enabled: 'ເປີດໃຊ້ AI Chat',
+  admin_ai_provider: 'AI Provider',
+  admin_ai_model: 'Model name',
+  admin_ai_base_url: 'Base URL',
+  admin_ai_system_prompt: 'System Prompt',
+  admin_ai_openrouter_key: 'OpenRouter API Key',
+  admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_active_key_hint: 'ລະບົບຈະໃຊ້ key ຕາມ provider ທີ່ເລືອກ',
+  admin_ai_status_ready: 'AI config ພ້ອມໃຊ້ງານ',
+  admin_ai_status_missing: 'AI config ຍັງບໍ່ຄົບ',
+  admin_ai_provider_openrouter: 'OpenRouter',
+  admin_ai_provider_openai: 'OpenAI GPT',
+  admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
+  admin_ai_placeholder_openai: 'OPENAI_API_KEY',
+  admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
+  admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
+  admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
   admin_settings_reuse_notice: 'ຄ່າຊຸດນີ້ຖືກກຽມໄວ້ເພື່ອ reuse ຮ່ວມກັບ Supplier Agreements, Commission Billing, Settlements ແລະ future print/export',
   admin_settings_saved: 'ບັນທຶກຄ່າຕັ້ງ admin ແລ້ວ',
   admin_settings_section_defaults: 'Default settings',
@@ -1453,6 +1529,25 @@ Object.assign(translations.TH, {
   admin_platform_revenue_desc: 'เตรียม shell สำหรับสรุปรายได้แพลตฟอร์ม, commission และตัวชี้วัดทางการเงิน',
   admin_settlements_desc: 'เตรียมพื้นที่สำหรับการกระทบยอด, การจ่ายคืน และสถานะการชำระเงิน',
   admin_settings_desc: 'ตั้งค่า default ระดับแพลตฟอร์มสำหรับ commission, billing, settlement และข้อมูลกลางที่ใช้ร่วมกันใน print/export',
+  admin_ai_settings_title: 'AI Provider & API',
+  admin_ai_settings_desc: 'ตั้งค่า provider, API key, model และ system prompt สำหรับ AI chat ของเว็บไซต์',
+  admin_ai_enabled: 'เปิดใช้งาน AI Chat',
+  admin_ai_provider: 'AI Provider',
+  admin_ai_model: 'Model name',
+  admin_ai_base_url: 'Base URL',
+  admin_ai_system_prompt: 'System Prompt',
+  admin_ai_openrouter_key: 'OpenRouter API Key',
+  admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_active_key_hint: 'ระบบจะเลือกใช้ key ตาม provider ที่เลือก',
+  admin_ai_status_ready: 'AI config พร้อมใช้งาน',
+  admin_ai_status_missing: 'AI config ยังไม่ครบ',
+  admin_ai_provider_openrouter: 'OpenRouter',
+  admin_ai_provider_openai: 'OpenAI GPT',
+  admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
+  admin_ai_placeholder_openai: 'OPENAI_API_KEY',
+  admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
+  admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
+  admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
   admin_settings_reuse_notice: 'ค่าชุดนี้ถูกเตรียมไว้เพื่อ reuse ร่วมกับ Supplier Agreements, Commission Billing, Settlements และ future print/export',
   admin_settings_saved: 'บันทึกค่า admin settings แล้ว',
   admin_settings_section_defaults: 'Default settings',
@@ -1771,6 +1866,25 @@ Object.assign(translations.EN, {
   admin_platform_revenue_desc: 'Prepared shell for platform revenue summaries, commission tracking, and financial insight modules.',
   admin_settlements_desc: 'Prepared area for settlement review, payout handling, and payment status workflows.',
   admin_settings_desc: 'Configure platform-level defaults for commission, billing, settlements, and shared platform billing identity for future print/export.',
+  admin_ai_settings_title: 'AI Provider & API',
+  admin_ai_settings_desc: 'Configure the provider, API keys, model, and system prompt for the website AI chat.',
+  admin_ai_enabled: 'Enable AI Chat',
+  admin_ai_provider: 'AI Provider',
+  admin_ai_model: 'Model Name',
+  admin_ai_base_url: 'Base URL',
+  admin_ai_system_prompt: 'System Prompt',
+  admin_ai_openrouter_key: 'OpenRouter API Key',
+  admin_ai_openai_key: 'OpenAI API Key',
+  admin_ai_active_key_hint: 'The active key follows the selected provider.',
+  admin_ai_status_ready: 'AI config is ready',
+  admin_ai_status_missing: 'AI config is incomplete',
+  admin_ai_provider_openrouter: 'OpenRouter',
+  admin_ai_provider_openai: 'OpenAI GPT',
+  admin_ai_placeholder_openrouter: 'OPENROUTER_API_KEY',
+  admin_ai_placeholder_openai: 'OPENAI_API_KEY',
+  admin_ai_placeholder_model: 'openai/gpt-4.1-mini',
+  admin_ai_placeholder_base_url: 'https://openrouter.ai/api/v1',
+  admin_ai_placeholder_prompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
   admin_settings_reuse_notice: 'These settings are prepared to be reused by Supplier Agreements, Commission Billing, Settlements, and future print/export flows.',
   admin_settings_saved: 'Admin settings saved',
   admin_settings_section_defaults: 'Default Settings',
@@ -2725,6 +2839,35 @@ const DISPLAY_CURRENCY = {
   EN: 'USD',
 };
 
+const PRICING_PACKAGE_CURRENCY_BY_LANGUAGE = {
+  LA: 'LAK',
+  TH: 'THB',
+  EN: 'USD',
+};
+
+const PRICING_PACKAGE_PRICE_MAP = {
+  BASIC: { USD: 59, LAK: 1290000, THB: 1990 },
+  PRO: { USD: 100, LAK: 2190000, THB: 3290 },
+  ENTERPRISE: { USD: 299, LAK: 6490000, THB: 9990 },
+};
+
+const PRICING_PACKAGE_CURRENCY_ORDER = {
+  LA: ['LAK', 'USD', 'THB'],
+  TH: ['THB', 'USD', 'LAK'],
+  EN: ['USD', 'THB', 'LAK'],
+};
+
+const AI_PROVIDER_DEFAULTS = {
+  openrouter: {
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'openai/gpt-4.1-mini',
+  },
+  openai: {
+    baseUrl: 'https://api.openai.com/v1',
+    model: 'gpt-4.1-mini',
+  },
+};
+
 const COMPANY_PROFILE_STORAGE_KEY = 'buildsabaidee_company_profile';
 const QUOTATION_DRAFT_STORAGE_KEY = 'buildsabaidee_quotation_draft';
 const AGREEMENT_DRAFT_STORAGE_KEY = 'buildsabaidee_agreement_draft';
@@ -2818,6 +2961,13 @@ function createDefaultAdminPlatformSettings() {
     platformBillingEmail: '',
     platformBillingPhone: '',
     internalAdminNotes: '',
+    aiEnabled: false,
+    aiProvider: 'openrouter',
+    aiModel: AI_PROVIDER_DEFAULTS.openrouter.model,
+    aiBaseUrl: AI_PROVIDER_DEFAULTS.openrouter.baseUrl,
+    aiSystemPrompt: 'You are BuildSabaidee AI. Help answer questions, draft project plans, calculate basic figures, and summarize information.',
+    openRouterApiKey: '',
+    openAIApiKey: '',
   };
 }
 
@@ -2891,27 +3041,27 @@ function createDefaultPricingPackages() {
     createPricingPackageEntry({
       code: 'BASIC',
       name: 'Basic Plan',
-      description: 'Starter plan for small contractor and worker teams.',
+      description: 'Simple starter plan for teams getting started with daily site work.',
       price: 59,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
-      features: ['GPS attendance', 'Task updates', 'Document access'],
+      features: ['Easy start for new teams', 'Core daily site workflow', 'Photo and task updates', 'No advanced AI included'],
       localizedContent: {
         LA: {
           name: 'ແຜນ Basic',
-          description: 'ແຜນເລີ່ມຕົ້ນສຳລັບຜູ້ຮັບເໝາ ແລະ ທີມຊ່າງຂະໜາດນ້ອຍ',
-          features: ['GPS ເຊັກອິນ', 'ອັບເດດວຽກປະຈຳວັນ', 'ເຂົ້າເບິ່ງເອກະສານ'],
+          description: 'ແພັກເກດເລີ່ມຕົ້ນທີ່ເຂົ້າໃຈງ່າຍ ສຳລັບທີມທີ່ຕ້ອງການເລີ່ມໃຊ້ງານໄວ',
+          features: ['ເໝາະສຳລັບເລີ່ມໃຊ້ງານ', 'ຄຸ້ມຄອງວຽກປະຈຳວັນໜ້າວຽກ', 'ອັບໂຫຼດຮູບ ແລະ ອັບເດດວຽກ', 'ບໍ່ລວມ AI ຂັ້ນສູງ'],
         },
         TH: {
           name: 'แผน Basic',
-          description: 'แผนเริ่มต้นสำหรับผู้รับเหมาและทีมช่างขนาดเล็ก',
-          features: ['ลงเวลา GPS', 'อัปเดตงานประจำวัน', 'เข้าถึงเอกสารโครงการ'],
+          description: 'แพ็กเกจเริ่มต้นที่ใช้งานง่าย เหมาะกับทีมที่ต้องการเริ่มระบบหน้างานอย่างมั่นใจ',
+          features: ['เหมาะสำหรับเริ่มต้นใช้งาน', 'ดูแลงานประจำวันในไซต์', 'อัปโหลดรูปและอัปเดตงาน', 'ไม่มี AI ขั้นสูง'],
         },
         EN: {
           name: 'Basic Plan',
-          description: 'Starter plan for small contractor and worker teams.',
-          features: ['GPS attendance', 'Daily task updates', 'Project document access'],
+          description: 'A clean starter package for teams beginning their day-to-day site operations.',
+          features: ['Easy for teams to get started', 'Core daily site workflow', 'Photo and work updates', 'No advanced AI features'],
         },
       },
       displayOrder: 1,
@@ -2919,27 +3069,27 @@ function createDefaultPricingPackages() {
     createPricingPackageEntry({
       code: 'PRO',
       name: 'Pro Plan',
-      description: 'Growth plan for active contractor teams managing multiple site workflows.',
+      description: 'AI-assisted plan for teams that want faster daily operations.',
       price: 100,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: true,
-      features: ['Everything in Basic', 'Procurement workflow', 'Inventory control', 'Supplier coordination'],
+      features: ['AI for routine questions', 'AI first-draft project support', 'AI for basic calculations', 'Save daily working time'],
       localizedContent: {
         LA: {
           name: 'ແຜນ Pro',
-          description: 'ແຜນສຳລັບຜູ້ຮັບເໝາທີ່ຄຸ້ມຫຼາຍໄຊຕ໌ ແລະ workflow ຫນ້າວຽກທີ່ເຕີບໂຕ',
-          features: ['ຄົບທຸກຢ່າງໃນ Basic', 'workflow ຈັດຊື້', 'ຄວບຄຸມ stock', 'ປະສານງານ supplier'],
+          description: 'ແພັກເກດສຳລັບທີມທີ່ຕ້ອງການ AI ມາຊ່ວຍວຽກປະຈຳວັນໃຫ້ໄວຂຶ້ນ',
+          features: ['AI ຊ່ວຍຕອບຄຳຖາມເບື້ອງຕົ້ນໃນລະບົບ', 'AI ຊ່ວຍຮ່າງຂໍ້ມູນວຽກ ຫຼື ຮ່າງໂຄງການເບື້ອງຕົ້ນ', 'AI ຊ່ວຍຄຳນວນປະລິມານ ລາຄາ ແລະ ສະຫຼຸບຕົວເລກເບື້ອງຕົ້ນ', 'AI ຊ່ວຍປະຢັດເວລາໃນວຽກປະຈຳວັນ'],
         },
         TH: {
           name: 'แผน Pro',
-          description: 'แผนสำหรับผู้รับเหมาที่ดูแลหลายไซต์และ workflow หน้างานที่ซับซ้อนขึ้น',
-          features: ['ครบทุกอย่างใน Basic', 'workflow จัดซื้อ', 'ควบคุมสต็อก', 'ประสานงานซัพพลายเออร์'],
+          description: 'แพ็กเกจสำหรับทีมที่ต้องการใช้ AI ช่วยงานประจำวันให้เร็วและลื่นขึ้น',
+          features: ['AI ช่วยตอบคำถามเบื้องต้นในระบบ', 'AI ช่วยร่างข้อมูลงานหรือร่างโครงการเบื้องต้น', 'AI ช่วยคำนวณปริมาณ ราคา และสรุปตัวเลขเบื้องต้น', 'AI ช่วยประหยัดเวลาในการทำงานประจำวัน'],
         },
         EN: {
           name: 'Pro Plan',
-          description: 'Growth plan for active contractor teams managing multiple site workflows.',
-          features: ['Everything in Basic', 'Procurement workflow', 'Inventory control', 'Supplier coordination'],
+          description: 'An AI-assisted package for teams that want faster execution in everyday work.',
+          features: ['AI answers routine questions inside the system', 'AI drafts early project or task content', 'AI calculates quantities, prices, and basic totals', 'AI saves time across daily operations'],
         },
       },
       displayOrder: 2,
@@ -2947,27 +3097,27 @@ function createDefaultPricingPackages() {
     createPricingPackageEntry({
       code: 'ENTERPRISE',
       name: 'Enterprise',
-      description: 'Advanced plan for multi-project operations, finance controls, and admin visibility.',
+      description: 'Advanced AI plan for operational analysis, planning, and real decision support.',
       price: 299,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
-      features: ['Everything in Pro', 'Admin billing flow', 'Settlement tracking', 'Priority support'],
+      features: ['Deeper AI answers', 'Detailed planning drafts', 'Analysis beyond Pro', 'Enterprise decision support'],
       localizedContent: {
         LA: {
           name: 'ແຜນ Enterprise',
-          description: 'ແຜນຂັ້ນສູງສຳລັບຫຼາຍໂຄງການ, ການເງິນ ແລະ ການຄວບຄຸມຂອງ admin',
-          features: ['ຄົບທຸກຢ່າງໃນ Pro', 'admin billing flow', 'ຕິດຕາມ settlement', 'priority support'],
+          description: 'ແພັກເກດ AI ຂັ້ນສູງ ສຳລັບການວິເຄາະ ການວາງແຜນ ແລະ ການຕັດສິນໃຈໃນອົງກອນ',
+          features: ['AI ຊ່ວຍຕອບຄຳຖາມເຊິ່ງລຶກໄດ້ຫຼາຍຂຶ້ນ', 'AI ຊ່ວຍຮ່າງໂຄງການ ແຜນງານ ແລະ ລາຍລະອຽດວຽກໄດ້ລະອຽດກວ່າ Package 2', 'AI ຊ່ວຍຄຳນວນ ວິເຄາະ ປຽບທຽບ ແລະ ສະຫຼຸບຂໍ້ມູນໄດ້ຫຼາຍກວ່າ Package 2', 'AI ເໝາະສຳລັບວຽກບໍລິຫານ ການຕັດສິນໃຈ ແລະ ການໃຊ້ງານຈິງໃນອົງກອນ'],
         },
         TH: {
           name: 'แผน Enterprise',
-          description: 'แผนขั้นสูงสำหรับหลายโครงการ งานการเงิน และการมองเห็นฝั่งแอดมิน',
-          features: ['ครบทุกอย่างใน Pro', 'admin billing flow', 'ติดตาม settlement', 'priority support'],
+          description: 'แพ็กเกจ AI ขั้นสูงสำหรับการวิเคราะห์ วางแผน และช่วยตัดสินใจในการใช้งานจริงระดับองค์กร',
+          features: ['AI ช่วยตอบคำถามเชิงลึกมากขึ้น', 'AI ช่วยร่างโครงการ แผนงาน และรายละเอียดงานได้ละเอียดกว่า Package 2', 'AI ช่วยคำนวณ วิเคราะห์ เปรียบเทียบ และสรุปข้อมูลได้มากกว่า Package 2', 'AI เหมาะสำหรับงานบริหาร การตัดสินใจ และการใช้งานจริงจังในองค์กร'],
         },
         EN: {
           name: 'Enterprise Plan',
-          description: 'Advanced plan for multi-project operations, finance controls, and admin visibility.',
-          features: ['Everything in Pro', 'Admin billing flow', 'Settlement tracking', 'Priority support'],
+          description: 'An advanced AI package for analysis, planning, and decision support at scale.',
+          features: ['AI handles deeper operational questions', 'AI drafts projects, plans, and work details beyond Package 2', 'AI calculates, analyzes, compares, and summarizes more than Package 2', 'Built for management, decision-making, and serious organizational use'],
         },
       },
       displayOrder: 3,
@@ -2982,23 +3132,28 @@ function getDefaultPricingPackageTemplate(code) {
 function normalizePricingPackageEntry(entry) {
   const base = createPricingPackageEntry();
   const defaultTemplate = getDefaultPricingPackageTemplate(entry?.code);
+  const useManagedPricingPreset = Boolean(defaultTemplate && ['BASIC', 'PRO', 'ENTERPRISE'].includes(String(defaultTemplate.code || '').toUpperCase()));
   return {
     ...base,
     ...(defaultTemplate || {}),
     ...(entry || {}),
     code: String(entry?.code || defaultTemplate?.code || base.code).trim().toUpperCase(),
-    name: String(entry?.name || defaultTemplate?.name || '').trim(),
-    description: entry?.description || defaultTemplate?.description || '',
-    price: Math.max(Number(entry?.price || 0), 0),
-    billingPeriod: ['monthly', 'quarterly', 'yearly', 'custom'].includes(entry?.billingPeriod) ? entry.billingPeriod : base.billingPeriod,
+    name: String(useManagedPricingPreset ? defaultTemplate?.name : (entry?.name || defaultTemplate?.name || '')).trim(),
+    description: useManagedPricingPreset ? (defaultTemplate?.description || '') : (entry?.description || defaultTemplate?.description || ''),
+    price: Math.max(Number(useManagedPricingPreset ? defaultTemplate?.price : (entry?.price || 0)), 0),
+    billingPeriod: useManagedPricingPreset
+      ? defaultTemplate?.billingPeriod || 'monthly'
+      : ['monthly', 'quarterly', 'yearly', 'custom'].includes(entry?.billingPeriod) ? entry.billingPeriod : base.billingPeriod,
     status: entry?.status === 'disabled' ? 'disabled' : 'enabled',
     isRecommended: Boolean(entry?.isRecommended),
-    features: Array.isArray(entry?.features)
+    features: useManagedPricingPreset
+      ? (Array.isArray(defaultTemplate?.features) ? defaultTemplate.features.map((feature) => String(feature || '').trim()).filter(Boolean) : [])
+      : Array.isArray(entry?.features)
       ? entry.features.map((feature) => String(feature || '').trim()).filter(Boolean)
       : Array.isArray(defaultTemplate?.features)
         ? defaultTemplate.features.map((feature) => String(feature || '').trim()).filter(Boolean)
         : [],
-    localizedContent: normalizePricingPackageLocalizedContent(entry?.localizedContent || defaultTemplate?.localizedContent, {
+    localizedContent: normalizePricingPackageLocalizedContent(useManagedPricingPreset ? defaultTemplate?.localizedContent : (entry?.localizedContent || defaultTemplate?.localizedContent), {
       ...(defaultTemplate || {}),
       ...(entry || {}),
     }),
@@ -3066,6 +3221,15 @@ function normalizeAdminPlatformSettings(settings) {
     platformBillingEmail: settings?.platformBillingEmail || '',
     platformBillingPhone: settings?.platformBillingPhone || '',
     internalAdminNotes: settings?.internalAdminNotes || '',
+    aiEnabled: Boolean(settings?.aiEnabled),
+    aiProvider: ['openrouter', 'openai'].includes(String(settings?.aiProvider || '').toLowerCase())
+      ? String(settings.aiProvider).toLowerCase()
+      : base.aiProvider,
+    aiModel: String(settings?.aiModel || base.aiModel).trim() || base.aiModel,
+    aiBaseUrl: String(settings?.aiBaseUrl || base.aiBaseUrl).trim() || base.aiBaseUrl,
+    aiSystemPrompt: String(settings?.aiSystemPrompt || base.aiSystemPrompt).trim() || base.aiSystemPrompt,
+    openRouterApiKey: String(settings?.openRouterApiKey || '').trim(),
+    openAIApiKey: String(settings?.openAIApiKey || '').trim(),
   };
 }
 
@@ -4386,14 +4550,73 @@ function formatMoneyByLanguage(value, language) {
   return `${formatConvertedNumberByLanguage(value, language)} ${CURRENCY_TEXT[language] || 'USD'}`;
 }
 
-function formatPricingPackagePrice(value, language) {
-  return `${formatNumberByLanguage(value, language)} USD`;
+function getPricingPackageAmounts(packageCode, language) {
+  const normalizedCode = String(packageCode || '').toUpperCase();
+  const currencyOrder = PRICING_PACKAGE_CURRENCY_ORDER[language] || PRICING_PACKAGE_CURRENCY_ORDER.EN;
+  const primaryCurrency = currencyOrder[0];
+  const amountMap = PRICING_PACKAGE_PRICE_MAP[normalizedCode] || {
+    USD: 0,
+    THB: 0,
+    LAK: 0,
+  };
+  return {
+    primaryCurrency,
+    primaryAmount: amountMap[primaryCurrency] || 0,
+    secondaryAmounts: currencyOrder.slice(1).map((currency) => ({
+      currency,
+      amount: amountMap[currency] || 0,
+    })),
+  };
 }
 
-function formatPricingPackageBillingSuffix(billingPeriod, language) {
-  return PRICING_PACKAGE_BILLING_SUFFIX[billingPeriod]?.[language]
-    || PRICING_PACKAGE_BILLING_SUFFIX.monthly[language]
-    || PRICING_PACKAGE_BILLING_SUFFIX.monthly.EN;
+function formatPricingPackageCurrencyAmount(amount, currency, language) {
+  return `${new Intl.NumberFormat(NUMBER_LOCALE[language] || 'en-US', { maximumFractionDigits: 0 }).format(Number(amount) || 0)} ${currency}`;
+}
+
+function formatPricingPackagePrice(packageCode, language) {
+  const { primaryAmount, primaryCurrency } = getPricingPackageAmounts(packageCode, language);
+  return formatPricingPackageCurrencyAmount(primaryAmount, primaryCurrency, language);
+}
+
+function formatPricingPackageBillingSuffix(packageCode, language) {
+  const { primaryCurrency } = getPricingPackageAmounts(packageCode, language);
+  return `${primaryCurrency} / ${tMonthlyLabel(language)}`;
+}
+
+function tMonthlyLabel(language) {
+  if (language === 'TH') return 'เดือน';
+  if (language === 'EN') return 'month';
+  return 'ເດືອນ';
+}
+
+function getAiProviderConfig(settings) {
+  const normalizedSettings = normalizeAdminPlatformSettings(settings);
+  const provider = normalizedSettings.aiProvider === 'openai' ? 'openai' : 'openrouter';
+  return {
+    provider,
+    enabled: normalizedSettings.aiEnabled,
+    model: normalizedSettings.aiModel || AI_PROVIDER_DEFAULTS[provider].model,
+    baseUrl: normalizedSettings.aiBaseUrl || AI_PROVIDER_DEFAULTS[provider].baseUrl,
+    systemPrompt: normalizedSettings.aiSystemPrompt || createDefaultAdminPlatformSettings().aiSystemPrompt,
+    apiKey: provider === 'openai' ? normalizedSettings.openAIApiKey : normalizedSettings.openRouterApiKey,
+  };
+}
+
+function isAiChatReady(settings) {
+  const config = getAiProviderConfig(settings);
+  return Boolean(config.enabled && config.apiKey && config.model);
+}
+
+function buildAiChatRequestPreview(settings, messages) {
+  const config = getAiProviderConfig(settings);
+  return {
+    provider: config.provider,
+    endpoint: `${String(config.baseUrl || '').replace(/\/$/, '')}/chat/completions`,
+    model: config.model,
+    systemPrompt: config.systemPrompt,
+    hasApiKey: Boolean(config.apiKey),
+    messages,
+  };
 }
 
 function formatDateByLanguage(value, language) {
@@ -4843,6 +5066,7 @@ export default function BuildSabaideeApp() {
           toggleLanguage={toggleLanguage}
           language={language}
           pricingPackages={pricingPackages}
+          adminPlatformSettings={adminPlatformSettings}
         />
       )}
       {currentView === 'role_login' && (
@@ -4951,7 +5175,160 @@ export default function BuildSabaideeApp() {
 // ==========================================
 // 1. LANDING PAGE COMPONENT
 // ==========================================
-function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages }) {
+function WebsiteAiAssistant({ t, language, adminPlatformSettings }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const config = getAiProviderConfig(adminPlatformSettings);
+  const aiReady = isAiChatReady(adminPlatformSettings);
+  const welcomeText = aiReady ? t('ai_chat_welcome_ready') : t('ai_chat_welcome_fallback');
+  const [messages, setMessages] = useState(() => ([
+    { id: 'welcome', role: 'assistant', text: welcomeText },
+  ]));
+
+  useEffect(() => {
+    setMessages((prev) => {
+      const nextMessages = prev.filter((message) => message.id !== 'welcome');
+      return [{ id: 'welcome', role: 'assistant', text: welcomeText }, ...nextMessages];
+    });
+  }, [welcomeText]);
+
+  const capabilityBadges = [
+    t('ai_chat_capability_questions'),
+    t('ai_chat_capability_drafts'),
+    t('ai_chat_capability_calculations'),
+    t('ai_chat_capability_summary'),
+  ];
+
+  const handleSend = () => {
+    const trimmedInput = String(chatInput || '').trim();
+    if (!trimmedInput || isSending) return;
+
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      text: trimmedInput,
+    };
+    const nextMessages = [...messages, userMessage];
+    setMessages(nextMessages);
+    setChatInput('');
+
+    if (!aiReady) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          text: t('ai_chat_not_ready_detail'),
+        },
+      ]);
+      return;
+    }
+
+    setIsSending(true);
+    const requestPreview = buildAiChatRequestPreview(adminPlatformSettings, nextMessages.map((message) => ({
+      role: message.role === 'assistant' ? 'assistant' : 'user',
+      content: message.text,
+    })));
+
+    window.setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          text: `${t('ai_chat_demo_reply_intro')}\n${t('ai_chat_demo_reply_followup')}\n${t('ai_chat_powered_by')}: ${requestPreview.provider === 'openai' ? 'OpenAI GPT' : 'OpenRouter'} | ${requestPreview.model}`,
+        },
+      ]);
+      setIsSending(false);
+    }, 450);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="fixed bottom-5 right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-300 transition hover:bg-blue-700"
+        aria-label={t('ai_chat_title')}
+      >
+        {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-x-4 bottom-24 z-40 mx-auto w-auto max-w-md rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl shadow-slate-300/40 md:right-5 md:left-auto md:mx-0 md:w-[24rem]">
+          <div className="rounded-t-[1.75rem] bg-gradient-to-r from-blue-700 to-slate-900 p-4 text-white">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="rounded-2xl bg-white/15 p-2">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold">{t('ai_chat_title')}</div>
+                  <div className="mt-1 text-xs text-blue-100">
+                    {aiReady ? t('ai_chat_status_enabled') : t('ai_chat_status_disabled')} • {config.provider === 'openai' ? 'OpenAI GPT' : 'OpenRouter'}
+                  </div>
+                </div>
+              </div>
+              <button type="button" onClick={() => setIsOpen(false)} className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {capabilityBadges.map((badge) => (
+                <span key={badge} className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-blue-50">
+                  {badge}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="max-h-[60vh] overflow-y-auto px-4 py-4">
+            {messages.map((message) => (
+              <div key={message.id} className={`mb-3 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 whitespace-pre-wrap ${message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                  {message.text}
+                </div>
+              </div>
+            ))}
+            {isSending && (
+              <div className="mb-3 flex justify-start">
+                <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                  {t('ai_chat_thinking')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-200 px-4 py-4">
+            <div className="mb-3 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              {t('ai_chat_powered_by')}: {config.provider === 'openai' ? 'OpenAI GPT' : 'OpenRouter'} • {config.model}
+            </div>
+            <div className="flex items-end gap-2">
+              <textarea
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder={t('ai_chat_input_placeholder')}
+                className="min-h-[52px] flex-1 resize-none rounded-2xl border border-slate-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                rows={2}
+              />
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!String(chatInput || '').trim() || isSending}
+                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages, adminPlatformSettings }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const openSignupPlaceholder = () => {
     setIsMobileMenuOpen(false);
@@ -5338,15 +5715,17 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages 
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-slate-900 mb-4">{t('pricing_title')}</h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t('pricing_subtitle')}</p>
+            <p className="mt-3 text-sm text-slate-500">{t('pricing_currency_hint')}</p>
           </div>
           <div className="grid max-w-5xl gap-5 mx-auto md:grid-cols-2 xl:grid-cols-3">
             {landingPricingPackages.map((entry, index) => {
               const localizedPackage = getLocalizedPricingPackageContent(entry, language);
+              const pricingAmounts = getPricingPackageAmounts(entry.code, language);
               const tone = entry.isRecommended
                 ? pricingCardToneMap[1]
                 : pricingCardToneMap[index] || pricingCardToneMap[2];
               const featureList = Array.isArray(localizedPackage.features) && localizedPackage.features.length > 0
-                ? localizedPackage.features.slice(0, 4)
+                ? localizedPackage.features
                 : ['-'];
               const ctaLabel = entry.isRecommended
                 ? t('pricing_cta_choose_plan')
@@ -5371,9 +5750,17 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages 
                     </span>
                   </div>
                   <div className="my-5 rounded-2xl bg-slate-50/80 p-4">
-                    <div className={`text-3xl font-bold ${tone.price}`}>{formatPricingPackagePrice(entry.price || 0, language)}</div>
+                    <div className={`text-3xl font-bold ${tone.price}`}>{formatPricingPackagePrice(entry.code, language)}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {formatPricingPackageBillingSuffix(entry.billingPeriod, language)}
+                      {formatPricingPackageBillingSuffix(entry.code, language)}
+                    </div>
+                    <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_equivalent_label')}</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {pricingAmounts.secondaryAmounts.map((item) => (
+                        <span key={`${entry.code}-${item.currency}`} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                          {formatPricingPackageCurrencyAmount(item.amount, item.currency, language)}
+                        </span>
+                      ))}
                     </div>
                   </div>
                   <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_modules_title')}</div>
@@ -5419,6 +5806,7 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages 
           </div>
         </div>
       </footer>
+      <WebsiteAiAssistant t={t} language={language} adminPlatformSettings={adminPlatformSettings} />
     </div>
   );
 }
@@ -8343,6 +8731,8 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
   });
   const activePricingPackageCount = pricingPackages.filter((entry) => entry.status === 'enabled').length;
   const recommendedPricingPackage = pricingPackages.find((entry) => entry.isRecommended) || null;
+  const aiProviderConfig = getAiProviderConfig(adminSettingsForm);
+  const aiSettingsReady = isAiChatReady(adminSettingsForm);
 
   return (
     <div className="min-h-dvh md:min-h-screen bg-slate-100 flex relative">
@@ -12810,7 +13200,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                 <StatCard title={t('admin_pricing_total_packages')} value={pricingPackages.length} icon={<Package />} color="text-slate-700" bg="bg-slate-200" />
                 <StatCard title={t('admin_pricing_active_packages')} value={activePricingPackageCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
                 <StatCard title={t('admin_pricing_recommended_package')} value={recommendedPricingPackage ? getLocalizedPricingPackageContent(recommendedPricingPackage, language).name : '-'} icon={<Percent />} color="text-amber-600" bg="bg-amber-100" />
-                <StatCard title={t('admin_pricing_monthly_revenue_hint')} value={recommendedPricingPackage ? formatPricingPackagePrice(recommendedPricingPackage.price || 0, language) : '-'} icon={<DollarSign />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('admin_pricing_monthly_revenue_hint')} value={recommendedPricingPackage ? formatPricingPackagePrice(recommendedPricingPackage.code, language) : '-'} icon={<DollarSign />} color="text-blue-600" bg="bg-blue-100" />
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -12866,8 +13256,8 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                           <p className="mt-3 text-sm leading-6 text-slate-600">{localizedPackage.description || '-'}</p>
                         </div>
                         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
-                          <div className="text-lg font-bold text-slate-900">{formatPricingPackagePrice(entry.price || 0, language)}</div>
-                          <div className="mt-1 text-xs text-slate-500">{formatPricingPackageBillingSuffix(entry.billingPeriod, language)}</div>
+                          <div className="text-lg font-bold text-slate-900">{formatPricingPackagePrice(entry.code, language)}</div>
+                          <div className="mt-1 text-xs text-slate-500">{formatPricingPackageBillingSuffix(entry.code, language)}</div>
                         </div>
                       </div>
 
@@ -13018,6 +13408,72 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                           <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin_settings_platform_billing_phone')}</label>
                           <input type="text" value={adminSettingsForm.platformBillingPhone} onChange={(e) => updateAdminSettingsField('platformBillingPhone', e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <h4 className="font-semibold text-slate-800">{t('admin_ai_settings_title')}</h4>
+                        <p className="mt-1 text-sm text-slate-500">{t('admin_ai_settings_desc')}</p>
+                        <p className={`mt-2 text-xs font-medium ${aiSettingsReady ? 'text-green-600' : 'text-amber-600'}`}>
+                          {t(aiSettingsReady ? 'admin_ai_status_ready' : 'admin_ai_status_missing')}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <div className="font-semibold text-slate-800">{aiProviderConfig.provider === 'openai' ? t('admin_ai_provider_openai') : t('admin_ai_provider_openrouter')}</div>
+                        <div className="mt-1 text-xs">{aiProviderConfig.model}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2">
+                        <input
+                          type="checkbox"
+                          checked={adminSettingsForm.aiEnabled}
+                          onChange={(e) => updateAdminSettingsField('aiEnabled', e.target.checked)}
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                        <span className="text-sm font-medium text-slate-700">{t('admin_ai_enabled')}</span>
+                      </label>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_provider')}</label>
+                        <select
+                          value={adminSettingsForm.aiProvider}
+                          onChange={(e) => {
+                            const provider = e.target.value;
+                            updateAdminSettingsField('aiProvider', provider);
+                            updateAdminSettingsField('aiBaseUrl', AI_PROVIDER_DEFAULTS[provider]?.baseUrl || '');
+                            updateAdminSettingsField('aiModel', AI_PROVIDER_DEFAULTS[provider]?.model || '');
+                          }}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        >
+                          <option value="openrouter">{t('admin_ai_provider_openrouter')}</option>
+                          <option value="openai">{t('admin_ai_provider_openai')}</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_model')}</label>
+                        <input type="text" value={adminSettingsForm.aiModel} onChange={(e) => updateAdminSettingsField('aiModel', e.target.value)} placeholder={t('admin_ai_placeholder_model')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_base_url')}</label>
+                        <input type="text" value={adminSettingsForm.aiBaseUrl} onChange={(e) => updateAdminSettingsField('aiBaseUrl', e.target.value)} placeholder={t('admin_ai_placeholder_base_url')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_openrouter_key')}</label>
+                        <input type="password" value={adminSettingsForm.openRouterApiKey} onChange={(e) => updateAdminSettingsField('openRouterApiKey', e.target.value)} placeholder={t('admin_ai_placeholder_openrouter')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">{t('admin_ai_openai_key')}</label>
+                        <input type="password" value={adminSettingsForm.openAIApiKey} onChange={(e) => updateAdminSettingsField('openAIApiKey', e.target.value)} placeholder={t('admin_ai_placeholder_openai')} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="mb-1 flex items-center justify-between gap-3">
+                          <label className="block text-sm font-medium text-slate-700">{t('admin_ai_system_prompt')}</label>
+                          <span className="text-xs text-slate-500">{t('admin_ai_active_key_hint')}</span>
+                        </div>
+                        <textarea value={adminSettingsForm.aiSystemPrompt} onChange={(e) => updateAdminSettingsField('aiSystemPrompt', e.target.value)} placeholder={t('admin_ai_placeholder_prompt')} className="min-h-28 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
                       </div>
                     </div>
                   </div>
