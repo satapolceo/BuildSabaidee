@@ -2067,41 +2067,36 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               addOpen={openAddField === 'photo-standard-phrase'}
               onToggleAdd={() => toggleCompactAdd('photo-standard-phrase')}
             />
-            <textarea
-              value={photoBatchForm.notes}
-              onChange={(event) => setPhotoBatchField('notes', event.target.value)}
-              placeholder={pickText(t, 'worker_report_details', 'Details')}
-              rows={3}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
-            />
-            <MultiPhotoPicker
-              photos={photoBatchForm.photos}
-              onChange={handleBatchPhotoChange}
-              onRemove={removeBatchPhoto}
-              label={pickText(t, 'worker_report_photo', 'Photos')}
-              helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
-              cameraLabel={localCopy.photoTakeAction}
-              galleryLabel={localCopy.photoChooseAction}
-              removeLabel={localCopy.photoRemove}
-              countLabel={localCopy.photoBatchCount}
-              loading={busyAction === 'photo-upload'}
-              disabled={!batchReadyForPhotos}
-            />
-            {photoBatchForm.photos.length ? (
-              <div className="rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
-                <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
-                <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
-                  <div className="rounded-xl bg-white px-3 py-2">
-                    <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
-                    <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalOriginalBytes)}</div>
-                  </div>
-                  <div className="rounded-xl bg-white px-3 py-2">
-                    <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
-                    <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalCompressedBytes)}</div>
+            <div className="space-y-3">
+              <MultiPhotoPicker
+                photos={photoBatchForm.photos}
+                onChange={handleBatchPhotoChange}
+                onRemove={removeBatchPhoto}
+                label={pickText(t, 'worker_report_photo', 'Photos')}
+                helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
+                cameraLabel={localCopy.photoTakeAction}
+                galleryLabel={localCopy.photoChooseAction}
+                removeLabel={localCopy.photoRemove}
+                countLabel={localCopy.photoBatchCount}
+                loading={busyAction === 'photo-upload'}
+                disabled={!batchReadyForPhotos}
+              />
+              {photoBatchForm.photos.length ? (
+                <div className="rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
+                  <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
+                  <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                    <div className="rounded-xl bg-white px-3 py-2">
+                      <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
+                      <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalOriginalBytes)}</div>
+                    </div>
+                    <div className="rounded-xl bg-white px-3 py-2">
+                      <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
+                      <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalCompressedBytes)}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
             <div className={`rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_1px_rgba(244,63,94,0.14)]' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-start gap-3">
                 <div className={`rounded-2xl p-3 ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
@@ -2144,6 +2139,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
                 {isBatchRecordingVoice ? localCopy.batchVoiceRecording : localCopy.batchVoiceProcessing}
               </div>
             ) : null}
+            <textarea
+              value={photoBatchForm.notes}
+              onChange={(event) => setPhotoBatchField('notes', event.target.value)}
+              placeholder={pickText(t, 'worker_report_details', 'Details')}
+              rows={3}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+            />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button onClick={() => submitPhotoBatch('draft')} disabled={!batchReadyForPhotos || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
                 {busyAction === 'photo-draft' ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileImage className="h-4 w-4" />}

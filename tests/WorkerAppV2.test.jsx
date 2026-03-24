@@ -261,27 +261,27 @@ describe('WorkerAppV2 mobile automation', () => {
 
     const checkInButton = getQuickActionButton(/Check In/i);
     const checkOutButton = getQuickActionButton(/Check Out/i);
-    const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo|อัปเดตส่งงาน|ອັບເດດສົ່ງງານ/i);
-    const voiceButton = getQuickActionButton(/Voice Notes|Voice/i);
+    const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo|อัปเดตส่งงาน|ອັບເດດສົ່งງາน/i);
 
     expect(checkInButton).toBeEnabled();
     expect(checkOutButton).toBeDisabled();
     expect(photoButton).toBeDisabled();
-    expect(voiceButton).toBeDisabled();
+    expect(getQuickActionButton(/Voice Notes|Voice/i)).toBeUndefined();
 
     await user.click(checkInButton);
     await waitFor(() => expect(checkOutButton).toBeEnabled());
     await waitFor(() => expect(photoButton).toBeEnabled());
-    await waitFor(() => expect(voiceButton).toBeEnabled());
+    expect(getQuickActionButton(/Voice Notes|Voice/i)).toBeUndefined();
 
     await user.click(checkOutButton);
     await waitFor(() => expect(checkOutButton).toBeDisabled());
     await settleUi();
     expect(photoButton).toBeDisabled();
-    expect(voiceButton).toBeDisabled();
+    expect(getQuickActionButton(/Voice Notes|Voice/i)).toBeUndefined();
 
     return 'Quick actions update immediately on tap and keep the mobile gate logic intact';
   }));
+
 
 
   it('adds custom main category, subcategory, zone, and standard phrase inline', async () => withFeature('Compact add preset flow', async () => {
@@ -372,27 +372,27 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Submit screen removes work-type/team/room and keeps a shorter photo-to-voice-to-submit flow';
   }));
 
-  it('keeps inline voice and mobile shell navigation working', async () => withFeature('Inline voice and mobile shell', async () => {
+  it('keeps inline voice controls inside the photo section', async () => withFeature('Inline voice controls in photo form', async () => {
     const user = userEvent.setup();
-    const view = renderWorkerApp('EN');
+    renderWorkerApp('EN');
 
-    await checkIn(user);
-    const voiceButton = getQuickActionButton(/Voice Notes|Voice/i);
-    await waitFor(() => expect(voiceButton).toBeEnabled());
-    await user.click(voiceButton);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Start recording/i })).toBeEnabled());
-    await user.click(screen.getByRole('button', { name: /Start recording/i }));
-    expect(screen.getByText('Recording...')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Stop recording/i }));
-    await waitFor(() => expect(view.container.querySelector('audio')).toBeInTheDocument());
+    await checkInAndOpenPhoto(user);
 
-    await user.click(screen.getByRole('button', { name: /Back/i }));
-    await openPhotoScreen(user);
+    const photoSection = screen.getByText('Photos').closest('div');
+    const voiceSection = screen.getByText('Inline batch voice').closest('div');
+    expect(photoSection).toBeTruthy();
+    expect(voiceSection).toBeTruthy();
+    expect(photoSection.compareDocumentPosition(voiceSection)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+    const noteTextarea = screen.getByPlaceholderText('Details');
+    expect(voiceSection.compareDocumentPosition(noteTextarea)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
     await recordInlineVoice(user);
     expect(screen.getByRole('button', { name: /Delete batch voice/i })).toBeEnabled();
 
-    return 'Voice screen recording, inline batch recording, and return navigation still work on mobile';
+    return 'Voice controls stay under the photo section and remain interactive on mobile';
   }));
+
 
   it('renders Thai dropdown labels and selected values without clipping', async () => withFeature('Thai dropdown rendering', async () => {
     const user = userEvent.setup();

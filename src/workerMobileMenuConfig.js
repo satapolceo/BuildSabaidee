@@ -241,27 +241,6 @@ export function createWorkerActionButtons({
       onClick: handlers.onPhoto,
     },
     {
-      id: 'voice',
-      label: 'Voice Notes',
-      helper: isRecordingVoice
-        ? localCopy.recording
-        : todayVoiceCount > 0
-          ? `${todayVoiceCount} ${localCopy.done}`
-          : !canUseWorkActions
-            ? localCopy.disabled
-            : isProjectBatchOptionsLoading
-              ? localCopy.batchProjectDataLoading
-              : hasBatchRoomSelection
-                ? `${localCopy.active} • ${roomName}`
-                : localCopy.batchFilterRoom,
-      icon: icons.voice,
-      tone: 'slate',
-      disabled: !canOpenWorkerTools,
-      loading: isVoiceProcessing,
-      active: activeScreen === screenVoice || isRecordingVoice || todayVoiceCount > 0,
-      onClick: handlers.onVoice,
-    },
-    {
       id: 'issue',
       label: localCopy.quickIssueTitle,
       helper: state.todayIssueCount

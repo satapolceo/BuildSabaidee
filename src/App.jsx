@@ -2892,7 +2892,7 @@ function createDefaultPricingPackages() {
       code: 'BASIC',
       name: 'Basic Plan',
       description: 'Starter plan for small contractor and worker teams.',
-      price: 299000,
+      price: 59,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
@@ -2920,7 +2920,7 @@ function createDefaultPricingPackages() {
       code: 'PRO',
       name: 'Pro Plan',
       description: 'Growth plan for active contractor teams managing multiple site workflows.',
-      price: 699000,
+      price: 100,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: true,
@@ -2948,7 +2948,7 @@ function createDefaultPricingPackages() {
       code: 'ENTERPRISE',
       name: 'Enterprise',
       description: 'Advanced plan for multi-project operations, finance controls, and admin visibility.',
-      price: 1499000,
+      price: 299,
       billingPeriod: 'monthly',
       status: 'enabled',
       isRecommended: false,
@@ -4312,6 +4312,29 @@ const CURRENCY_TEXT = {
   EN: 'USD',
 };
 
+const PRICING_PACKAGE_BILLING_SUFFIX = {
+  monthly: {
+    LA: 'USD / ເດືອນ',
+    TH: 'USD / เดือน',
+    EN: 'USD / month',
+  },
+  quarterly: {
+    LA: 'USD / 3 ເດືອນ',
+    TH: 'USD / 3 เดือน',
+    EN: 'USD / quarter',
+  },
+  yearly: {
+    LA: 'USD / ປີ',
+    TH: 'USD / ปี',
+    EN: 'USD / year',
+  },
+  custom: {
+    LA: 'USD / ຮອບ',
+    TH: 'USD / รอบ',
+    EN: 'USD / period',
+  },
+};
+
 const PRICE_PER_PERSON_MONTH = {
   LA: ' LAK/ຄົນ/ເດືອນ',
   TH: ' THB/คน/เดือน',
@@ -4361,6 +4384,16 @@ function formatConvertedNumberByLanguage(value, language, fractionDigits = 2) {
 
 function formatMoneyByLanguage(value, language) {
   return `${formatConvertedNumberByLanguage(value, language)} ${CURRENCY_TEXT[language] || 'USD'}`;
+}
+
+function formatPricingPackagePrice(value, language) {
+  return `${formatNumberByLanguage(value, language)} USD`;
+}
+
+function formatPricingPackageBillingSuffix(billingPeriod, language) {
+  return PRICING_PACKAGE_BILLING_SUFFIX[billingPeriod]?.[language]
+    || PRICING_PACKAGE_BILLING_SUFFIX.monthly[language]
+    || PRICING_PACKAGE_BILLING_SUFFIX.monthly.EN;
 }
 
 function formatDateByLanguage(value, language) {
@@ -5338,9 +5371,9 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages 
                     </span>
                   </div>
                   <div className="my-5 rounded-2xl bg-slate-50/80 p-4">
-                    <div className={`text-3xl font-bold ${tone.price}`}>{formatMoneyByLanguage(entry.price || 0, language)}</div>
+                    <div className={`text-3xl font-bold ${tone.price}`}>{formatPricingPackagePrice(entry.price || 0, language)}</div>
                     <div className="mt-1 text-xs font-medium text-slate-500">
-                      {t(`admin_pricing_billing_period_${entry.billingPeriod}`)} {t('admin_pricing_price_suffix')}
+                      {formatPricingPackageBillingSuffix(entry.billingPeriod, language)}
                     </div>
                   </div>
                   <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{t('pricing_modules_title')}</div>
@@ -12777,7 +12810,7 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                 <StatCard title={t('admin_pricing_total_packages')} value={pricingPackages.length} icon={<Package />} color="text-slate-700" bg="bg-slate-200" />
                 <StatCard title={t('admin_pricing_active_packages')} value={activePricingPackageCount} icon={<CheckCircle />} color="text-green-600" bg="bg-green-100" />
                 <StatCard title={t('admin_pricing_recommended_package')} value={recommendedPricingPackage ? getLocalizedPricingPackageContent(recommendedPricingPackage, language).name : '-'} icon={<Percent />} color="text-amber-600" bg="bg-amber-100" />
-                <StatCard title={t('admin_pricing_monthly_revenue_hint')} value={recommendedPricingPackage ? formatMoneyByLanguage(recommendedPricingPackage.price || 0, language) : '-'} icon={<DollarSign />} color="text-blue-600" bg="bg-blue-100" />
+                <StatCard title={t('admin_pricing_monthly_revenue_hint')} value={recommendedPricingPackage ? formatPricingPackagePrice(recommendedPricingPackage.price || 0, language) : '-'} icon={<DollarSign />} color="text-blue-600" bg="bg-blue-100" />
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -12833,8 +12866,8 @@ function ManagerDashboard({ onNavigate, t, language, dashboardRole = 'user', adm
                           <p className="mt-3 text-sm leading-6 text-slate-600">{localizedPackage.description || '-'}</p>
                         </div>
                         <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
-                          <div className="text-lg font-bold text-slate-900">{formatMoneyByLanguage(entry.price || 0, language)}</div>
-                          <div className="mt-1 text-xs text-slate-500">{t(`admin_pricing_billing_period_${entry.billingPeriod}`)} {t('admin_pricing_price_suffix')}</div>
+                          <div className="text-lg font-bold text-slate-900">{formatPricingPackagePrice(entry.price || 0, language)}</div>
+                          <div className="mt-1 text-xs text-slate-500">{formatPricingPackageBillingSuffix(entry.billingPeriod, language)}</div>
                         </div>
                       </div>
 
