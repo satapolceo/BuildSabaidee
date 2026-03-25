@@ -14,6 +14,7 @@ export const SCREEN_ISSUE = 'issue';
 export const SCREEN_DELIVERY = 'delivery';
 export const SCREEN_PAYMENT = 'payment';
 export const SCREEN_MILESTONE = 'milestone';
+export const SCREEN_DAILY_REPORT = 'daily_report';
 
 export const workerNavItemDefs = [
   { id: TAB_HOME, labelKey: 'worker_nav_home', fallback: 'Home', icon: 'home' },
@@ -197,6 +198,7 @@ export function createWorkerActionButtons({
   const equipmentHistoryHighlight = canUseWorkActions && Boolean(state.todayEquipmentCount);
   const paymentHistoryHighlight = canUseWorkActions && Boolean(state.todayPaymentCount);
   const milestoneHistoryHighlight = canUseWorkActions && Boolean(state.todayMilestoneCount);
+  const dailyReportHistoryHighlight = canUseWorkActions && Boolean(state.todayDailyReportCount);
 
   return [
     {
@@ -317,5 +319,22 @@ export function createWorkerActionButtons({
       active: activeScreen === state.screenMilestone || milestoneHistoryHighlight,
       onClick: handlers.onMilestone,
     },
+    {
+      id: 'dailyReport',
+      label: localCopy.quickDailyReportTitle,
+      helper: state.todayDailyReportCount
+        ? `${state.todayDailyReportCount} ${localCopy.done}`
+        : !canUseWorkActions
+          ? localCopy.disabled
+          : localCopy.quickDailyReportHelper,
+      icon: icons.dailyReport,
+      tone: 'blue',
+      disabled: !canUseWorkActions,
+      loading: busyAction === 'daily-report-submit',
+      active: activeScreen === state.screenDailyReport || dailyReportHistoryHighlight,
+      onClick: handlers.onDailyReport,
+    },
   ];
 }
+
+

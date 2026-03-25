@@ -27,6 +27,7 @@ import {
   WORKER_STORAGE_KEYS,
   createAttendanceRecord,
   createIssueReport,
+  createDailyReportRecord,
   createMaterialRequest,
   createMilestoneSubmission,
   createPaymentRequest,
@@ -39,7 +40,47 @@ import {
   saveToStorage,
   updateWorkerTaskStatus,
 } from './workerStorage';
-import { compressImageFile, DATA_SAVER_DEFAULTS, formatBytes } from './imageDataSaver';
+import { compressImageFile, DATA_SAVER_DEFAULTS } from './imageDataSaver';
+import AttachmentComposer from './modules/attachments/AttachmentComposer';
+import DailyReportDetail from './modules/dailyReports/DailyReportDetail';
+import DailyReportFilters from './modules/dailyReports/DailyReportFilters';
+import DailyReportForm from './modules/dailyReports/DailyReportForm';
+import DailyReportList from './modules/dailyReports/DailyReportList';
+import SiteTicketDetail from './modules/siteTickets/SiteTicketDetail';
+import SiteTicketFilters from './modules/siteTickets/SiteTicketFilters';
+import SiteTicketForm from './modules/siteTickets/SiteTicketForm';
+import SiteTicketList from './modules/siteTickets/SiteTicketList';
+import {
+  SITE_TICKET_STATUS,
+  canEditSiteTicket,
+} from './modules/siteTickets/siteTicketModel';
+import {
+  createSiteTicketFromForm,
+  filterSiteTickets,
+  getSiteTicketSummaryCounts,
+  getVisibleSiteTickets,
+  migrateLegacyIssuesToSiteTickets,
+  sortSiteTickets,
+  updateSiteTicketFromForm,
+} from './modules/siteTickets/siteTicketService';
+import {
+  getSiteTicketCopy,
+  getSiteTicketPriorityOptions,
+  getSiteTicketStatusOptions,
+} from './modules/siteTickets/siteTicketI18n';
+import useSiteTicketForm from './modules/siteTickets/useSiteTicketForm';
+import { canEditDailyReport } from './modules/dailyReports/dailyReportModel';
+import {
+  buildDailyReportTicketInsights,
+  createDailyReportFromForm,
+  filterDailyReports,
+  getDailyReportSummaryCounts,
+  getVisibleDailyReports,
+  sortDailyReports,
+  updateDailyReportFromForm,
+} from './modules/dailyReports/dailyReportService';
+import { getDailyReportCopy } from './modules/dailyReports/dailyReportI18n';
+import useDailyReportForm from './modules/dailyReports/useDailyReportForm';
 import {
   TAB_HOME,
   TAB_TASKS,
@@ -56,6 +97,7 @@ import {
   SCREEN_DELIVERY,
   SCREEN_PAYMENT,
   SCREEN_MILESTONE,
+  SCREEN_DAILY_REPORT,
   createWorkerNavItems,
   createWorkerActionButtons,
   getLocalizedConstructionTaskCategoryOptions,
@@ -271,6 +313,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       id: worker.id || 'worker-local',
       name: worker.name || worker.companyName || pickText(t, 'worker_role_worker', 'Worker'),
       assignedSiteId: worker.assignedSiteId || '',
+      role: worker.role || 'worker',
     };
   }, [workersList, t]);
 
@@ -381,11 +424,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         quickEquipmentTitle: 'ขอเบิกอุปกรณ์ / เครื่องมือ',
         quickPaymentTitle: 'ขอเบิกเงิน',
         quickMilestoneTitle: 'ส่งงานงวดงาน',
+        quickDailyReportTitle: 'รายงานประจำวัน',
         quickIssueHelper: 'แจ้งของขาดหรือปัญหาหน้างานทันที',
         quickDeliveryHelper: 'บันทึกรับสินค้าหรือของเข้าไซต์งาน',
         quickEquipmentHelper: 'ขอเบิกอุปกรณ์หรือเครื่องมือสำหรับงาน',
         quickPaymentHelper: 'ส่งคำขอเบิกเงินตามหมวดงานและพื้นที่',
         quickMilestoneHelper: 'ส่งความคืบหน้างวดงานพร้อมรูปและหมายเหตุ',
+        quickDailyReportHelper: 'สรุปงานวันนี้พร้อมปัญหาและแผนพรุ่งนี้',
         editableUpdateAction: 'อัปเดตรายการที่เลือก',
         editableSelectedHelper: 'เลือกจากรายการ หรือพิมพ์ค่าใหม่เพื่อเพิ่ม/แก้ได้ทันที',
         subcategoryHelper: 'เลือกหมวดหลักก่อน แล้วจึงเลือกหมวดย่อย',
@@ -417,6 +462,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         milestoneSaved: 'ส่งงวดงานแล้ว',
         requestSavedDelivery: 'บันทึกรับสินค้าเข้าไซต์แล้ว',
         requestSavedEquipment: 'ส่งคำขออุปกรณ์ / เครื่องมือแล้ว',
+        attachmentPreviewTitle: 'ตัวอย่างก่อนส่ง',
+        attachmentPreviewEmpty: 'ยังไม่มีรูป เสียง หรือโน้ตในชุดนี้',
+        attachmentPreviewPhoto: 'รูป',
+        attachmentPreviewVoice: 'เสียง',
+        attachmentPreviewNote: 'โน้ต',
+        attachmentPreviewRemove: 'ลบ',
+        attachmentNoteLabel: 'โน้ตสั้น',
+        originalSizeLabel: 'ขนาดไฟล์เดิม',
+        compressedSizeLabel: 'ขนาดหลังบีบอัด',
       }
     : language === 'LA'
       ? {
@@ -519,11 +573,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           quickEquipmentTitle: 'ຂໍເບີກອຸປະກອນ / ເຄື່ອງມື',
           quickPaymentTitle: 'ຂໍເບີກເງິນ',
           quickMilestoneTitle: 'ສົ່ງວຽກຕາມງວດ',
+          quickDailyReportTitle: 'ລາຍງານປະຈຳວັນ',
           quickIssueHelper: 'ແຈ້ງຂອງຂາດ ຫຼື ບັນຫາໜ້າງານໄດ້ທັນທີ',
           quickDeliveryHelper: 'ບັນທຶກການຮັບສິນຄ້າເຂົ້າໄຊງານ',
           quickEquipmentHelper: 'ຂໍເບີກອຸປະກອນ ຫຼື ເຄື່ອງມືສຳລັບວຽກ',
           quickPaymentHelper: 'ສົ່ງຄຳຂໍເບີກເງິນຕາມໝວດວຽກ ແລະ ພື້ນທີ່',
           quickMilestoneHelper: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດພ້ອມຮູບ ແລະ ໝາຍເຫດ',
+          quickDailyReportHelper: 'ສະຫຼຸບວຽກມື້ນີ້ພ້ອມບັນຫາ ແລະ ແຜນມື້ອື່ນ',
           editableUpdateAction: 'ອັບເດດລາຍການທີ່ເລືອກ',
           editableSelectedHelper: 'ເລືອກຈາກລາຍການ ຫຼື ພິມຄ່າໃໝ່ເພື່ອເພີ່ມ/ແກ້ໄຂໄດ້ທັນທີ',
           subcategoryHelper: 'ເລືອກໝວດຫຼັກກ່ອນ ແລ້ວຈຶ່ງເລືອກໝວດຍ່ອຍ',
@@ -555,6 +611,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           milestoneSaved: 'ສົ່ງງວດງານແລ້ວ',
           requestSavedDelivery: 'ບັນທຶກສິນຄ້າເຂົ້າໄຊແລ້ວ',
           requestSavedEquipment: 'ສົ່ງຄຳຂໍອຸປະກອນ / ເຄື່ອງມືແລ້ວ',
+          attachmentPreviewTitle: 'ຕົວຢ່າງກ່ອນສົ່ງ',
+          attachmentPreviewEmpty: 'ຍັງບໍ່ມີຮູບ ສຽງ ຫຼື ໂນ້ດໃນຊຸດນີ້',
+          attachmentPreviewPhoto: 'ຮູບ',
+          attachmentPreviewVoice: 'ສຽງ',
+          attachmentPreviewNote: 'ໂນ້ດ',
+          attachmentPreviewRemove: 'ລຶບ',
+          attachmentNoteLabel: 'ໂນ້ດສັ້ນ',
+          originalSizeLabel: 'ຂະໜາດໄຟລ໌ເດີມ',
+          compressedSizeLabel: 'ຂະໜາດຫຼັງບີບອັດ',
         }
       : {
           todayStatusLabel: 'Today status',
@@ -656,11 +721,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           quickEquipmentTitle: 'Request Equipment / Tools',
           quickPaymentTitle: 'Request Payment',
           quickMilestoneTitle: 'Submit Work by Milestone',
+          quickDailyReportTitle: 'Daily Report',
           quickIssueHelper: 'Report shortages or on-site issues right away',
           quickDeliveryHelper: 'Log goods and stock moving into the site',
           quickEquipmentHelper: 'Request equipment or tools needed for work',
           quickPaymentHelper: 'Submit a payment request by task category and work zone',
           quickMilestoneHelper: 'Send milestone progress with photos and notes',
+          quickDailyReportHelper: 'Summarize today\'s work, issues, and tomorrow\'s plan',
           editableUpdateAction: 'Update selected option',
           editableSelectedHelper: 'Pick from the list or type a new value to add/update it instantly',
           subcategoryHelper: 'Select the main category first, then choose the subcategory',
@@ -692,6 +759,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           milestoneSaved: 'Milestone submitted',
           requestSavedDelivery: 'Goods received at site',
           requestSavedEquipment: 'Equipment / tools request sent',
+          attachmentPreviewTitle: 'Preview before submit',
+          attachmentPreviewEmpty: 'No photos, voice, or note in this set yet',
+          attachmentPreviewPhoto: 'Photo',
+          attachmentPreviewVoice: 'Voice',
+          attachmentPreviewNote: 'Note',
+          attachmentPreviewRemove: 'Remove',
+          attachmentNoteLabel: 'Short note',
+          originalSizeLabel: 'Original file size',
+          compressedSizeLabel: 'Compressed size',
         };
   const siteName = currentProject?.name || pickText(t, 'worker_site_name_fallback', 'Project not assigned');
   const today = new Date().toISOString().split('T')[0];
@@ -707,9 +783,6 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [voiceError, setVoiceError] = useState('');
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [isVoiceProcessing, setIsVoiceProcessing] = useState(false);
-  const [batchVoiceError, setBatchVoiceError] = useState('');
-  const [isBatchRecordingVoice, setIsBatchRecordingVoice] = useState(false);
-  const [isBatchVoiceProcessing, setIsBatchVoiceProcessing] = useState(false);
   const [projectBatchOptions, setProjectBatchOptions] = useState({ workTypes: [], tradeTeams: [], rooms: [] });
   const [isProjectBatchOptionsLoading, setIsProjectBatchOptionsLoading] = useState(false);
   const [workerPresets, setWorkerPresets] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.workerPresets, {
@@ -734,6 +807,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   );
   const [voiceNotes, setVoiceNotes] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.voiceNotes, []));
   const [issues, setIssues] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.issues, []));
+  const [siteTickets, setSiteTickets] = useState(() => {
+    const savedTickets = loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []);
+    if (Array.isArray(savedTickets) && savedTickets.length) return savedTickets;
+    return migrateLegacyIssuesToSiteTickets(loadFromStorage(WORKER_STORAGE_KEYS.issues, []), {
+      currentProject: getPreferredProject(projectsList, currentProject),
+      projectsList,
+    });
+  });
+  const [dailyReports, setDailyReports] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
   const [materialRequests, setMaterialRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, []));
   const [paymentRequests, setPaymentRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.paymentRequests, []));
   const [milestoneSubmissions, setMilestoneSubmissions] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, []));
@@ -748,12 +830,29 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [requestForm, setRequestForm] = useState(defaultRequestForm);
   const [paymentForm, setPaymentForm] = useState(defaultPaymentForm);
   const [milestoneForm, setMilestoneForm] = useState(defaultMilestoneForm);
+  const [ticketFilters, setTicketFilters] = useState({
+    search: '',
+    projectId: 'all',
+    status: 'all',
+    priority: 'all',
+    assigneeId: 'all',
+  });
+  const [ticketScreenTab, setTicketScreenTab] = useState('list');
+  const [selectedTicketId, setSelectedTicketId] = useState('');
+  const [isEditingTicket, setIsEditingTicket] = useState(false);
+  const [dailyReportFilters, setDailyReportFilters] = useState({
+    search: '',
+    projectId: 'all',
+    reportDate: '',
+  });
+  const [dailyReportScreenTab, setDailyReportScreenTab] = useState('list');
+  const [selectedDailyReportId, setSelectedDailyReportId] = useState('');
+  const [isEditingDailyReport, setIsEditingDailyReport] = useState(false);
   const [requestMode, setRequestMode] = useState('equipment');
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingStartedAtRef = useRef(0);
-  const recordingModeRef = useRef('voice-screen');
   const canRecordVoice = typeof window !== 'undefined'
     && typeof navigator !== 'undefined'
     && Boolean(navigator.mediaDevices?.getUserMedia)
@@ -763,6 +862,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.photoReports, photoReports), [photoReports]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.voiceNotes, voiceNotes), [voiceNotes]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.issues, issues), [issues]);
+  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.siteTickets, siteTickets), [siteTickets]);
+  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.dailyReports, dailyReports), [dailyReports]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.materialRequests, materialRequests), [materialRequests]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.paymentRequests, paymentRequests), [paymentRequests]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, milestoneSubmissions), [milestoneSubmissions]);
@@ -899,6 +1000,40 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     () => issues.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
     [issues, currentWorker.id]
   );
+  const roleVisibleTickets = useMemo(
+    () => getVisibleSiteTickets(siteTickets, {
+      role: currentWorker.role,
+      currentUserId: currentWorker.id,
+      projectId: currentWorker.assignedSiteId || currentProject?.id || '',
+    }),
+    [currentProject?.id, currentWorker.assignedSiteId, currentWorker.id, currentWorker.role, siteTickets]
+  );
+  const filteredSiteTickets = useMemo(
+    () => sortSiteTickets(filterSiteTickets(roleVisibleTickets, ticketFilters)),
+    [roleVisibleTickets, ticketFilters]
+  );
+  const ticketSummary = useMemo(() => getSiteTicketSummaryCounts(roleVisibleTickets), [roleVisibleTickets]);
+  const selectedSiteTicket = useMemo(
+    () => roleVisibleTickets.find((ticket) => ticket.id === selectedTicketId) || null,
+    [roleVisibleTickets, selectedTicketId]
+  );
+  const roleVisibleDailyReports = useMemo(
+    () => getVisibleDailyReports(dailyReports, {
+      role: currentWorker.role,
+      currentUserId: currentWorker.id,
+      projectId: currentWorker.assignedSiteId || currentProject?.id || '',
+    }),
+    [currentProject?.id, currentWorker.assignedSiteId, currentWorker.id, currentWorker.role, dailyReports]
+  );
+  const filteredDailyReports = useMemo(
+    () => sortDailyReports(filterDailyReports(roleVisibleDailyReports, dailyReportFilters)),
+    [roleVisibleDailyReports, dailyReportFilters]
+  );
+  const dailyReportSummary = useMemo(() => getDailyReportSummaryCounts(roleVisibleDailyReports), [roleVisibleDailyReports]);
+  const selectedDailyReport = useMemo(
+    () => roleVisibleDailyReports.find((report) => report.id === selectedDailyReportId) || null,
+    [roleVisibleDailyReports, selectedDailyReportId]
+  );
   const latestRequests = useMemo(
     () => materialRequests.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
     [materialRequests, currentWorker.id]
@@ -910,6 +1045,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const latestMilestones = useMemo(
     () => milestoneSubmissions.filter((entry) => entry.workerId === currentWorker.id).slice(-4).reverse(),
     [milestoneSubmissions, currentWorker.id]
+  );
+  const latestDailyReports = useMemo(
+    () => roleVisibleDailyReports.slice(0, 4),
+    [roleVisibleDailyReports]
   );
   const workTypeOptions = useMemo(() => projectBatchOptions.workTypes, [projectBatchOptions.workTypes]);
   const tradeTeamOptions = useMemo(
@@ -940,6 +1079,69 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     () => mergeOptionLists(customStandardPhrases, getLocalizedStandardConstructionPhraseOptions(language)),
     [customStandardPhrases, language]
   );
+  const siteTicketLabels = useMemo(() => getSiteTicketCopy(language), [language]);
+  const ticketStatusOptions = useMemo(
+    () => [{ value: 'all', label: siteTicketLabels.filterAll }, ...getSiteTicketStatusOptions(language)],
+    [language, siteTicketLabels.filterAll]
+  );
+  const ticketPriorityOptions = useMemo(
+    () => [{ value: 'all', label: siteTicketLabels.filterAll }, ...getSiteTicketPriorityOptions(language)],
+    [language, siteTicketLabels.filterAll]
+  );
+  const siteTicketProjectOptions = useMemo(() => [
+    { value: 'all', label: siteTicketLabels.filterAll },
+    ...projectsList.map((project) => ({ value: String(project.id), label: project.name || String(project.id) })),
+  ], [projectsList, siteTicketLabels.filterAll]);
+  const siteTicketProjectFormOptions = useMemo(
+    () => projectsList.map((project) => ({ value: String(project.id), label: project.name || String(project.id) })),
+    [projectsList]
+  );
+  const siteTicketAssigneeOptions = useMemo(
+    () => workersList
+      .map((worker) => ({
+        value: String(worker.id || ''),
+        label: worker.name || worker.companyName || '',
+      }))
+      .filter((item) => item.value && item.label),
+    [workersList]
+  );
+  const siteTicketAssigneeFilterOptions = useMemo(
+    () => [{ value: 'all', label: siteTicketLabels.filterAll }, ...siteTicketAssigneeOptions],
+    [siteTicketAssigneeOptions, siteTicketLabels.filterAll]
+  );
+  const dailyReportLabels = useMemo(() => getDailyReportCopy(language), [language]);
+  const dailyReportProjectOptions = useMemo(() => [
+    { value: 'all', label: dailyReportLabels.filterAll },
+    ...projectsList.map((project) => ({ value: String(project.id), label: project.name || String(project.id) })),
+  ], [dailyReportLabels.filterAll, projectsList]);
+  const dailyReportProjectFormOptions = useMemo(
+    () => projectsList.map((project) => ({ value: String(project.id), label: project.name || String(project.id) })),
+    [projectsList]
+  );
+  const createTicketForm = useSiteTicketForm({
+    initialProjectId: currentProject?.id ? String(currentProject.id) : '',
+    initialProjectName: currentProject?.name || siteName,
+    currentUser: currentWorker,
+  });
+  const editTicketForm = useSiteTicketForm({
+    initialProjectId: currentProject?.id ? String(currentProject.id) : '',
+    initialProjectName: currentProject?.name || siteName,
+    currentUser: currentWorker,
+    initialTicket: selectedSiteTicket,
+  });
+  const createDailyReportForm = useDailyReportForm({
+    initialProjectId: currentProject?.id ? String(currentProject.id) : '',
+    initialProjectName: currentProject?.name || siteName,
+    currentUser: currentWorker,
+    initialReportDate: today,
+  });
+  const editDailyReportForm = useDailyReportForm({
+    initialProjectId: currentProject?.id ? String(currentProject.id) : '',
+    initialProjectName: currentProject?.name || siteName,
+    currentUser: currentWorker,
+    initialReportDate: today,
+    initialReport: selectedDailyReport,
+  });
 
   useEffect(() => {
     setPhotoBatchForm((current) => {
@@ -984,6 +1186,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const todayEquipmentCount = latestRequests.filter((entry) => entry.dateKey === today && entry.requestType !== 'delivery').length;
   const todayPaymentCount = latestPaymentRequests.filter((entry) => entry.dateKey === today).length;
   const todayMilestoneCount = latestMilestones.filter((entry) => entry.dateKey === today).length;
+  const todayDailyReportCount = roleVisibleDailyReports.filter((entry) => entry.reportDate === today).length;
   const todayStatus = isCheckedOut ? localCopy.checkedOut : isCheckedIn ? localCopy.working : localCopy.notCheckedIn;
   const isDeliveryMode = requestMode === 'delivery';
   const requestScreenTitle = isDeliveryMode ? localCopy.requestDeliveryScreenTitle : localCopy.requestEquipmentScreenTitle;
@@ -1074,7 +1277,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     return [...attendanceItems, ...photoItems, ...voiceItems, ...issueItems, ...requestItems, ...paymentItems, ...milestoneItems]
       .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
       .slice(0, 12);
-  }, [attendanceRecords, currentWorker.id, latestIssues, latestMilestones, latestPaymentRequests, latestPhotoReports, latestRequests, latestVoiceNotes, locale, localCopy.quickMilestoneTitle, localCopy.quickPaymentTitle, localCopy.voiceSaved, siteName, t]);
+  }, [attendanceRecords, currentWorker.id, latestDailyReports, latestIssues, latestMilestones, latestPaymentRequests, latestPhotoReports, latestRequests, latestVoiceNotes, locale, localCopy.quickDailyReportTitle, localCopy.quickMilestoneTitle, localCopy.quickPaymentTitle, localCopy.voiceSaved, siteName, t]);
 
   const pendingItems = [
     ...latestPhotoReports.filter((entry) => entry.status === 'draft').map((entry) => ({ id: entry.id, label: `${pickText(t, 'worker_photo', 'Photo')} • ${entry.batchTitle || entry.workType}` })),
@@ -1196,10 +1399,6 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       setToast(localCopy.photoCaptured);
     });
     event.target.value = '';
-  };
-
-  const setPhotoBatchField = (field, value) => {
-    setPhotoBatchForm((current) => ({ ...current, [field]: value, status: 'draft' }));
   };
 
   const handleBatchProjectChange = (projectId) => {
@@ -1325,48 +1524,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setOpenAddField('');
   };
 
-  const handleBatchPhotoChange = async (event) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
-
-    await withBusyAction('photo-upload', async () => {
-      const nextPhotos = [];
-      for (const file of files) {
-        const { imageData, stats } = await compressImageFile(file, settings);
-        nextPhotos.push({
-          id: `photo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          imageData,
-          imageStats: stats,
-          originalName: file.name || '',
-          capturedAt: Date.now(),
-        });
-      }
-
-      setPhotoBatchForm((current) => ({
-        ...current,
-        photos: [...current.photos, ...nextPhotos],
-        status: 'draft',
-      }));
-      setToast(localCopy.photoCaptured);
-    });
-
-    event.target.value = '';
-  };
-
-  const removeBatchPhoto = (photoId) => {
-    setPhotoBatchForm((current) => ({
-      ...current,
-      photos: current.photos.filter((photo) => photo.id !== photoId),
-      status: 'draft',
-    }));
-    setToast(localCopy.photoRemoved);
-  };
-
   const resetPhotoBatchForm = () => {
     setPhotoBatchForm(createDefaultPhotoBatchForm(getPreferredProject(projectsList, currentProject)));
-    setBatchVoiceError('');
-    setIsBatchRecordingVoice(false);
-    setIsBatchVoiceProcessing(false);
   };
 
   const submitPhotoBatch = async (nextStatus) => {
@@ -1423,27 +1582,180 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     });
   };
 
-  const submitIssue = (forceCritical = false) => {
+  const openTicketCreate = () => {
+    createTicketForm.reset({
+      projectId: currentProject?.id ? String(currentProject.id) : '',
+      projectName: currentProject?.name || siteName,
+    });
+    setIsEditingTicket(false);
+    setSelectedTicketId('');
+    setTicketScreenTab('create');
+  };
+
+  const openTicketDetail = (ticketId) => {
+    setSelectedTicketId(ticketId);
+    setIsEditingTicket(false);
+    setTicketScreenTab('detail');
+  };
+
+  const handleTicketFilterChange = (key, value) => {
+    setTicketFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const submitSiteTicket = () => {
     setValidationError('');
-    if (!issueForm.category || !issueForm.detail) {
-      setValidationError(pickText(t, 'worker_validation_required', 'Please complete required fields'));
+    if (!createTicketForm.validate()) {
+      setValidationError(siteTicketLabels.validationRequired);
       return;
     }
 
-    const record = createIssueReport({
+    const record = createSiteTicketFromForm({
+      form: createTicketForm.form,
+      currentUser: currentWorker,
+    });
+
+    const legacyRecord = createIssueReport({
       workerId: currentWorker.id,
       workerName: currentWorker.name,
-      siteName,
-      category: issueForm.category,
-      urgency: forceCritical ? 'critical' : issueForm.urgency,
-      detail: issueForm.detail,
-      imageData: issueForm.imageData,
+      siteName: record.projectName || siteName,
+      category: record.category,
+      urgency: record.priority,
+      detail: record.description,
+      imageData: record.attachments.find((item) => item.kind === 'photo')?.imageData || '',
       status: 'open',
     });
 
-    setIssues((current) => [...current, record]);
-    setIssueForm(defaultIssueForm);
-    pushToast('worker_action_sent_success', forceCritical ? 'SOS sent successfully' : 'Issue sent successfully');
+    setSiteTickets((current) => [record, ...current]);
+    setIssues((current) => [legacyRecord, ...current]);
+    setSelectedTicketId(record.id);
+    setTicketScreenTab('detail');
+    createTicketForm.reset({
+      projectId: currentProject?.id ? String(currentProject.id) : '',
+      projectName: currentProject?.name || siteName,
+    });
+    setToast(siteTicketLabels.ticketSaved);
+  };
+
+  const startTicketEdit = () => {
+    if (!selectedSiteTicket || !canEditSiteTicket(currentWorker.role)) return;
+    setIsEditingTicket(true);
+    setTicketScreenTab('detail');
+  };
+
+  const updateSiteTicket = () => {
+    setValidationError('');
+    if (!selectedSiteTicket) return;
+    if (!editTicketForm.validate()) {
+      setValidationError(siteTicketLabels.validationRequired);
+      return;
+    }
+
+    const updated = updateSiteTicketFromForm(selectedSiteTicket, {
+      form: editTicketForm.form,
+      actor: currentWorker,
+    });
+
+    setSiteTickets((current) => current.map((ticket) => (
+      ticket.id === updated.id ? updated : ticket
+    )));
+    setIsEditingTicket(false);
+    setSelectedTicketId(updated.id);
+    setToast(siteTicketLabels.ticketUpdated);
+  };
+
+  const openDailyReportCreate = () => {
+    createDailyReportForm.reset({
+      projectId: currentProject?.id ? String(currentProject.id) : '',
+      projectName: currentProject?.name || siteName,
+      reportDate: today,
+    });
+    setIsEditingDailyReport(false);
+    setSelectedDailyReportId('');
+    setDailyReportScreenTab('create');
+  };
+
+  const openDailyReportDetail = (reportId) => {
+    setSelectedDailyReportId(reportId);
+    setIsEditingDailyReport(false);
+    setDailyReportScreenTab('detail');
+  };
+
+  const handleDailyReportFilterChange = (key, value) => {
+    setDailyReportFilters((current) => ({ ...current, [key]: value }));
+  };
+
+  const startDailyReportEdit = () => {
+    if (!selectedDailyReport || !canEditDailyReport(currentWorker.role)) return;
+    setIsEditingDailyReport(true);
+    setDailyReportScreenTab('detail');
+  };
+
+  const submitDailyReport = () => {
+    setValidationError('');
+    if (!createDailyReportForm.validate()) {
+      setValidationError(dailyReportLabels.validationRequired);
+      return;
+    }
+
+    const record = createDailyReportFromForm({
+      form: createDailyReportForm.form,
+      currentUser: currentWorker,
+      relatedTickets: roleVisibleTickets,
+    });
+    const storageRecord = createDailyReportRecord({
+      workerId: currentWorker.id,
+      workerName: currentWorker.name,
+      siteName,
+      projectId: record.projectId,
+      projectName: record.projectName,
+      reportDate: record.reportDate,
+      area: record.area,
+      workSummary: record.workSummary,
+      workerCount: record.workerCount,
+      materialSummary: record.materialSummary,
+      issueSummary: record.issueSummary,
+      tomorrowPlan: record.tomorrowPlan,
+      attachments: record.attachments,
+      relatedTicketIds: record.relatedTicketIds,
+      ticketSnapshot: record.ticketSnapshot,
+    });
+
+    setDailyReports((current) => [{
+      ...record,
+      id: storageRecord.id,
+      createdAt: storageRecord.createdAt,
+      updatedAt: storageRecord.updatedAt,
+    }, ...current]);
+    setSelectedDailyReportId(storageRecord.id);
+    setDailyReportScreenTab('detail');
+    createDailyReportForm.reset({
+      projectId: currentProject?.id ? String(currentProject.id) : '',
+      projectName: currentProject?.name || siteName,
+      reportDate: today,
+    });
+    setToast(dailyReportLabels.reportSaved);
+  };
+
+  const updateDailyReport = () => {
+    setValidationError('');
+    if (!selectedDailyReport) return;
+    if (!editDailyReportForm.validate()) {
+      setValidationError(dailyReportLabels.validationRequired);
+      return;
+    }
+
+    const updated = updateDailyReportFromForm(selectedDailyReport, {
+      form: editDailyReportForm.form,
+      actor: currentWorker,
+      relatedTickets: roleVisibleTickets,
+    });
+
+    setDailyReports((current) => current.map((report) => (
+      report.id === updated.id ? updated : report
+    )));
+    setIsEditingDailyReport(false);
+    setSelectedDailyReportId(updated.id);
+    setToast(dailyReportLabels.reportUpdated);
   };
 
   const submitRequest = () => {
@@ -1589,20 +1901,15 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     setToast(localCopy.photoRemoved);
   };
 
-  const startAudioRecording = async (mode = 'voice-screen') => {
+  const startAudioRecording = async () => {
     setValidationError('');
-    if (mode === 'batch') {
-      setBatchVoiceError('');
-    } else {
-      setVoiceError('');
-    }
+    setVoiceError('');
     if (!canUseWorkActions) {
       setValidationError(localCopy.gateHelper);
       return;
     }
     if (!canRecordVoice) {
-      if (mode === 'batch') setBatchVoiceError(localCopy.voiceFallback);
-      else setVoiceError(localCopy.voiceFallback);
+      setVoiceError(localCopy.voiceFallback);
       return;
     }
 
@@ -1613,18 +1920,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
       recordingStartedAtRef.current = Date.now();
-      recordingModeRef.current = mode;
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       recorder.onstop = async () => {
-        const activeMode = recordingModeRef.current;
         setIsRecordingVoice(false);
-        setIsBatchRecordingVoice(false);
-        if (activeMode === 'batch') setIsBatchVoiceProcessing(true);
-        else setIsVoiceProcessing(true);
+        setIsVoiceProcessing(true);
 
         try {
           const mimeType = recorder.mimeType || 'audio/webm';
@@ -1632,75 +1935,42 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           const audioData = await readBlobAsDataUrl(audioBlob);
           const durationMs = Date.now() - recordingStartedAtRef.current;
 
-          if (activeMode === 'batch') {
-            setPhotoBatchForm((current) => ({
-              ...current,
-              voiceNote: {
-                id: `batch_voice_${Date.now()}`,
-                audioData,
-                durationMs,
-                mimeType,
-                recordedAt: Date.now(),
-                source: 'inline',
-              },
-              status: 'draft',
-            }));
-            setToast(localCopy.batchVoiceSaved);
-          } else {
-            const record = createVoiceNoteRecord({
-              workerId: currentWorker.id,
-              workerName: currentWorker.name,
-              siteName,
-              audioData,
-              durationMs,
-              mimeType,
-            });
-            setVoiceNotes((current) => [...current, record]);
-            setToast(localCopy.voiceSaved);
-          }
+          const record = createVoiceNoteRecord({
+            workerId: currentWorker.id,
+            workerName: currentWorker.name,
+            siteName,
+            audioData,
+            durationMs,
+            mimeType,
+          });
+          setVoiceNotes((current) => [...current, record]);
+          setToast(localCopy.voiceSaved);
         } catch (error) {
           console.error('Voice note processing failed:', error);
-          if (activeMode === 'batch') setBatchVoiceError(localCopy.batchVoiceProcessing);
-          else setVoiceError(localCopy.voiceProcessing);
+          setVoiceError(localCopy.voiceProcessing);
         } finally {
-          if (activeMode === 'batch') setIsBatchVoiceProcessing(false);
-          else setIsVoiceProcessing(false);
+          setIsVoiceProcessing(false);
           stream.getTracks().forEach((track) => track.stop());
           mediaStreamRef.current = null;
           mediaRecorderRef.current = null;
           audioChunksRef.current = [];
-          recordingModeRef.current = 'voice-screen';
         }
       };
 
       recorder.start();
-      if (mode === 'batch') setIsBatchRecordingVoice(true);
-      else setIsRecordingVoice(true);
+      setIsRecordingVoice(true);
     } catch (error) {
       console.error('Voice recording failed:', error);
-      if (mode === 'batch') {
-        setBatchVoiceError(localCopy.voicePermission);
-        setIsBatchRecordingVoice(false);
-      } else {
-        setVoiceError(localCopy.voicePermission);
-        setIsRecordingVoice(false);
-      }
+      setVoiceError(localCopy.voicePermission);
+      setIsRecordingVoice(false);
     }
   };
 
-  const startVoiceRecording = () => startAudioRecording('voice-screen');
-  const startBatchVoiceRecording = () => startAudioRecording('batch');
-
+  const startVoiceRecording = () => startAudioRecording();
   const stopVoiceRecording = () => {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
-  };
-
-  const deleteBatchVoiceNote = () => {
-    setPhotoBatchForm((current) => ({ ...current, voiceNote: null, status: 'draft' }));
-    setBatchVoiceError('');
-    setToast(localCopy.batchVoiceRemoved);
   };
 
   const deleteVoiceNote = (voiceId) => {
@@ -1744,6 +2014,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       todayEquipmentCount,
       todayPaymentCount,
       todayMilestoneCount,
+      todayDailyReportCount,
       activeScreen,
       isRecordingVoice,
       isVoiceProcessing,
@@ -1755,6 +2026,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       screenRequest: SCREEN_REQUEST,
       screenPayment: SCREEN_PAYMENT,
       screenMilestone: SCREEN_MILESTONE,
+      screenDailyReport: SCREEN_DAILY_REPORT,
       roomName: photoBatchForm.areaZone || photoBatchForm.roomName,
     },
     handlers: {
@@ -1767,6 +2039,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       onEquipment: () => openRequestScreen('equipment'),
       onPayment: openPaymentScreen,
       onMilestone: openMilestoneScreen,
+      onDailyReport: () => openScreen(SCREEN_DAILY_REPORT),
     },
     icons: {
       checkin: CheckCircle2,
@@ -1778,6 +2051,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       equipment: ClipboardList,
       payment: Banknote,
       milestone: ClipboardCheck,
+      dailyReport: ClipboardCheck,
     },
   });
 
@@ -1968,15 +2242,9 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const renderPhotoScreen = () => {
     const batchReadyForPhotos = Boolean(photoBatchForm.projectId && photoBatchForm.taskCategory && photoBatchForm.areaZone);
-    const totalOriginalBytes = photoBatchForm.photos.reduce((total, photo) => total + Number(photo.imageStats?.originalBytes || 0), 0);
-    const totalCompressedBytes = photoBatchForm.photos.reduce((total, photo) => total + Number(photo.imageStats?.compressedBytes || 0), 0);
-    const batchStatusLabel = isBatchRecordingVoice
-      ? localCopy.batchVoiceRecording
-      : isBatchVoiceProcessing
-        ? localCopy.batchVoiceProcessing
-        : photoBatchForm.voiceNote
-          ? `${localCopy.batchVoiceAttachedCount}: ${formatDuration(photoBatchForm.voiceNote.durationMs || 0)}`
-          : localCopy.batchVoiceMissing;
+    const batchStatusLabel = photoBatchForm.voiceNote
+      ? `${localCopy.batchVoiceAttachedCount}: ${formatDuration(photoBatchForm.voiceNote.durationMs || 0)}`
+      : localCopy.batchVoiceMissing;
 
     return (
       <SinglePurposeScreen
@@ -2067,84 +2335,69 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
               addOpen={openAddField === 'photo-standard-phrase'}
               onToggleAdd={() => toggleCompactAdd('photo-standard-phrase')}
             />
-            <div className="space-y-3">
-              <MultiPhotoPicker
-                photos={photoBatchForm.photos}
-                onChange={handleBatchPhotoChange}
-                onRemove={removeBatchPhoto}
-                label={pickText(t, 'worker_report_photo', 'Photos')}
-                helperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
-                cameraLabel={localCopy.photoTakeAction}
-                galleryLabel={localCopy.photoChooseAction}
-                removeLabel={localCopy.photoRemove}
-                countLabel={localCopy.photoBatchCount}
-                loading={busyAction === 'photo-upload'}
-                disabled={!batchReadyForPhotos}
-              />
-              {photoBatchForm.photos.length ? (
-                <div className="rounded-[1.2rem] bg-blue-50 p-3 text-sm text-blue-900">
-                  <div className="font-semibold">{pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}</div>
-                  <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-xl bg-white px-3 py-2">
-                      <div className="text-slate-500">{pickText(t, 'worker_original_file_size', 'Original file size')}</div>
-                      <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalOriginalBytes)}</div>
-                    </div>
-                    <div className="rounded-xl bg-white px-3 py-2">
-                      <div className="text-slate-500">{pickText(t, 'worker_compressed_file_size', 'Compressed size')}</div>
-                      <div className="mt-1 font-semibold text-slate-900">{formatBytes(totalCompressedBytes)}</div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-            <div className={`rounded-[1.3rem] border p-4 ${isBatchRecordingVoice ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_1px_rgba(244,63,94,0.14)]' : photoBatchForm.voiceNote ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
-              <div className="flex items-start gap-3">
-                <div className={`rounded-2xl p-3 ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-                  <Mic className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-slate-900">{localCopy.batchInlineVoice}</div>
-                  <div className="mt-1 text-sm text-slate-600">{batchStatusLabel}</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${isBatchRecordingVoice ? 'bg-rose-100 text-rose-700' : isBatchVoiceProcessing ? 'bg-amber-100 text-amber-800' : photoBatchForm.voiceNote ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-                      {isBatchRecordingVoice ? localCopy.recording : isBatchVoiceProcessing ? localCopy.batchVoiceProcessing : photoBatchForm.voiceNote ? localCopy.batchVoiceAttachedCount : localCopy.batchVoiceReady}
-                    </span>
-                    {photoBatchForm.voiceNote?.durationMs ? (
-                      <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
-                        {formatDuration(photoBatchForm.voiceNote.durationMs)}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button onClick={startBatchVoiceRecording} disabled={!canOpenWorkerTools || !canRecordVoice || isBatchRecordingVoice || isBatchVoiceProcessing} className={`inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed ${isBatchRecordingVoice ? 'bg-rose-500' : 'bg-slate-900'} disabled:bg-slate-300`}>
-                  <Mic className="h-4 w-4" />
-                  {localCopy.batchVoiceStart}
-                </button>
-                <button onClick={stopVoiceRecording} disabled={!isBatchRecordingVoice} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] bg-rose-600 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-rose-200">
-                  <Square className="h-4 w-4" />
-                  {localCopy.batchVoiceStop}
-                </button>
-              </div>
-              {photoBatchForm.voiceNote ? <audio controls src={photoBatchForm.voiceNote.audioData} className="mt-3 w-full" /> : null}
-              <button onClick={deleteBatchVoiceNote} disabled={!photoBatchForm.voiceNote || isBatchRecordingVoice || isBatchVoiceProcessing} className="mt-3 inline-flex min-h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
-                <Trash2 className="h-4 w-4" />
-                {localCopy.batchVoiceDelete}
-              </button>
-              {batchVoiceError ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{batchVoiceError}</div> : null}
-            </div>
-            {(isBatchRecordingVoice || isBatchVoiceProcessing) ? (
-              <div className={`rounded-[1.2rem] border px-4 py-3 text-sm ${isBatchRecordingVoice ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-                {isBatchRecordingVoice ? localCopy.batchVoiceRecording : localCopy.batchVoiceProcessing}
-              </div>
-            ) : null}
-            <textarea
-              value={photoBatchForm.notes}
-              onChange={(event) => setPhotoBatchField('notes', event.target.value)}
-              placeholder={pickText(t, 'worker_report_details', 'Details')}
-              rows={3}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-base"
+            <AttachmentComposer
+              value={{
+                photos: photoBatchForm.photos.map((photo) => ({
+                  ...photo,
+                  imageMeta: photo.imageMeta || photo.imageStats || {},
+                })),
+                voiceNote: photoBatchForm.voiceNote,
+                note: photoBatchForm.notes,
+              }}
+              onChange={(nextDraft) => {
+                setPhotoBatchForm((current) => ({
+                  ...current,
+                  photos: nextDraft.photos.map((photo) => ({
+                    ...photo,
+                    imageStats: photo.imageMeta || photo.imageStats || {},
+                  })),
+                  voiceNote: nextDraft.voiceNote,
+                  notes: nextDraft.note,
+                  status: 'draft',
+                }));
+              }}
+              settings={settings}
+              disabled={!batchReadyForPhotos}
+              photoLabel={pickText(t, 'worker_report_photo', 'Photos')}
+              photoHelperText={batchReadyForPhotos ? localCopy.batchPhotoHelp : localCopy.batchSelectionHelp}
+              photoCameraLabel={localCopy.photoTakeAction}
+              photoGalleryLabel={localCopy.photoChooseAction}
+              photoRemoveLabel={localCopy.photoRemove}
+              photoCountLabel={localCopy.photoBatchCount}
+              voiceTitle={localCopy.batchInlineVoice}
+              voiceStatusLabel={batchStatusLabel}
+              voiceStartLabel={localCopy.batchVoiceStart}
+              voiceStopLabel={localCopy.batchVoiceStop}
+              voiceDeleteLabel={localCopy.batchVoiceDelete}
+              voiceReadyLabel={localCopy.batchVoiceReady}
+                voiceAttachedLabel={localCopy.batchVoiceAttachedCount}
+                voiceProcessingLabel={localCopy.batchVoiceProcessing}
+                voiceRecordingLabel={localCopy.batchVoiceRecording}
+                voiceErrorMap={{
+                  voice_not_supported: localCopy.voiceFallback,
+                  voice_permission_denied: localCopy.voicePermission,
+                  voice_processing_failed: localCopy.batchVoiceProcessing,
+                  default: '',
+                }}
+              noteLabel={localCopy.attachmentNoteLabel}
+              notePlaceholder={pickText(t, 'worker_report_details', 'Details')}
+              previewTitle={localCopy.attachmentPreviewTitle}
+              previewEmptyLabel={localCopy.attachmentPreviewEmpty}
+              previewPhotoLabel={localCopy.attachmentPreviewPhoto}
+              previewVoiceLabel={localCopy.attachmentPreviewVoice}
+              previewNoteLabel={localCopy.attachmentPreviewNote}
+              previewRemoveLabel={localCopy.attachmentPreviewRemove}
+              dataSaverTitle={pickText(t, 'worker_auto_data_saver', 'The app automatically optimizes files to save data')}
+              originalSizeLabel={localCopy.originalSizeLabel}
+              compressedSizeLabel={localCopy.compressedSizeLabel}
+              onPhotoCaptured={() => setToast(localCopy.photoCaptured)}
+              onPhotoRemoved={() => setToast(localCopy.photoRemoved)}
+              onVoiceSaved={() => {
+                setToast(localCopy.batchVoiceSaved);
+              }}
+              onVoiceRemoved={() => {
+                setToast(localCopy.batchVoiceRemoved);
+              }}
             />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button onClick={() => submitPhotoBatch('draft')} disabled={!batchReadyForPhotos || busyAction === 'photo-draft' || busyAction === 'photo-submit'} className="inline-flex min-h-14 touch-manipulation items-center justify-center gap-2 rounded-[1.2rem] border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
@@ -2574,78 +2827,121 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   );
 
   const renderIssueScreen = () => {
-    const criticalMode = issueForm.urgency === 'critical';
     return (
       <SinglePurposeScreen
-        title={pickText(t, 'worker_issue_screen_title', 'Report Issue / SOS')}
-        subtitle={pickText(t, 'worker_issue_screen_desc', 'Send issue details or trigger a fast SOS report')}
+        title={siteTicketLabels.title}
+        subtitle={siteTicketLabels.subtitle}
         onBack={goBack}
         t={t}
       >
-        <div className={`rounded-[1.6rem] border p-4 ${criticalMode ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'}`}>
+        <div className="rounded-[1.6rem] border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-start gap-3">
-            <div className={`rounded-2xl p-2 ${criticalMode ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-              <AlertTriangle className="h-5 w-5" />
+            <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
+              <ClipboardList className="h-5 w-5" />
             </div>
             <div>
-              <div className={`text-sm font-semibold ${criticalMode ? 'text-rose-700' : 'text-amber-800'}`}>{criticalMode ? pickText(t, 'worker_sos_mode_title', 'SOS mode enabled') : pickText(t, 'worker_issue_mode_title', 'Issue report mode')}</div>
-              <div className={`mt-1 text-sm ${criticalMode ? 'text-rose-600' : 'text-amber-700'}`}>{criticalMode ? pickText(t, 'worker_sos_mode_desc', 'Urgent issue will be highlighted clearly in the latest list') : pickText(t, 'worker_issue_mode_desc', 'Use this form to report on-site problems clearly')}</div>
+              <div className="text-sm font-semibold text-amber-800">{siteTicketLabels.title}</div>
+              <div className="mt-1 text-sm text-amber-700">
+                {currentWorker.role === 'owner' ? siteTicketLabels.ownerReadOnlyHint : siteTicketLabels.workerReadOnlyHint}
+              </div>
             </div>
           </div>
         </div>
-        <FormCard title={pickText(t, 'worker_sos', 'Report Issue / SOS')}>
-          <div className="grid grid-cols-2 gap-3">
-            <input value={issueForm.category} onChange={(event) => setIssueForm((current) => ({ ...current, category: event.target.value }))} placeholder={pickText(t, 'worker_issue_category', 'Issue category')} className="worker-locale-safe worker-mobile-input text-sm" />
-            <MobileSelectField
-              value={issueForm.urgency}
-              onChange={(nextValue) => setIssueForm((current) => ({ ...current, urgency: nextValue }))}
-              options={[
-                { value: 'low', label: pickText(t, 'worker_issue_urgency_low', 'Low') },
-                { value: 'medium', label: pickText(t, 'worker_issue_urgency_medium', 'Medium') },
-                { value: 'high', label: pickText(t, 'worker_issue_urgency_high', 'High') },
-                { value: 'critical', label: pickText(t, 'worker_issue_urgency_critical', 'Critical') },
-              ]}
-              placeholder={pickText(t, 'worker_issue_urgency_high', 'High')}
-              allowEmpty={false}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            onClick={() => {
+              setTicketScreenTab('list');
+              setIsEditingTicket(false);
+            }}
+            className={`min-h-12 rounded-[1.2rem] px-4 py-3 text-sm font-semibold ${ticketScreenTab === 'list' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+          >
+            {siteTicketLabels.listTab}
+          </button>
+          <button
+            onClick={openTicketCreate}
+            className={`min-h-12 rounded-[1.2rem] px-4 py-3 text-sm font-semibold ${ticketScreenTab === 'create' ? 'bg-amber-500 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+          >
+            {siteTicketLabels.createTab}
+          </button>
+        </div>
+
+        {ticketScreenTab === 'list' ? (
+          <div className="mt-4 space-y-4">
+            <SiteTicketFilters
+              labels={siteTicketLabels}
+              filters={ticketFilters}
+              projectOptions={siteTicketProjectOptions}
+              statusOptions={ticketStatusOptions}
+              priorityOptions={ticketPriorityOptions}
+              assigneeOptions={siteTicketAssigneeFilterOptions}
+              onChange={handleTicketFilterChange}
+            />
+            <SiteTicketList
+              tickets={filteredSiteTickets}
+              labels={siteTicketLabels}
+              language={language}
+              summary={ticketSummary}
+              onSelect={openTicketDetail}
+              onCreate={openTicketCreate}
             />
           </div>
-          <div className="mt-3">
-            <CompactSelectCreateField
-              label={localCopy.standardPhrasesLabel}
-              value={issueForm.standardPhrase || ''}
-              onSelect={(value) => applyStandardPhrase(setIssueForm, value, 'detail')}
-              options={standardPhraseOptions}
-              selectPlaceholder={localCopy.standardPhrasesPlaceholder}
-              createLabel={localCopy.addStandardPhraseLabel}
-              createValue={newStandardPhrase}
-              onCreate={() => addStandardPhraseOption(setIssueForm, 'detail')}
-              onCreateValueChange={setNewStandardPhrase}
-              createPlaceholder={localCopy.customInputPlaceholder}
-              actionLabel={localCopy.compactAddSave}
-              cancelLabel={localCopy.compactAddCancel}
-              helperText={localCopy.phraseHelper}
-              accent="amber"
-              addOpen={openAddField === 'issue-standard-phrase'}
-              onToggleAdd={() => toggleCompactAdd('issue-standard-phrase')}
+        ) : null}
+
+        {ticketScreenTab === 'create' ? (
+          <div className="mt-4">
+            <SiteTicketForm
+              labels={siteTicketLabels}
+              language={language}
+              role={currentWorker.role}
+              mode="create"
+              form={createTicketForm.form}
+              errors={createTicketForm.errors}
+              projectOptions={siteTicketProjectFormOptions}
+              assigneeOptions={siteTicketAssigneeOptions}
+              onFieldChange={createTicketForm.setField}
+              onAttachmentChange={createTicketForm.setAttachmentDraft}
+              onSubmit={submitSiteTicket}
+              onCancel={() => setTicketScreenTab('list')}
             />
           </div>
-          <textarea value={issueForm.detail} onChange={(event) => setIssueForm((current) => ({ ...current, detail: event.target.value }))} placeholder={pickText(t, 'worker_sos_desc', 'Describe the issue')} rows={4} className="worker-locale-safe worker-mobile-textarea mt-3 text-sm" />
-          <FilePicker imageData={issueForm.imageData} onChange={(event) => handleFileChange(event, setIssueForm)} onRemove={() => clearImageForm(setIssueForm)} label={pickText(t, 'worker_sos_photo_optional', 'Photo optional')} helperText={localCopy.photoHelp} cameraLabel={localCopy.photoTakeAction} galleryLabel={localCopy.photoChooseAction} removeLabel={localCopy.photoRemove} loading={busyAction === 'photo-upload'} optional t={t} />
-          <div className="mt-3">
-            <button onClick={submitIssue} className="w-full rounded-[1.2rem] bg-amber-500 px-4 py-3 text-sm font-semibold text-white">{pickText(t, 'worker_issue_submit', 'Submit issue')}</button>
+        ) : null}
+
+        {ticketScreenTab === 'detail' ? (
+          <div className="mt-4">
+            <SiteTicketDetail
+              ticket={selectedSiteTicket}
+              labels={siteTicketLabels}
+              language={language}
+              role={currentWorker.role}
+              projectOptions={siteTicketProjectFormOptions}
+              assigneeOptions={siteTicketAssigneeOptions}
+              editing={isEditingTicket}
+              form={editTicketForm.form}
+              errors={editTicketForm.errors}
+              onFieldChange={editTicketForm.setField}
+              onAttachmentChange={editTicketForm.setAttachmentDraft}
+              onEdit={startTicketEdit}
+              onSubmit={updateSiteTicket}
+              onCancel={() => setIsEditingTicket(false)}
+              onBack={() => {
+                setIsEditingTicket(false);
+                setTicketScreenTab('list');
+              }}
+            />
           </div>
-        </FormCard>
+        ) : null}
+
         <FormCard title={pickText(t, 'worker_recent_issues', 'Recent Issues')}>
           <HistoryList
-            items={latestIssues}
+            items={roleVisibleTickets.slice(0, 4)}
             emptyLabel={pickText(t, 'worker_no_data', 'No data yet')}
             renderItem={(item) => (
               <HistoryCard
-                title={`${item.category} • ${item.urgency}`}
-                detail={`${item.detail} • ${formatDateTime(item.reportedAt, locale)}`}
+                title={`${item.title} • ${item.priority}`}
+                detail={`${item.locationText || '-'} • ${formatDateTime(item.updatedAt || item.createdAt, locale)}`}
                 status={item.status}
-                imageData={item.imageData}
-                danger={item.urgency === 'critical'}
+                imageData={item.attachments?.find((entry) => entry.kind === 'photo')?.imageData || ''}
+                danger={item.priority === 'critical'}
               />
             )}
           />
@@ -2654,6 +2950,145 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     );
   };
 
+  const renderDailyReportScreen = () => {
+    const activeReportForm = isEditingDailyReport ? editDailyReportForm : createDailyReportForm;
+    const activeProjectId = activeReportForm.form.projectId || (currentProject?.id ? String(currentProject.id) : '');
+    const activeReportDate = activeReportForm.form.reportDate || today;
+    const selectableTickets = sortSiteTickets(roleVisibleTickets.filter((ticket) => {
+      const sameProject = !activeProjectId || String(ticket.projectId || '') === String(activeProjectId);
+      const updatedAt = Number(ticket.updatedAt || ticket.createdAt || 0);
+      const sameDate = !activeReportDate || (updatedAt && new Date(updatedAt).toISOString().split('T')[0] === activeReportDate);
+      return sameProject && sameDate;
+    }));
+    const activeTicketSnapshot = buildDailyReportTicketInsights(roleVisibleTickets, {
+      projectId: activeProjectId,
+      reportDate: activeReportDate,
+    });
+    const selectedReportTickets = selectedDailyReport
+      ? roleVisibleTickets.filter((ticket) => selectedDailyReport.relatedTicketIds?.includes(ticket.id))
+      : [];
+
+    return (
+      <SinglePurposeScreen
+        title={dailyReportLabels.title}
+        subtitle={dailyReportLabels.subtitle}
+        onBack={goBack}
+        t={t}
+      >
+        <div className="rounded-[1.6rem] border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-2xl bg-blue-100 p-2 text-blue-700">
+              <ClipboardCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-blue-800">{dailyReportLabels.title}</div>
+              <div className="mt-1 text-sm text-blue-700">
+                {currentWorker.role === 'owner' ? dailyReportLabels.ownerReadOnlyHint : dailyReportLabels.workerReadOnlyHint}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            onClick={() => {
+              setDailyReportScreenTab('list');
+              setIsEditingDailyReport(false);
+            }}
+            className={`min-h-12 rounded-[1.2rem] px-4 py-3 text-sm font-semibold ${dailyReportScreenTab === 'list' ? 'bg-slate-900 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+          >
+            {dailyReportLabels.listTab}
+          </button>
+          <button
+            onClick={openDailyReportCreate}
+            className={`min-h-12 rounded-[1.2rem] px-4 py-3 text-sm font-semibold ${dailyReportScreenTab === 'create' ? 'bg-blue-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+          >
+            {dailyReportLabels.createTab}
+          </button>
+        </div>
+
+        {dailyReportScreenTab === 'list' ? (
+          <div className="mt-4 space-y-4">
+            <DailyReportFilters
+              labels={dailyReportLabels}
+              filters={dailyReportFilters}
+              projectOptions={dailyReportProjectOptions}
+              onChange={handleDailyReportFilterChange}
+            />
+            <DailyReportList
+              reports={filteredDailyReports}
+              labels={dailyReportLabels}
+              summary={dailyReportSummary}
+              onSelect={openDailyReportDetail}
+              onCreate={openDailyReportCreate}
+            />
+          </div>
+        ) : null}
+
+        {dailyReportScreenTab === 'create' ? (
+          <div className="mt-4">
+            <DailyReportForm
+              labels={dailyReportLabels}
+              language={language}
+              role={currentWorker.role}
+              mode="create"
+              form={createDailyReportForm.form}
+              errors={createDailyReportForm.errors}
+              projectOptions={dailyReportProjectFormOptions}
+              relatedTickets={selectableTickets}
+              ticketSnapshot={activeTicketSnapshot}
+              onFieldChange={createDailyReportForm.setField}
+              onAttachmentChange={createDailyReportForm.setAttachmentDraft}
+              onToggleTicket={createDailyReportForm.toggleRelatedTicket}
+              onSubmit={submitDailyReport}
+              onCancel={() => setDailyReportScreenTab('list')}
+            />
+          </div>
+        ) : null}
+
+        {dailyReportScreenTab === 'detail' ? (
+          <div className="mt-4">
+            <DailyReportDetail
+              report={selectedDailyReport}
+              labels={dailyReportLabels}
+              language={language}
+              role={currentWorker.role}
+              editing={isEditingDailyReport}
+              form={editDailyReportForm.form}
+              errors={editDailyReportForm.errors}
+              projectOptions={dailyReportProjectFormOptions}
+              relatedTickets={isEditingDailyReport ? selectableTickets : selectedReportTickets}
+              ticketSnapshot={activeTicketSnapshot}
+              onFieldChange={editDailyReportForm.setField}
+              onAttachmentChange={editDailyReportForm.setAttachmentDraft}
+              onToggleTicket={editDailyReportForm.toggleRelatedTicket}
+              onEdit={startDailyReportEdit}
+              onSubmit={updateDailyReport}
+              onCancel={() => setIsEditingDailyReport(false)}
+              onBack={() => {
+                setIsEditingDailyReport(false);
+                setDailyReportScreenTab('list');
+              }}
+            />
+          </div>
+        ) : null}
+
+        <FormCard title={dailyReportLabels.listTodaySummary}>
+          <HistoryList
+            items={latestDailyReports}
+            emptyLabel={pickText(t, 'worker_no_data', 'No data yet')}
+            renderItem={(item) => (
+              <HistoryCard
+                title={`${item.area || '-'} • ${item.workerCount || 0}`}
+                detail={`${item.projectName || '-'} • ${item.reportDate || '-'} • ${formatDateTime(item.updatedAt || item.createdAt, locale)}`}
+                status="submitted"
+                imageData={item.attachments?.find((entry) => entry.kind === 'photo')?.imageData || ''}
+              />
+            )}
+          />
+        </FormCard>
+      </SinglePurposeScreen>
+    );
+  };
   const renderBody = () => {
     if (activeScreen === SCREEN_PHOTO) return renderPhotoScreen();
     if (activeScreen === SCREEN_VOICE) return renderVoiceScreen();
@@ -2661,6 +3096,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     if (activeScreen === SCREEN_REQUEST) return renderRequestScreen();
     if (activeScreen === SCREEN_PAYMENT) return renderPaymentScreen();
     if (activeScreen === SCREEN_MILESTONE) return renderMilestoneScreen();
+    if (activeScreen === SCREEN_DAILY_REPORT) return renderDailyReportScreen();
     if (activeScreen === SCREEN_ISSUE) return renderIssueScreen();
     if (activeScreen === SCREEN_TASKS) return renderTasks();
     if (activeScreen === SCREEN_ACTIVITY) return renderActivity();
@@ -3215,3 +3651,20 @@ function MetricCard({ label, value, compact = false }) {
 }
 
 export default WorkerAppV2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

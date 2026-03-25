@@ -5,6 +5,8 @@ export const WORKER_STORAGE_KEYS = {
   photoReports: `${STORAGE_PREFIX}photoReports`,
   voiceNotes: `${STORAGE_PREFIX}voiceNotes`,
   issues: `${STORAGE_PREFIX}issues`,
+  siteTickets: `${STORAGE_PREFIX}siteTickets`,
+  dailyReports: `${STORAGE_PREFIX}dailyReports`,
   materialRequests: `${STORAGE_PREFIX}materialRequests`,
   paymentRequests: `${STORAGE_PREFIX}paymentRequests`,
   milestoneSubmissions: `${STORAGE_PREFIX}milestoneSubmissions`,
@@ -360,6 +362,48 @@ export function createIssueReport({
   };
 }
 
+export function createDailyReportRecord({
+  workerId,
+  workerName,
+  siteName,
+  projectId = '',
+  projectName = '',
+  reportDate = '',
+  area = '',
+  workSummary = '',
+  workerCount = 0,
+  materialSummary = '',
+  issueSummary = '',
+  tomorrowPlan = '',
+  attachments = [],
+  relatedTicketIds = [],
+  ticketSnapshot = null,
+  status = 'submitted',
+  timestamp = Date.now(),
+}) {
+  return {
+    id: createLocalId('daily_report'),
+    workerId,
+    workerName,
+    siteName,
+    projectId,
+    projectName,
+    reportDate: reportDate || getDateKey(timestamp),
+    area,
+    workSummary,
+    workerCount: Number(workerCount || 0),
+    materialSummary,
+    issueSummary,
+    tomorrowPlan,
+    attachments: Array.isArray(attachments) ? attachments.filter(Boolean) : [],
+    relatedTicketIds: Array.isArray(relatedTicketIds) ? relatedTicketIds.filter(Boolean) : [],
+    ticketSnapshot,
+    submittedAt: timestamp,
+    dateKey: getDateKey(timestamp),
+    status,
+    ...createSyncFields('pending', timestamp),
+  };
+}
 export function createMaterialRequest({
   workerId,
   workerName,
@@ -497,3 +541,4 @@ export function updateWorkerTaskStatus(tasks, taskId, nextStatus) {
     return { ...task, status: nextStatus, progress };
   });
 }
+

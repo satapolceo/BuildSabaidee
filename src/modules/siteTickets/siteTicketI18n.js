@@ -1,0 +1,313 @@
+import {
+  SITE_TICKET_CATEGORY,
+  SITE_TICKET_PRIORITY,
+  SITE_TICKET_STATUS,
+} from './siteTicketModel';
+
+const COPY = {
+  TH: {
+    title: 'ตั๋วงานไซต์ / ปัญหา / Defect',
+    subtitle: 'สร้าง ติดตาม และอัปเดตงานหน้างานจากมือถือ',
+    listTab: 'รายการ',
+    createTab: 'สร้างใหม่',
+    detailTab: 'รายละเอียด',
+    searchPlaceholder: 'ค้นหาชื่อตั๋ว คำอธิบาย หรือผู้รับผิดชอบ',
+    filterProject: 'โครงการ',
+    filterStatus: 'สถานะ',
+    filterPriority: 'ความสำคัญ',
+    filterAssignee: 'ผู้รับผิดชอบ',
+    filterAll: 'ทั้งหมด',
+    newTicket: 'สร้างตั๋วใหม่',
+    editTicket: 'แก้ไขตั๋ว',
+    saveTicket: 'บันทึกตั๋ว',
+    updateTicket: 'อัปเดตตั๋ว',
+    viewDetail: 'ดูรายละเอียด',
+    backToList: 'กลับไปรายการ',
+    empty: 'ยังไม่มีตั๋วตามเงื่อนไขนี้',
+    titleLabel: 'หัวข้อ',
+    descriptionLabel: 'รายละเอียด',
+    categoryLabel: 'หมวด',
+    priorityLabel: 'ความสำคัญ',
+    locationLabel: 'ตำแหน่งหน้างาน',
+    dueDateLabel: 'กำหนดเสร็จ',
+    assigneeLabel: 'ผู้รับผิดชอบ',
+    statusLabel: 'สถานะ',
+    projectLabel: 'โครงการ',
+    createdByLabel: 'สร้างโดย',
+    createdAtLabel: 'สร้างเมื่อ',
+    updatedAtLabel: 'อัปเดตล่าสุด',
+    lastUpdatedByLabel: 'อัปเดตโดย',
+    notesLabel: 'บันทึกอัปเดต',
+    notesPlaceholder: 'พิมพ์บันทึกการอัปเดตเพิ่มเติม',
+    noteHistoryTitle: 'บันทึกการติดตาม',
+    timelineTitle: 'ไทม์ไลน์ตั๋ว',
+    assignmentTitle: 'มอบหมายงานและสถานะ',
+    overdueLabel: 'เลยกำหนด',
+    onTimeLabel: 'ตามกำหนด',
+    dueTodayLabel: 'ครบกำหนดวันนี้',
+    attachmentSectionTitle: 'แนบรูป เสียง หรือโน้ต',
+    attachmentPreviewEmpty: 'ยังไม่มีไฟล์แนบ',
+    attachmentPhoto: 'รูป',
+    attachmentVoice: 'เสียง',
+    attachmentNote: 'โน้ต',
+    attachmentRemove: 'ลบ',
+    validationRequired: 'กรอกข้อมูลที่จำเป็นให้ครบ',
+    workerReadOnlyHint: 'คนงานสร้างและดูตั๋วของตนได้',
+    ownerReadOnlyHint: 'เจ้าของดูแบบอ่านอย่างเดียว',
+    ticketSaved: 'บันทึกตั๋วแล้ว',
+    ticketUpdated: 'อัปเดตตั๋วแล้ว',
+    listSummary: 'ตั๋วทั้งหมด',
+    listOpenSummary: 'กำลังติดตาม',
+    listCriticalSummary: 'เร่งด่วน',
+    eventCreated: 'สร้างตั๋ว',
+    eventStatusChanged: 'เปลี่ยนสถานะ',
+    eventAssigneeChanged: 'เปลี่ยนผู้รับผิดชอบ',
+    eventNoteAdded: 'เพิ่มบันทึก',
+    eventAttachmentAdded: 'เพิ่มไฟล์แนบ',
+    eventTicketUpdated: 'อัปเดตตั๋ว',
+    changedFromTo: 'จาก {from} เป็น {to}',
+    assignedFromTo: 'จาก {from} ไป {to}',
+    noAssignee: 'ยังไม่มอบหมาย',
+  },
+  LA: {
+    title: 'ບັດງານໄຊຕ໌ / ບັນຫາ / Defect',
+    subtitle: 'ສ້າງ ຕິດຕາມ ແລະ ອັບເດດງານໜ້າວຽກຈາກມືຖື',
+    listTab: 'ລາຍການ',
+    createTab: 'ສ້າງໃໝ່',
+    detailTab: 'ລາຍລະອຽດ',
+    searchPlaceholder: 'ຄົ້ນຫາຫົວຂໍ້ ລາຍລະອຽດ ຫຼື ຜູ້ຮັບຜິດຊອບ',
+    filterProject: 'ໂຄງການ',
+    filterStatus: 'ສະຖານະ',
+    filterPriority: 'ຄວາມສຳຄັນ',
+    filterAssignee: 'ຜູ້ຮັບຜິດຊອບ',
+    filterAll: 'ທັງໝົດ',
+    newTicket: 'ສ້າງບັດງານໃໝ່',
+    editTicket: 'ແກ້ໄຂບັດງານ',
+    saveTicket: 'ບັນທຶກບັດງານ',
+    updateTicket: 'ອັບເດດບັດງານ',
+    viewDetail: 'ເບິ່ງລາຍລະອຽດ',
+    backToList: 'ກັບໄປລາຍການ',
+    empty: 'ຍັງບໍ່ພົບບັດງານຕາມເງື່ອນໄຂນີ້',
+    titleLabel: 'ຫົວຂໍ້',
+    descriptionLabel: 'ລາຍລະອຽດ',
+    categoryLabel: 'ໝວດ',
+    priorityLabel: 'ຄວາມສຳຄັນ',
+    locationLabel: 'ຈຸດໜ້າວຽກ',
+    dueDateLabel: 'ກຳນົດສຳເລັດ',
+    assigneeLabel: 'ຜູ້ຮັບຜິດຊອບ',
+    statusLabel: 'ສະຖານະ',
+    projectLabel: 'ໂຄງການ',
+    createdByLabel: 'ສ້າງໂດຍ',
+    createdAtLabel: 'ສ້າງເມື່ອ',
+    updatedAtLabel: 'ອັບເດດຫຼ້າສຸດ',
+    lastUpdatedByLabel: 'ອັບເດດໂດຍ',
+    notesLabel: 'ບັນທຶກອັບເດດ',
+    notesPlaceholder: 'ພິມບັນທຶກອັບເດດເພີ່ມ',
+    noteHistoryTitle: 'ບັນທຶກການຕິດຕາມ',
+    timelineTitle: 'ໄທມ໌ລາຍບັດງານ',
+    assignmentTitle: 'ມອບໝາຍງານ ແລະ ສະຖານະ',
+    overdueLabel: 'ເລີຍກຳນົດ',
+    onTimeLabel: 'ຕາມກຳນົດ',
+    dueTodayLabel: 'ຄົບກຳນົດມື້ນີ້',
+    attachmentSectionTitle: 'ແນບຮູບ ສຽງ ຫຼື ໂນ້ດ',
+    attachmentPreviewEmpty: 'ຍັງບໍ່ມີໄຟລ໌ແນບ',
+    attachmentPhoto: 'ຮູບ',
+    attachmentVoice: 'ສຽງ',
+    attachmentNote: 'ໂນ້ດ',
+    attachmentRemove: 'ລົບ',
+    validationRequired: 'ກະລຸນາກອກຂໍ້ມູນຈຳເປັນໃຫ້ຄົບ',
+    workerReadOnlyHint: 'ຄົນງານສ້າງ ແລະ ເບິ່ງບັດງານຂອງຕົນໄດ້',
+    ownerReadOnlyHint: 'ເຈົ້າຂອງເບິ່ງໄດ້ແບບອ່ານຢ່າງດຽວ',
+    ticketSaved: 'ບັນທຶກບັດງານແລ້ວ',
+    ticketUpdated: 'ອັບເດດບັດງານແລ້ວ',
+    listSummary: 'ບັດງານທັງໝົດ',
+    listOpenSummary: 'ກຳລັງຕິດຕາມ',
+    listCriticalSummary: 'ເລັ່ງດ່ວນ',
+    eventCreated: 'ສ້າງບັດງານ',
+    eventStatusChanged: 'ປ່ຽນສະຖານະ',
+    eventAssigneeChanged: 'ປ່ຽນຜູ້ຮັບຜິດຊອບ',
+    eventNoteAdded: 'ເພີ່ມບັນທຶກ',
+    eventAttachmentAdded: 'ເພີ່ມໄຟລ໌ແນບ',
+    eventTicketUpdated: 'ອັບເດດບັດງານ',
+    changedFromTo: 'ຈາກ {from} ເປັນ {to}',
+    assignedFromTo: 'ຈາກ {from} ໄປ {to}',
+    noAssignee: 'ຍັງບໍ່ມອບໝາຍ',
+  },
+  EN: {
+    title: 'Site Tickets / Issues / Defects',
+    subtitle: 'Create, track, and update site tickets from mobile',
+    listTab: 'List',
+    createTab: 'Create',
+    detailTab: 'Detail',
+    searchPlaceholder: 'Search title, description, or assignee',
+    filterProject: 'Project',
+    filterStatus: 'Status',
+    filterPriority: 'Priority',
+    filterAssignee: 'Assignee',
+    filterAll: 'All',
+    newTicket: 'New Ticket',
+    editTicket: 'Edit Ticket',
+    saveTicket: 'Save Ticket',
+    updateTicket: 'Update Ticket',
+    viewDetail: 'View Detail',
+    backToList: 'Back to list',
+    empty: 'No tickets match these filters',
+    titleLabel: 'Title',
+    descriptionLabel: 'Description',
+    categoryLabel: 'Category',
+    priorityLabel: 'Priority',
+    locationLabel: 'Location',
+    dueDateLabel: 'Due Date',
+    assigneeLabel: 'Assignee',
+    statusLabel: 'Status',
+    projectLabel: 'Project',
+    createdByLabel: 'Created By',
+    createdAtLabel: 'Created At',
+    updatedAtLabel: 'Updated At',
+    lastUpdatedByLabel: 'Updated By',
+    notesLabel: 'Update Note',
+    notesPlaceholder: 'Type an update note',
+    noteHistoryTitle: 'Update Notes',
+    timelineTitle: 'Ticket Timeline',
+    assignmentTitle: 'Assignment and Status',
+    overdueLabel: 'Overdue',
+    onTimeLabel: 'On time',
+    dueTodayLabel: 'Due today',
+    attachmentSectionTitle: 'Attach photo, voice, or note',
+    attachmentPreviewEmpty: 'No attachments yet',
+    attachmentPhoto: 'Photo',
+    attachmentVoice: 'Voice',
+    attachmentNote: 'Note',
+    attachmentRemove: 'Remove',
+    validationRequired: 'Please complete the required fields',
+    workerReadOnlyHint: 'Workers can create and view their related tickets',
+    ownerReadOnlyHint: 'Owners can view tickets in read-only mode',
+    ticketSaved: 'Ticket saved',
+    ticketUpdated: 'Ticket updated',
+    listSummary: 'Total Tickets',
+    listOpenSummary: 'Active',
+    listCriticalSummary: 'Critical',
+    eventCreated: 'Created',
+    eventStatusChanged: 'Status changed',
+    eventAssigneeChanged: 'Assignee changed',
+    eventNoteAdded: 'Note added',
+    eventAttachmentAdded: 'Attachment added',
+    eventTicketUpdated: 'Ticket updated',
+    changedFromTo: 'From {from} to {to}',
+    assignedFromTo: 'From {from} to {to}',
+    noAssignee: 'Unassigned',
+  },
+};
+
+const STATUS_LABELS = {
+  TH: {
+    [SITE_TICKET_STATUS.new]: 'ใหม่',
+    [SITE_TICKET_STATUS.inProgress]: 'กำลังทำ',
+    [SITE_TICKET_STATUS.pendingApproval]: 'รออนุมัติ',
+    [SITE_TICKET_STATUS.completed]: 'เสร็จแล้ว',
+    [SITE_TICKET_STATUS.closed]: 'ปิดงาน',
+  },
+  LA: {
+    [SITE_TICKET_STATUS.new]: 'ໃໝ່',
+    [SITE_TICKET_STATUS.inProgress]: 'ກຳລັງເຮັດ',
+    [SITE_TICKET_STATUS.pendingApproval]: 'ລໍອະນຸມັດ',
+    [SITE_TICKET_STATUS.completed]: 'ສຳເລັດ',
+    [SITE_TICKET_STATUS.closed]: 'ປິດງານ',
+  },
+  EN: {
+    [SITE_TICKET_STATUS.new]: 'New',
+    [SITE_TICKET_STATUS.inProgress]: 'In Progress',
+    [SITE_TICKET_STATUS.pendingApproval]: 'Pending Approval',
+    [SITE_TICKET_STATUS.completed]: 'Completed',
+    [SITE_TICKET_STATUS.closed]: 'Closed',
+  },
+};
+
+const PRIORITY_LABELS = {
+  TH: {
+    [SITE_TICKET_PRIORITY.low]: 'ต่ำ',
+    [SITE_TICKET_PRIORITY.medium]: 'กลาง',
+    [SITE_TICKET_PRIORITY.high]: 'สูง',
+    [SITE_TICKET_PRIORITY.critical]: 'วิกฤต',
+  },
+  LA: {
+    [SITE_TICKET_PRIORITY.low]: 'ຕ່ຳ',
+    [SITE_TICKET_PRIORITY.medium]: 'ກາງ',
+    [SITE_TICKET_PRIORITY.high]: 'ສູງ',
+    [SITE_TICKET_PRIORITY.critical]: 'ວິກິດ',
+  },
+  EN: {
+    [SITE_TICKET_PRIORITY.low]: 'Low',
+    [SITE_TICKET_PRIORITY.medium]: 'Medium',
+    [SITE_TICKET_PRIORITY.high]: 'High',
+    [SITE_TICKET_PRIORITY.critical]: 'Critical',
+  },
+};
+
+const CATEGORY_LABELS = {
+  TH: {
+    [SITE_TICKET_CATEGORY.issue]: 'ปัญหา',
+    [SITE_TICKET_CATEGORY.defect]: 'Defect',
+    [SITE_TICKET_CATEGORY.safety]: 'ความปลอดภัย',
+    [SITE_TICKET_CATEGORY.quality]: 'คุณภาพ',
+    [SITE_TICKET_CATEGORY.material]: 'วัสดุ',
+    [SITE_TICKET_CATEGORY.progress]: 'ความคืบหน้า',
+  },
+  LA: {
+    [SITE_TICKET_CATEGORY.issue]: 'ບັນຫາ',
+    [SITE_TICKET_CATEGORY.defect]: 'Defect',
+    [SITE_TICKET_CATEGORY.safety]: 'ຄວາມປອດໄພ',
+    [SITE_TICKET_CATEGORY.quality]: 'ຄຸນນະພາບ',
+    [SITE_TICKET_CATEGORY.material]: 'ວັດສະດຸ',
+    [SITE_TICKET_CATEGORY.progress]: 'ຄວາມຄືບໜ້າ',
+  },
+  EN: {
+    [SITE_TICKET_CATEGORY.issue]: 'Issue',
+    [SITE_TICKET_CATEGORY.defect]: 'Defect',
+    [SITE_TICKET_CATEGORY.safety]: 'Safety',
+    [SITE_TICKET_CATEGORY.quality]: 'Quality',
+    [SITE_TICKET_CATEGORY.material]: 'Material',
+    [SITE_TICKET_CATEGORY.progress]: 'Progress',
+  },
+};
+
+export function getSiteTicketCopy(language = 'EN') {
+  return COPY[language] || COPY.EN;
+}
+
+export function getSiteTicketStatusOptions(language = 'EN') {
+  return Object.values(SITE_TICKET_STATUS).map((value) => ({ value, label: STATUS_LABELS[language]?.[value] || STATUS_LABELS.EN[value] }));
+}
+
+export function getSiteTicketPriorityOptions(language = 'EN') {
+  return Object.values(SITE_TICKET_PRIORITY).map((value) => ({ value, label: PRIORITY_LABELS[language]?.[value] || PRIORITY_LABELS.EN[value] }));
+}
+
+export function getSiteTicketCategoryOptions(language = 'EN') {
+  return Object.values(SITE_TICKET_CATEGORY).map((value) => ({ value, label: CATEGORY_LABELS[language]?.[value] || CATEGORY_LABELS.EN[value] }));
+}
+
+export function getSiteTicketStatusLabel(status, language = 'EN') {
+  return STATUS_LABELS[language]?.[status] || STATUS_LABELS.EN[status] || status;
+}
+
+export function getSiteTicketPriorityLabel(priority, language = 'EN') {
+  return PRIORITY_LABELS[language]?.[priority] || PRIORITY_LABELS.EN[priority] || priority;
+}
+
+export function getSiteTicketCategoryLabel(category, language = 'EN') {
+  return CATEGORY_LABELS[language]?.[category] || CATEGORY_LABELS.EN[category] || category;
+}
+
+export function getSiteTicketEventTypeLabel(eventType, language = 'EN') {
+  const copy = getSiteTicketCopy(language);
+  const map = {
+    created: copy.eventCreated,
+    status_changed: copy.eventStatusChanged,
+    assignee_changed: copy.eventAssigneeChanged,
+    note_added: copy.eventNoteAdded,
+    attachment_added: copy.eventAttachmentAdded,
+    ticket_updated: copy.eventTicketUpdated,
+  };
+  return map[eventType] || eventType;
+}

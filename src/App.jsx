@@ -52,15 +52,18 @@ import {
   seedAdminAiMonitoringData,
   syncAdminAiReviewItem,
 } from './services/adminAiMonitoringService';
-import { 
-  CheckCircle, MapPin, Camera, AlertTriangle, Mic, 
-  BarChart3, Users, FileText, MessageSquare, Clock, 
-  WifiOff, Package, Receipt, CloudRain, HardHat, 
+import {
+  CheckCircle, MapPin, Camera, AlertTriangle, Mic,
+  BarChart3, Users, FileText, MessageSquare, Clock,
+  WifiOff, Package, Receipt, CloudRain, HardHat,
   Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
   LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
   UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
   Send, Database, Eye, EyeOff, Printer, Percent, Download, Home
 } from 'lucide-react';
+import OwnerProjectProgressView from './modules/projectProgress/OwnerProjectProgressView';
+import { buildProjectProgressSelectors } from './modules/projectProgress/projectProgressSelectors';
+import { getProjectProgressCopy } from './modules/projectProgress/projectProgressI18n';
 
 // ========================================================
 // 🔥 1. FIREBASE CONFIGURATION (ใส่ข้อมูลของคุณที่นี่) 🔥
@@ -18161,6 +18164,27 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
   ), [projectsList]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [ownerSiteTickets, setOwnerSiteTickets] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []));
+  const [ownerDailyReports, setOwnerDailyReports] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
+
+  useEffect(() => {
+    const syncPortalProjectData = () => {
+      setOwnerSiteTickets(loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []));
+      setOwnerDailyReports(loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
+    };
+
+    syncPortalProjectData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', syncPortalProjectData);
+      window.addEventListener('storage', syncPortalProjectData);
+      return () => {
+        window.removeEventListener('focus', syncPortalProjectData);
+        window.removeEventListener('storage', syncPortalProjectData);
+      };
+    }
+
+    return undefined;
+  }, []);
 
   useEffect(() => {
     if (!normalizedProjects.length) {
@@ -18287,6 +18311,16 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
   const recentBillingRecords = [...billingRelatedDocs]
     .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
     .slice(0, 5);
+
+  const projectProgressLabels = useMemo(() => getProjectProgressCopy(language), [language]);
+  const ownerProgressData = useMemo(() => buildProjectProgressSelectors({
+    projectsList: normalizedProjects,
+    workersList,
+    siteTickets: ownerSiteTickets,
+    dailyReports: ownerDailyReports,
+    selectedProjectId,
+    labels: projectProgressLabels,
+  }), [normalizedProjects, workersList, ownerSiteTickets, ownerDailyReports, selectedProjectId, projectProgressLabels]);
 
   const placeholderPanel = (
     <div className="space-y-5">
@@ -18453,149 +18487,18 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
     </div>
   );
 
-  const progressPanel = selectedProject ? (
-    <div className="space-y-5">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr,1.1fr]">
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">{t('owner_project_select_label')}</label>
-              <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-amber-400">
-                {normalizedProjects.map((project) => (
-                  <option key={project.id} value={project.id}>{project.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-3">
-              {normalizedProjects.map((project) => (
-                <button
-                  key={project.id}
-                  onClick={() => setSelectedProjectId(project.id)}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${String(project.id) === String(selectedProjectId) ? 'border-amber-300 bg-amber-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-semibold text-slate-900">{project.name}</div>
-                      <div className="mt-1 text-sm text-slate-500">{project.location || '-'}</div>
-                    </div>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusBadgeClass(project.status)}`}>
-                      {t(`status_${project.status}`)}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
-                    <span>{getProjectStageLabel(project.progress)}</span>
-                    <span>{formatNumberByLanguage(project.progress || 0, language)}%</span>
-                  </div>
-                  <div className="mt-2 h-2 rounded-full bg-white">
-                    <div className="h-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: `${Math.min(Number(project.progress || 0), 100)}%` }}></div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-3xl bg-slate-50 p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_progress_selected_project')}</div>
-                  <h3 className="mt-2 text-2xl font-bold text-slate-900">{selectedProject.name}</h3>
-                  <div className="mt-2 text-sm text-slate-500">{selectedProject.location || '-'}</div>
-                </div>
-                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(selectedProject.status)}`}>
-                  {t(`status_${selectedProject.status}`)}
-                </span>
-              </div>
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-white p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_stage_summary')}</div>
-                  <div className="mt-2 text-lg font-semibold text-slate-900">{getProjectStageLabel(selectedProject.progress)}</div>
-                </div>
-                <div className="rounded-2xl bg-white p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_timeline')}</div>
-                  <div className="mt-2 text-sm font-medium text-slate-800">
-                    {selectedProject.startDate || selectedProject.endDate
-                      ? `${formatDateByLanguage(selectedProject.startDate, language)} - ${formatDateByLanguage(selectedProject.endDate, language)}`
-                      : t('owner_project_dates_missing')}
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-white p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_main_contact')}</div>
-                  <div className="mt-2 text-sm font-medium text-slate-800">{mainContact?.name || t('owner_project_contact_missing')}</div>
-                  <div className="mt-1 text-xs text-slate-500">{mainContact?.position || mainContact?.phone || '-'}</div>
-                </div>
-                <div className="rounded-2xl bg-white p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_last_updated')}</div>
-                  <div className="mt-2 text-sm font-medium text-slate-800">{formatDateByLanguage(recentUpdates[0]?.dateValue || selectedProject.createdAt || '', language)}</div>
-                </div>
-              </div>
-              <div className="mt-5">
-                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
-                  <span>{t('label_progress')}</span>
-                  <span>{formatNumberByLanguage(selectedProject.progress || 0, language)}%</span>
-                </div>
-                <div className="mt-2 h-4 rounded-full bg-white">
-                  <div className="h-4 rounded-full bg-gradient-to-r from-amber-500 to-orange-500" style={{ width: `${Math.min(Number(selectedProject.progress || 0), 100)}%` }}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h4 className="text-base font-semibold text-slate-900">{t('owner_project_overview_card')}</h4>
-                <div className="mt-4 space-y-3 text-sm">
-                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_location')}</div><div className="mt-1 font-medium text-slate-800">{selectedProject.location || '-'}</div></div>
-                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_start_date')}</div><div className="mt-1 font-medium text-slate-800">{selectedProject.startDate ? formatDateByLanguage(selectedProject.startDate, language) : '-'}</div></div>
-                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('project_end_date')}</div><div className="mt-1 font-medium text-slate-800">{selectedProject.endDate ? formatDateByLanguage(selectedProject.endDate, language) : '-'}</div></div>
-                  <div><div className="text-xs uppercase tracking-wide text-slate-400">{t('owner_project_last_updated')}</div><div className="mt-1 font-medium text-slate-800">{formatDateByLanguage(recentUpdates[0]?.dateValue || selectedProject.createdAt || '', language)}</div></div>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h4 className="text-base font-semibold text-slate-900">{t('owner_project_main_contact')}</h4>
-                {mainContact?.name ? (
-                  <div className="mt-4 space-y-3 text-sm">
-                    <div className="font-semibold text-slate-900">{mainContact.name}</div>
-                    <div className="text-slate-600">{mainContact.position || '-'}</div>
-                    <div className="text-slate-600">{mainContact.phone || '-'}</div>
-                    <div className="text-slate-600">{mainContact.email || mainContact.otherContact || '-'}</div>
-                  </div>
-                ) : (
-                  <div className="mt-4 text-sm text-slate-500">{t('owner_project_contact_missing')}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h4 className="text-base font-semibold text-slate-900">{t('owner_project_recent_updates')}</h4>
-              <div className="mt-4 space-y-3">
-                {recentUpdates.length > 0 ? recentUpdates.map((item) => (
-                  <div key={item.id} className="rounded-2xl bg-slate-50 px-4 py-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="font-medium text-slate-900">{item.title}</div>
-                        <div className="mt-1 text-xs uppercase tracking-wide text-amber-700">{item.sourceLabel}</div>
-                      </div>
-                      <div className="text-xs text-slate-500">{formatDateByLanguage(item.dateValue, language)}</div>
-                    </div>
-                    <div className="mt-2 text-sm text-slate-600">{item.summary || '-'}</div>
-                  </div>
-                )) : (
-                  <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_project_updates_empty')}</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
-      {t('owner_metric_no_project')}
-    </div>
+  const progressPanel = (
+    <OwnerProjectProgressView
+      labels={projectProgressLabels}
+      language={language}
+      role={authSession?.role || 'owner'}
+      data={ownerProgressData}
+      selectedProjectId={selectedProjectId}
+      onProjectChange={setSelectedProjectId}
+      formatDate={(value) => formatDateByLanguage(value, language)}
+      formatNumber={(value) => formatNumberByLanguage(value, language)}
+    />
   );
-
   const budgetPanel = selectedProject ? (
     <div className="space-y-5">
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -20340,3 +20243,4 @@ function ProjectRow({ name, progress, status, workers, hasAlert, t }) {
   );
 
 }
+

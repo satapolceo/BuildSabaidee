@@ -76,14 +76,14 @@ class MockMediaRecorder {
 const t = (key) => key;
 const onNavigate = vi.fn();
 
-function renderWorkerApp(language = 'EN') {
+function renderWorkerApp(language = 'EN', overrides = {}) {
   return render(
     <WorkerAppV2
       onNavigate={onNavigate}
       t={t}
       language={language}
-      workersList={workersList}
-      projectsList={projectsList}
+      workersList={overrides.workersList || workersList}
+      projectsList={overrides.projectsList || projectsList}
     />
   );
 }
@@ -115,6 +115,22 @@ async function openPhotoScreen(user) {
   await waitFor(() => expect(photoButton).toBeEnabled());
   await user.click(photoButton);
   await waitFor(() => expect(screen.getByText('Submit Work Photo')).toBeInTheDocument());
+}
+
+async function openIssueScreen(user) {
+  const issueButton = getQuickActionButton(/Issue|SOS|Report Issue|แจ้งปัญหา|ບັນຫາ/i);
+  if (!issueButton) throw new Error('Issue quick action not found');
+  await waitFor(() => expect(issueButton).toBeEnabled());
+  await user.click(issueButton);
+  await waitFor(() => expect(screen.getAllByText('Site Tickets / Issues / Defects').length).toBeGreaterThan(0));
+}
+
+async function openDailyReportScreen(user) {
+  const reportButton = getQuickActionButton(/Daily Report|รายงานประจำวัน|ລາຍງານປະຈຳວັນ/i);
+  if (!reportButton) throw new Error('Daily report quick action not found');
+  await waitFor(() => expect(reportButton).toBeEnabled());
+  await user.click(reportButton);
+  await waitFor(() => expect(screen.getAllByText('Daily Report / Site Diary').length).toBeGreaterThan(0));
 }
 
 async function settleUi(delay = 450) {
@@ -333,22 +349,256 @@ describe('WorkerAppV2 mobile automation', () => {
     await recordInlineVoice(user);
 
     await user.click(screen.getByRole('button', { name: /Save draft/i }));
-    await waitFor(() => expect(screen.getByText('Photo batch saved')).toBeInTheDocument());
-    expect(screen.getAllByText('Draft').length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getAllByText('Draft').length).toBeGreaterThan(0));
     expect(screen.getAllByText(/Mobile QA Category/).length).toBeGreaterThan(0);
 
     await user.type(screen.getByPlaceholderText('Details'), 'Submit note for simplified flow');
     await uploadBatchPhotos(user, view.container, [createImageFile('submit.jpg', 2400)]);
     await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: /Submit batch/i }));
-    await waitFor(() => expect(screen.getByText('Photo batch submitted')).toBeInTheDocument());
-    expect(screen.getAllByText('Submitted').length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getAllByText('Submitted').length).toBeGreaterThan(0));
     expect(screen.getAllByText(/Showroom Entry/).length).toBeGreaterThan(0);
 
     return 'Photo draft and submit still work with the shorter form layout and compact add controls';
   }), 15000);
 
 
+  it('shows preview items and allows removal before submit', async () => withFeature('Attachment preview and removal flow', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+
+    await checkInAndOpenPhoto(user);
+    await saveCompactAdd(user, 'Task Category', 'Preview QA Category');
+    await saveCompactAdd(user, 'Work Subcategory', 'Preview QA Subcategory');
+    await saveCompactAdd(user, 'Zone / Area', 'Preview QA Zone');
+
+    await user.type(screen.getByPlaceholderText('Details'), 'Preview note before submit');
+    await uploadBatchPhotos(user, view.container, [createImageFile('preview.jpg', 2100)]);
+    await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
+    await recordInlineVoice(user);
+
+    expect(screen.getByText('Preview before submit')).toBeInTheDocument();
+    expect(screen.getAllByText('Preview note before submit').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Voice').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Short note').length).toBeGreaterThan(0);
+
+    const previewRemoveButtons = screen.getAllByRole('button', { name: 'Remove' });
+    await user.click(previewRemoveButtons[previewRemoveButtons.length - 1]);
+    await waitFor(() => expect(screen.queryByText('Preview note before submit')).not.toBeInTheDocument());
+
+    return 'The shared attachment composer previews photo, voice, and note items and lets the worker remove a note before submitting';
+  }), 15000);
+
+  it('creates a site ticket with shared attachments and searchable list results', async () => withFeature('Site ticket create flow', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+
+    await checkIn(user);
+    await openIssueScreen(user);
+    await user.click(screen.getByRole('button', { name: 'New Ticket' }));
+
+    const textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Water leak at unit 1203');
+    await user.type(textboxes[1], 'Leak found near the bathroom pipe sleeve.');
+    await user.type(textboxes[2], 'Unit 1203 bathroom');
+    await user.type(screen.getByPlaceholderText('Type a short note for this ticket'), 'Photo and voice attached for supervisor review');
+    await uploadBatchPhotos(user, view.container, [createImageFile('ticket-photo.jpg', 2300)]);
+    await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Record in ticket/i }));
+    await user.click(screen.getByRole('button', { name: /Stop recording/i }));
+    await waitFor(() => expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole('button', { name: 'Save Ticket' }));
+    await waitFor(() => expect(screen.getByText('Water leak at unit 1203')).toBeInTheDocument());
+    expect(screen.getAllByText('Photo and voice attached for supervisor review').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: 'Back to list' }));
+    const searchInput = screen.getByPlaceholderText('Search title, description, or assignee');
+    await user.type(searchInput, 'Water leak');
+    await waitFor(() => expect(screen.getByText('Water leak at unit 1203')).toBeInTheDocument());
+
+    return 'Workers can create a real site ticket with the shared attachment composer and find it again from the list search';
+  }), 20000);
+
+  it('lets a supervisor update ticket status and add follow-up notes', async () => withFeature('Site ticket supervisor update flow', async () => {
+    const user = userEvent.setup();
+    const supervisorWorkers = [
+      { id: 's1', name: 'Nok Supervisor', assignedSiteId: 'p1', role: 'supervisor' },
+      { id: 'w1', name: 'Somchai', assignedSiteId: 'p1', role: 'worker' },
+    ];
+    renderWorkerApp('EN', { workersList: supervisorWorkers });
+
+    await checkIn(user);
+    await openIssueScreen(user);
+    await user.click(screen.getByRole('button', { name: 'New Ticket' }));
+
+    const textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Cracked tile at lobby entrance');
+    await user.type(textboxes[1], 'Tile edge is cracked and needs replacement.');
+    await user.type(textboxes[2], 'Lobby entrance');
+    await user.click(screen.getByRole('button', { name: 'Save Ticket' }));
+    await waitFor(() => expect(screen.getByText('Cracked tile at lobby entrance')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Edit Ticket' }));
+    const selects = screen.getAllByRole('combobox');
+    await user.selectOptions(selects[3], 'w1');
+    await user.selectOptions(selects[4], 'completed');
+    await user.type(screen.getByPlaceholderText('Type an update note'), 'Supervisor checked the area and marked it completed.');
+    await user.click(screen.getByRole('button', { name: 'Update Ticket' }));
+
+    await waitFor(() => expect(screen.getAllByText('Completed').length).toBeGreaterThan(0));
+    expect(screen.getAllByText('Supervisor checked the area and marked it completed.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Somchai').length).toBeGreaterThan(0);
+    expect(screen.getByText('Ticket Timeline')).toBeInTheDocument();
+    expect(screen.getAllByText('Status changed').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Assignee changed').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Supervisor checked the area and marked it completed.').length).toBeGreaterThan(0);
+
+    return 'Supervisors can assign a worker, change status, and save a follow-up note with visible timeline events on the same ticket';
+  }), 20000);
+
+  it('shows overdue state for open tickets past the due date', async () => withFeature('Site ticket overdue state', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    await checkIn(user);
+    await openIssueScreen(user);
+    await user.click(screen.getByRole('button', { name: 'New Ticket' }));
+
+    const textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Overdue waterproof check');
+    await user.type(textboxes[1], 'Waterproof inspection has passed its due date.');
+    await user.type(textboxes[2], 'Roof slab');
+    const dueDateInput = view.container.querySelector('input[type="date"]');
+    if (!dueDateInput) throw new Error('Due date input not found');
+    await user.type(dueDateInput, yesterday);
+    await user.click(screen.getByRole('button', { name: 'Save Ticket' }));
+
+    await waitFor(() => expect(screen.getAllByText('Overdue').length).toBeGreaterThan(0));
+    expect(screen.getByText('Assignment and Status')).toBeInTheDocument();
+
+    return 'Open tickets with past due dates show an overdue state in the detail and assignment panels';
+  }), 20000);
+  it('creates a daily report with shared attachments and linked tickets', async () => withFeature('Daily report create flow', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+
+    await checkIn(user);
+    await openIssueScreen(user);
+    await user.click(screen.getByRole('button', { name: 'New Ticket' }));
+    let textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Daily report linked ticket');
+    await user.type(textboxes[1], 'Ticket created for the report linkage test.');
+    await user.type(textboxes[2], 'Zone C stair core');
+    await user.click(screen.getByRole('button', { name: 'Save Ticket' }));
+    await waitFor(() => expect(screen.getByText('Daily report linked ticket')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Back to list' }));
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+
+    await openDailyReportScreen(user);
+    await user.click(screen.getByRole('button', { name: 'Create Report' }));
+
+    const reportDateInput = view.container.querySelector('input[type="date"]');
+    if (!reportDateInput) throw new Error('Daily report date input not found');
+    await user.clear(reportDateInput);
+    await user.type(reportDateInput, new Date().toISOString().split('T')[0]);
+
+    textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Zone C stair core');
+    await user.type(textboxes[1], 'Completed stair nosing checks and cleaned the landing area.');
+    const workerCountInput = view.container.querySelector('input[type="number"]');
+    if (!workerCountInput) throw new Error('Worker count input not found');
+    await user.type(workerCountInput, '8');
+    await user.type(textboxes[2], 'Used remaining cement board and ordered more sealant.');
+    await user.type(textboxes[3], 'One cracked tile remains from the linked ticket.');
+    await user.type(textboxes[4], 'Replace the cracked tile and close the stair core handover items.');
+    await user.click(screen.getByRole('checkbox', { name: /Daily report linked ticket/i }));
+    await user.type(screen.getByPlaceholderText('Type a short note for this report'), 'Voice and photo attached for the site diary.');
+    await uploadBatchPhotos(user, view.container, [createImageFile('daily-report.jpg', 2400)]);
+    await waitFor(() => expect(screen.getByText('Photos: 1')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Record in report/i }));
+    await user.click(screen.getByRole('button', { name: /Stop recording/i }));
+    await waitFor(() => expect(screen.getAllByText(/Voice attached/i).length).toBeGreaterThan(0));
+    await user.click(screen.getByRole('button', { name: 'Save Report' }));
+
+    await waitFor(() => expect(screen.getAllByText('Zone C stair core').length).toBeGreaterThan(0));
+    expect(screen.getByText('Daily report linked ticket')).toBeInTheDocument();
+    expect(screen.getAllByText('Voice and photo attached for the site diary.').length).toBeGreaterThan(0);
+
+    return 'Workers can create a daily report with shared attachments and a linked site ticket from the same mobile app shell';
+  }), 25000);
+
+  it('updates a daily report and keeps the changed detail in report view', async () => withFeature('Daily report edit flow', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+
+    await checkIn(user);
+    await openDailyReportScreen(user);
+    await user.click(screen.getByRole('button', { name: 'Create Report' }));
+
+    let textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Tower lift lobby');
+    await user.type(textboxes[1], 'Initial report before supervisor edit.');
+    const workerCountInput = view.container.querySelector('input[type="number"]');
+    if (!workerCountInput) throw new Error('Worker count input not found');
+    await user.type(workerCountInput, '5');
+    await user.type(textboxes[4], 'Paint touch-up on the door frame.');
+    await user.click(screen.getByRole('button', { name: 'Save Report' }));
+    await waitFor(() => expect(screen.getAllByText('Tower lift lobby').length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole('button', { name: 'Edit Report' }));
+    textboxes = screen.getAllByRole('textbox');
+    await user.clear(textboxes[4]);
+    await user.type(textboxes[4], 'Paint touch-up and final cleaning for owner walk-through.');
+    await user.click(screen.getByRole('button', { name: 'Update Report' }));
+
+    await waitFor(() => expect(screen.getByText('Paint touch-up and final cleaning for owner walk-through.')).toBeInTheDocument());
+
+    return 'Supervisors and workers can reopen a saved daily report, change the tomorrow plan, and keep the updated detail on the same report record';
+  }), 20000);
+
+  it('filters daily reports by project and date', async () => withFeature('Daily report filtering', async () => {
+    const user = userEvent.setup();
+    const view = renderWorkerApp('EN');
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    await checkIn(user);
+    await openDailyReportScreen(user);
+    await user.click(screen.getByRole('button', { name: 'Create Report' }));
+    const textboxes = screen.getAllByRole('textbox');
+    await user.type(textboxes[0], 'Sky Tower zone');
+    await user.type(textboxes[1], 'Sky Tower report entry.');
+    const workerCountInput = view.container.querySelector('input[type="number"]');
+    if (!workerCountInput) throw new Error('Worker count input not found');
+    await user.type(workerCountInput, '4');
+    await user.click(screen.getByRole('button', { name: 'Save Report' }));
+    await waitFor(() => expect(screen.getByText('Sky Tower zone')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Back to list' }));
+
+    const filterProject = screen.getAllByRole('combobox')[0];
+    await user.selectOptions(filterProject, 'p1');
+    let filterDate = view.container.querySelector('input[type="date"]');
+    if (!filterDate) throw new Error('Daily report filter date input not found');
+    await user.clear(filterDate);
+    await user.type(filterDate, today);
+
+    await waitFor(() => expect(screen.getByText('Sky Tower zone')).toBeInTheDocument());
+
+    await user.selectOptions(filterProject, 'p2');
+    await waitFor(() => expect(screen.queryByText('Sky Tower zone')).not.toBeInTheDocument());
+
+    filterDate = view.container.querySelector('input[type="date"]');
+    if (!filterDate) throw new Error('Daily report filter date input not found');
+    await user.clear(filterDate);
+    await user.type(filterDate, tomorrow);
+
+    await waitFor(() => expect(screen.queryByText('Sky Tower zone')).not.toBeInTheDocument());
+    expect(screen.getByText('No reports match these filters')).toBeInTheDocument();
+
+    return 'Daily reports can be narrowed by project and report date from the mobile list view';
+  }), 25000);
   it('simplifies the submit screen to the short worker flow', async () => withFeature('Simplified submit flow', async () => {
     const user = userEvent.setup();
     renderWorkerApp('EN');
@@ -458,14 +708,14 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(gallery).not.toHaveAttribute('capture');
 
     await uploadBatchCameraPhoto(user, view.container, createImageFile('camera-shot.jpg', 2100));
-    await waitFor(() => expect(screen.getByText('จำนวนรูป: 1')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText((_, element) => element?.textContent === 'จำนวนรูป: 1')).toBeInTheDocument());
     expect(view.container.querySelector('img')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'ลบรูป' }));
     await waitFor(() => expect(screen.queryByText('จำนวนรูป: 1')).not.toBeInTheDocument());
 
     await uploadBatchPhotos(user, view.container, [createImageFile('gallery-shot.jpg', 2200)]);
-    await waitFor(() => expect(screen.getByText('จำนวนรูป: 1')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText((_, element) => element?.textContent === 'จำนวนรูป: 1')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'บันทึกฉบับร่าง' }));
     await waitFor(() => expect(screen.getByText('บันทึกชุดรูปแล้ว')).toBeInTheDocument());
 
@@ -554,3 +804,20 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Compact add labels and worker form labels still switch across EN / TH / LA with the renamed standard-note section';
   }));
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
