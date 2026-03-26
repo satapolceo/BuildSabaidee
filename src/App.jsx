@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
   WORKER_STORAGE_KEYS,
@@ -64,6 +64,7 @@ import {
 import OwnerProjectProgressView from './modules/projectProgress/OwnerProjectProgressView';
 import { buildProjectProgressSelectors } from './modules/projectProgress/projectProgressSelectors';
 import { getProjectProgressCopy } from './modules/projectProgress/projectProgressI18n';
+import { buildOwnerDemoSeedBundle, mergeSeededRecords } from './demo/ownerDemoSeed';
 
 // ========================================================
 // 🔥 1. FIREBASE CONFIGURATION (ใส่ข้อมูลของคุณที่นี่) 🔥
@@ -8931,9 +8932,29 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const seedDatabase = async () => {
     if(!db) return alert(t('firebase_required'));
     try {
-      const p1 = await addDoc(collection(db, 'projects'), { name: "วิลล่าริมโขง หลวงพระบาง", location: "หลวงพระบาง", progress: 75, status: "active", workers: 15, createdAt: Date.now() });
-      await addDoc(collection(db, 'workers'), { ...normalizeWorkerEntry({ name: "สมชาย ไชยยะ", phone: "020 9876 5432", role: "general_worker", wage: 150000, assignedSiteId: p1.id, attendanceRate: 0 }), createdAt: Date.now() });
-      await addDoc(collection(db, 'inventory'), { name: 'ปูนซีเมนต์ ตราช้าง', category: 'วัสดุก่อสร้าง', quantity: 50, unit: 'ถุง', unitPrice: 45000, projectId: p1.id, createdAt: Date.now() });
+      const seedBundle = buildOwnerDemoSeedBundle();
+
+      await Promise.all(seedBundle.projects.map((project) => (
+        setDoc(doc(db, 'projects', project.id), project)
+      )));
+
+      await Promise.all(seedBundle.workers.map((worker) => (
+        setDoc(doc(db, 'workers', worker.id), normalizeWorkerEntry(worker))
+      )));
+
+      await Promise.all(seedBundle.docs.map((item) => (
+        setDoc(doc(db, 'docs', item.id), item)
+      )));
+
+      saveToStorage(
+        WORKER_STORAGE_KEYS.siteTickets,
+        mergeSeededRecords(loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []), seedBundle.siteTickets),
+      );
+      saveToStorage(
+        WORKER_STORAGE_KEYS.dailyReports,
+        mergeSeededRecords(loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []), seedBundle.dailyReports),
+      );
+
       alert(t('seed_success'));
     } catch(e) {
       console.error(e);
@@ -11223,7 +11244,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         {/* Dashboard Content */}
         <div className={`flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-8 xl:py-6 2xl:px-10 ${isDashboardThemeActive ? 'bg-transparent text-[#EAF2FF] 2xl:px-8 2xl:py-5' : 'bg-slate-100/70'}`}>
           
-          {isFirebaseConfigured && projectsList.length === 0 && activeTab === 'overview' && (
+          {isFirebaseConfigured && activeTab === 'overview' && (
              <button onClick={seedDatabase} className="w-full bg-blue-100 text-blue-700 p-4 rounded-xl border border-blue-200 mb-6 font-bold hover:bg-blue-200 transition shadow-sm flex justify-center items-center">
                 <Database className="w-5 h-5 mr-2"/> {t('dashboard_seed')}
              </button>
