@@ -6708,6 +6708,61 @@ export default function BuildSabaideeApp() {
     return { ok: true, successKey: 'auth_admin_sign_out_success' };
   };
 
+  const persistSiteTicket = async (ticket) => {
+    if (!db || !ticket?.id) return;
+    await setDoc(doc(db, 'siteTickets', String(ticket.id)), normalizeSiteTicketList([ticket])[0]);
+  };
+
+  const persistDailyReport = async (report) => {
+    if (!db || !report?.id) return;
+    await setDoc(doc(db, 'dailyReports', String(report.id)), normalizeDailyReportList([report])[0]);
+  };
+
+  const persistAttendanceRecord = async (record) => {
+    if (!db || !record?.id) return;
+    await setDoc(doc(db, 'attendance', String(record.id)), record);
+    if (record.workerId) {
+      await setDoc(doc(db, 'workers', String(record.workerId)), {
+        attendanceRate: record.type === 'checkout' ? 0 : 100,
+      }, { merge: true });
+    }
+  };
+
+  const persistPhotoReport = async (report) => {
+    if (!db || !report?.id) return;
+    await setDoc(doc(db, 'photoReports', String(report.id)), report);
+  };
+
+  const persistMaterialRequest = async (request) => {
+    if (!db || !request?.id) return;
+    const normalizedRequest = {
+      ...request,
+      projectId: String(request.projectId || ''),
+      title: request.title || `${request.requestType === 'delivery' ? 'Delivery' : 'Equipment'}: ${String(request.itemName || '').trim().slice(0, 40)}`,
+      requestedBy: request.requestedBy || request.workerName || '',
+      itemsListText: request.itemsListText || `${request.itemName || '-'} x${request.quantity || 0} ${request.unit || ''}${request.note ? `\n${request.note}` : ''}`,
+      photoUrl: request.photoUrl || request.imageData || '',
+      date: request.date || request.dateKey || '',
+      createdAt: Number(request.createdAt || request.requestedAt || Date.now()),
+    };
+    await setDoc(doc(db, 'requests', String(request.id)), normalizedRequest);
+  };
+
+  const persistPaymentRequest = async (request) => {
+    if (!db || !request?.id) return;
+    await setDoc(doc(db, 'paymentRequests', String(request.id)), request);
+  };
+
+  const persistMilestoneSubmission = async (submission) => {
+    if (!db || !submission?.id) return;
+    await setDoc(doc(db, 'milestoneSubmissions', String(submission.id)), submission);
+  };
+
+  const persistChatMessage = async (message) => {
+    if (!db || !message?.id) return;
+    await setDoc(doc(db, 'chats', String(message.id)), message);
+  };
+
   const toggleLanguage = () => {
     if (language === 'LA') setLanguage('TH');
     else if (language === 'TH') setLanguage('EN');
@@ -7420,9 +7475,6 @@ function LandingPage({ onNavigate, t, toggleLanguage, language, pricingPackages,
               </button>
               <button onClick={() => onNavigate('worker')} className="inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-5 py-3 text-sm font-medium text-white/85 transition hover:border-white/25 hover:text-white">
                 <Smartphone className="mr-2 h-4 w-4" /> {t('hero_btn_worker')}
-              </button>
-              <button onClick={() => onNavigate('worker_mobile_test')} className="inline-flex items-center justify-center rounded-full border border-blue-300/40 bg-blue-500/10 px-5 py-3 text-sm font-medium text-blue-100 transition hover:bg-blue-500/20">
-                <Smartphone className="mr-2 h-4 w-4" /> worker-mobile-test
               </button>
             </div>
           </div>
@@ -21277,6 +21329,7 @@ function ProjectRow({ name, progress, status, workers, hasAlert, t }) {
   );
 
 }
+
 
 
 

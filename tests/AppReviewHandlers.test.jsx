@@ -1,4 +1,7 @@
+import React from 'react';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 const { docMock, updateDocMock } = vi.hoisted(() => ({
   docMock: vi.fn((firestoreDb, collectionName, documentId) => ({ firestoreDb, collectionName, documentId })),
@@ -15,6 +18,7 @@ vi.mock('firebase/firestore', async () => {
 });
 
 import {
+  default as App,
   getReviewUpdateErrorKey,
   updatePaymentRequestReviewInFirestore,
   updateMilestoneSubmissionReviewInFirestore,
@@ -30,6 +34,7 @@ describe('App review update handlers', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 
@@ -234,6 +239,7 @@ describe('App review update handlers', () => {
     );
     expect(setItemSpy).not.toHaveBeenCalled();
   });
+
   it('does not call the Firestore update boundary when payment request id is missing', async () => {
     const firestoreDb = { name: 'db' };
 
@@ -301,5 +307,21 @@ describe('App review update handlers', () => {
       { updatedAt: FIXED_UPDATED_AT },
     );
   });
-});
 
+  it('opens the real worker app from landing and keeps worker-mobile-test out of public UI', async () => {
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    expect(screen.queryByText('worker-mobile-test')).not.toBeInTheDocument();
+
+    const workerEntry = screen.getByRole('button', {
+      name: /View Worker App|ดูแอปสำหรับคนงาน|ເບິ່ງແອັບຄົນງານ/i,
+    });
+
+    await user.click(workerEntry);
+
+    expect(await screen.findByText('Worker App')).toBeInTheDocument();
+    expect(screen.getByText(/Clock in and update work from one mobile screen|ลงเวลาและอัปเดตงานจากมือถือเครื่องเดียว|ລົງເວລາ ແລະ ອັບເດດວຽກຈາກມືຖືເຄື່ອງດຽວ/i)).toBeInTheDocument();
+  });
+});

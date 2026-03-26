@@ -246,6 +246,17 @@ const getPreferredProject = (projects, currentProject) => {
   return projects[0] || null;
 };
 
+const normalizeWorkerIdentity = (entry, t) => {
+  const rawName = entry?.name ?? entry?.companyName ?? '';
+  const name = String(rawName || '').trim() || pickText(t, 'worker_role_worker', 'Worker');
+  return {
+    id: String(entry?.id || 'worker-local'),
+    name,
+    assignedSiteId: String(entry?.assignedSiteId || ''),
+    role: String(entry?.role || 'worker'),
+  };
+};
+
 const prependUniqueOption = (items = [], nextValue = '') => {
   const normalized = String(nextValue || '').trim();
   if (!normalized) return items;
@@ -355,17 +366,12 @@ function WorkerAppV2({
   onPersistChatMessage = null,
 }) {
   const currentWorker = useMemo(() => {
-    const worker = workersList.find((entry) => entry?.name || entry?.companyName) || {};
-    return {
-      id: worker.id || 'worker-local',
-      name: worker.name || worker.companyName || pickText(t, 'worker_role_worker', 'Worker'),
-      assignedSiteId: worker.assignedSiteId || '',
-      role: worker.role || 'worker',
-    };
+    const normalizedWorkers = (Array.isArray(workersList) ? workersList : []).map((entry) => normalizeWorkerIdentity(entry, t));
+    return normalizedWorkers.find((entry) => entry.name) || normalizeWorkerIdentity({}, t);
   }, [workersList, t]);
 
   const currentProject = useMemo(
-    () => projectsList.find((project) => String(project.id) === String(currentWorker.assignedSiteId)) || null,
+    () => projectsList.find((project) => String(project.id) === String(currentWorker.assignedSiteId)) || projectsList[0] || null,
     [projectsList, currentWorker.assignedSiteId]
   );
   const initialStoredSiteTicketsRef = useRef(null);
