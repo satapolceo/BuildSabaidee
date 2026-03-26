@@ -39,6 +39,8 @@ function sortByRecent(items = [], keys = []) {
 export function buildProjectProgressSelectors({
   projectsList = [],
   workersList = [],
+  photoReports = [],
+  milestoneSubmissions = [],
   siteTickets = [],
   dailyReports = [],
   selectedProjectId = '',
@@ -63,6 +65,8 @@ export function buildProjectProgressSelectors({
   }
 
   const projectId = String(selectedProject.id || '');
+  const normalizedPhotoReports = (Array.isArray(photoReports) ? photoReports : []).filter((report) => String(report.projectId || '') === projectId);
+  const normalizedMilestones = (Array.isArray(milestoneSubmissions) ? milestoneSubmissions : []).filter((entry) => String(entry.projectId || '') === projectId);
   const normalizedTickets = normalizeSiteTicketList(siteTickets).filter((ticket) => String(ticket.projectId || '') === projectId);
   const normalizedReports = normalizeDailyReportList(dailyReports).filter((report) => String(report.projectId || '') === projectId);
   const workers = (Array.isArray(workersList) ? workersList : []).map(normalizeWorker).filter((worker) => worker.assignedSiteId === projectId);
@@ -104,6 +108,23 @@ export function buildProjectProgressSelectors({
       parentTitle: ticket.title || ticket.locationText || '',
       capturedAt: ticket.updatedAt || ticket.createdAt,
     }))),
+    ...normalizedPhotoReports.flatMap((report) => (report.photos || []).map((item) => ({
+      ...item,
+      source: 'photo_report',
+      projectId,
+      parentId: report.id,
+      parentTitle: report.batchTitle || report.roomName || report.projectName || '',
+      capturedAt: item.capturedAt || report.updatedAt || report.createdAt || report.submittedAt,
+    }))),
+    ...normalizedMilestones.flatMap((entry) => (entry.photos || []).map((item) => ({
+      ...item,
+      imageData: item.imageData,
+      source: 'milestone',
+      projectId,
+      parentId: entry.id,
+      parentTitle: entry.taskCategory || entry.areaZone || entry.projectName || '',
+      capturedAt: item.capturedAt || entry.updatedAt || entry.createdAt || entry.submittedAt,
+    }))),
   ], ['capturedAt']).slice(0, 6);
 
   const recentTicketActivity = normalizedTickets.flatMap((ticket) => getVisibleTicketTimeline(ticket).map((event) => ({
@@ -126,7 +147,30 @@ export function buildProjectProgressSelectors({
     changedAt: report.updatedAt || report.createdAt,
   }));
 
-  const recentActivity = sortByRecent([...recentTicketActivity, ...recentReportActivity], ['changedAt']).slice(0, 6);
+  const recentPhotoActivity = normalizedPhotoReports.map((report) => ({
+    id: `photo_report_${report.id}`,
+    source: 'photo_report',
+    sourceTitle: report.batchTitle || report.roomName || report.projectName || report.id,
+    eventType: 'photo_report_submitted',
+    note: report.notes || report.workSubcategory || report.workType || '',
+    changedBy: report.workerName ? { name: report.workerName } : null,
+    changedAt: report.updatedAt || report.submittedAt || report.createdAt,
+  }));
+
+  const recentMilestoneActivity = normalizedMilestones.map((entry) => ({
+    id: `milestone_${entry.id}`,
+    source: 'milestone',
+    sourceTitle: entry.taskCategory || entry.areaZone || entry.projectName || entry.id,
+    eventType: 'milestone_submitted',
+    note: entry.note || `${entry.progress || 0}%`,
+    changedBy: entry.workerName ? { name: entry.workerName } : null,
+    changedAt: entry.updatedAt || entry.submittedAt || entry.createdAt,
+  }));
+
+  const recentActivity = sortByRecent(
+    [...recentTicketActivity, ...recentReportActivity, ...recentPhotoActivity, ...recentMilestoneActivity],
+    ['changedAt']
+  ).slice(0, 6);
 
   const mainContact = workers.find((worker) => ['project_manager', 'site_manager', 'project_engineer', 'site_engineer', 'supervisor', 'foreman', 'contractor'].includes(worker.role)) || workers[0] || null;
   const projectHealth = calculateProjectHealth({

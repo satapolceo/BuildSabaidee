@@ -24,6 +24,8 @@ export function calculateProjectHealth({ projectProgress = 0, ticketSummary = {}
 
 export function formatProjectActivityTitle(item = {}, copy = {}) {
   if (item.source === 'report') return copy.eventReportSaved || 'Report saved';
+  if (item.source === 'photo_report') return copy.eventPhotoReportSubmitted || 'Photo report submitted';
+  if (item.source === 'milestone') return copy.eventMilestoneSubmitted || 'Milestone submitted';
   if (item.eventType === 'status_changed') return copy.eventStatusChanged || 'Status changed';
   if (item.eventType === 'assignee_changed') return copy.eventAssigneeChanged || 'Assignee changed';
   if (item.eventType === 'note_added') return copy.eventNoteAdded || 'Note added';

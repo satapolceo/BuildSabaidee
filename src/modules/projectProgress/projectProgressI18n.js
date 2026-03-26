@@ -49,6 +49,8 @@ const COPY = {
     eventAttachmentAdded: 'เพิ่มไฟล์แนบ',
     eventTicketUpdated: 'อัปเดตตั๋ว',
     eventReportSaved: 'บันทึกรายงาน',
+    eventPhotoReportSubmitted: 'ส่งรูปหน้างาน',
+    eventMilestoneSubmitted: 'ส่งงวดงาน',
     progressSimpleSummary: 'สรุปที่อ่านง่ายสำหรับเจ้าของ ใช้ข้อมูลจริงจากตั๋วไซต์และรายงานประจำวัน',
   },
   LA: {
@@ -101,6 +103,8 @@ const COPY = {
     eventAttachmentAdded: 'ເພີ່ມໄຟລ໌ແນບ',
     eventTicketUpdated: 'ອັບເດດບັດງານ',
     eventReportSaved: 'ບັນທຶກລາຍງານ',
+    eventPhotoReportSubmitted: 'ສົ່ງຮູບໜ້າວຽກ',
+    eventMilestoneSubmitted: 'ສົ່ງງວດງານ',
     progressSimpleSummary: 'ສະຫຼຸບທີ່ອ່ານງ່າຍສຳລັບເຈົ້າຂອງ ໃຊ້ຂໍ້ມູນຈິງຈາກບັດງານໄຊຕ໌ ແລະ ລາຍງານປະຈຳວັນ',
   },
   EN: {
@@ -153,6 +157,8 @@ const COPY = {
     eventAttachmentAdded: 'Attachment added',
     eventTicketUpdated: 'Ticket updated',
     eventReportSaved: 'Report saved',
+    eventPhotoReportSubmitted: 'Photo report submitted',
+    eventMilestoneSubmitted: 'Milestone submitted',
     progressSimpleSummary: 'A simple owner-facing summary using real site tickets and daily reports',
   },
 };

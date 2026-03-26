@@ -45,6 +45,9 @@ const projectsList = [
 const workersList = [
   { id: 'w1', name: 'Somchai', assignedSiteId: 'p1' },
 ];
+const sharedChats = [
+  { id: 'chat-1', sender: 'Manager Nok', senderRole: 'manager', text: 'Concrete delivery will arrive at 10:30.', time: '10:05', projectId: 'p1', createdAt: 1700000000000 },
+];
 
 function createMediaStream() {
   return {
@@ -84,6 +87,8 @@ function renderWorkerApp(language = 'EN', overrides = {}) {
       language={language}
       workersList={overrides.workersList || workersList}
       projectsList={overrides.projectsList || projectsList}
+      sharedChats={overrides.sharedChats || sharedChats}
+      onPersistChatMessage={overrides.onPersistChatMessage || vi.fn(async () => {})}
     />
   );
 }
@@ -110,10 +115,12 @@ function getQuickActionButton(pattern) {
 }
 
 async function openPhotoScreen(user) {
-  const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo|อัปเดตส่งงาน|ອັບເດດສົ່ງງານ/i);
-  if (!photoButton) throw new Error('Photo quick action not found');
-  await waitFor(() => expect(photoButton).toBeEnabled());
-  await user.click(photoButton);
+  const reportsButton = getQuickActionButton(/Work Reports|รายงานงาน|ລາຍງານວຽກ/i);
+  if (!reportsButton) throw new Error('Work reports quick action not found');
+  await waitFor(() => expect(reportsButton).toBeEnabled());
+  await user.click(reportsButton);
+  await waitFor(() => expect(screen.getByText('Work Reports')).toBeInTheDocument());
+  await user.click(screen.getByRole('button', { name: /Update Work|อัปเดตงาน|ອັບເດດວຽກ/i }));
   await waitFor(() => expect(screen.getByText('Submit Work Photo')).toBeInTheDocument());
 }
 
@@ -126,10 +133,12 @@ async function openIssueScreen(user) {
 }
 
 async function openDailyReportScreen(user) {
-  const reportButton = getQuickActionButton(/Daily Report|รายงานประจำวัน|ລາຍງານປະຈຳວັນ/i);
-  if (!reportButton) throw new Error('Daily report quick action not found');
-  await waitFor(() => expect(reportButton).toBeEnabled());
-  await user.click(reportButton);
+  const reportsButton = getQuickActionButton(/Work Reports|รายงานงาน|ລາຍງານວຽກ/i);
+  if (!reportsButton) throw new Error('Work reports quick action not found');
+  await waitFor(() => expect(reportsButton).toBeEnabled());
+  await user.click(reportsButton);
+  await waitFor(() => expect(screen.getByText('Work Reports')).toBeInTheDocument());
+  await user.click(screen.getByRole('button', { name: /Daily Summary|สรุปรายวัน|ສະຫຼຸບປະຈຳວັນ/i }));
   await waitFor(() => expect(screen.getAllByText('Daily Report / Site Diary').length).toBeGreaterThan(0));
 }
 
@@ -277,7 +286,7 @@ describe('WorkerAppV2 mobile automation', () => {
 
     const checkInButton = getQuickActionButton(/Check In/i);
     const checkOutButton = getQuickActionButton(/Check Out/i);
-    const photoButton = getQuickActionButton(/Update Submission|Submit Work|Upload Photo|อัปเดตส่งงาน|ອັບເດດສົ່งງາน/i);
+    const photoButton = getQuickActionButton(/Work Reports|รายงานงาน|ລາຍງານວຽກ/i);
 
     expect(checkInButton).toBeEnabled();
     expect(checkOutButton).toBeDisabled();
@@ -299,6 +308,39 @@ describe('WorkerAppV2 mobile automation', () => {
   }));
 
 
+
+  it('opens grouped work reports and the restored chat menu', async () => withFeature('Worker menu grouping and chat route', async () => {
+    const user = userEvent.setup();
+    const onPersistChatMessage = vi.fn(async () => {});
+    renderWorkerApp('EN', { onPersistChatMessage });
+
+    await checkIn(user);
+
+    const reportsButton = getQuickActionButton(/Work Reports|รายงานงาน|ລາຍງານວຽກ/i);
+    if (!reportsButton) throw new Error('Work reports quick action not found');
+    await waitFor(() => expect(reportsButton).toBeEnabled());
+    await user.click(reportsButton);
+    await waitFor(() => expect(screen.getByText('Work Reports')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /Update Work|อัปเดตงาน|ອັບເດດວຽກ/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Daily Summary|สรุปรายวัน|ສະຫຼຸບປະຈຳວັນ/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Submit Milestone Progress|ส่งความคืบหน้างวดงาน|ສົ່ງຄວາມຄືບໜ້າຕາມງວດ/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Chat|แชท|ແຊັດ/i }));
+    await waitFor(() => expect(screen.getByText('Project Chat')).toBeInTheDocument());
+    expect(screen.getByText('Concrete delivery will arrive at 10:30.')).toBeInTheDocument();
+
+    const chatInput = screen.getByPlaceholderText('Type message...');
+    await user.type(chatInput, 'Need confirmation for tile delivery');
+    await user.click(screen.getByRole('button', { name: 'Send message' }));
+    await waitFor(() => expect(onPersistChatMessage).toHaveBeenCalledTimes(1));
+    expect(onPersistChatMessage.mock.calls[0][0]).toMatchObject({
+      senderRole: 'worker',
+      projectId: 'p1',
+      text: 'Need confirmation for tile delivery',
+    });
+
+    return 'The worker home groups work reports into one hub and the chat nav opens the real project conversation flow';
+  }), 15000);
 
   it('adds custom main category, subcategory, zone, and standard phrase inline', async () => withFeature('Compact add preset flow', async () => {
     const user = userEvent.setup();

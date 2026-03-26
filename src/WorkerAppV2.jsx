@@ -13,9 +13,11 @@ import {
   Home,
   LoaderCircle,
   MapPin,
+  MessageSquare,
   Mic,
   Package,
   Plus,
+  Send,
   Square,
   Trash2,
   UserCircle2,
@@ -53,6 +55,7 @@ import SiteTicketList from './modules/siteTickets/SiteTicketList';
 import {
   SITE_TICKET_STATUS,
   canEditSiteTicket,
+  normalizeSiteTicketList,
 } from './modules/siteTickets/siteTicketModel';
 import {
   createSiteTicketFromForm,
@@ -69,7 +72,7 @@ import {
   getSiteTicketStatusOptions,
 } from './modules/siteTickets/siteTicketI18n';
 import useSiteTicketForm from './modules/siteTickets/useSiteTicketForm';
-import { canEditDailyReport } from './modules/dailyReports/dailyReportModel';
+import { canEditDailyReport, normalizeDailyReportList } from './modules/dailyReports/dailyReportModel';
 import {
   buildDailyReportTicketInsights,
   createDailyReportFromForm,
@@ -85,11 +88,13 @@ import {
   TAB_HOME,
   TAB_TASKS,
   TAB_ACTIVITY,
-  TAB_PROFILE,
+  TAB_CHAT,
   SCREEN_HOME,
   SCREEN_TASKS,
   SCREEN_ACTIVITY,
   SCREEN_PROFILE,
+  SCREEN_CHAT,
+  SCREEN_WORK_REPORTS,
   SCREEN_PHOTO,
   SCREEN_VOICE,
   SCREEN_REQUEST,
@@ -306,7 +311,49 @@ const getBatchCardTone = (status) => (
     : 'border-emerald-200 bg-emerald-50 text-emerald-800'
 );
 
-function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], projectsList = [] }) {
+function mergeSyncedRecords(sharedItems = [], localItems = [], normalizeItems = (items) => items) {
+  const mergedMap = new Map();
+
+  normalizeItems(Array.isArray(sharedItems) ? sharedItems : []).forEach((item) => {
+    if (item?.id) mergedMap.set(String(item.id), item);
+  });
+  normalizeItems(Array.isArray(localItems) ? localItems : []).forEach((item) => {
+    if (!item?.id) return;
+    const itemId = String(item.id);
+    const existing = mergedMap.get(itemId);
+    if (!existing || Number(item.updatedAt || item.createdAt || 0) >= Number(existing.updatedAt || existing.createdAt || 0)) {
+      mergedMap.set(itemId, item);
+    }
+  });
+
+  return Array.from(mergedMap.values()).sort(
+    (left, right) => Number(right.updatedAt || right.createdAt || 0) - Number(left.updatedAt || left.createdAt || 0),
+  );
+}
+
+function WorkerAppV2({
+  onNavigate,
+  t,
+  language = 'TH',
+  workersList = [],
+  projectsList = [],
+  sharedAttendanceRecords = [],
+  sharedPhotoReports = [],
+  sharedMaterialRequests = [],
+  sharedPaymentRequests = [],
+  sharedMilestoneSubmissions = [],
+  sharedSiteTickets = [],
+  sharedDailyReports = [],
+  sharedChats = [],
+  onPersistAttendanceRecord = null,
+  onPersistPhotoReport = null,
+  onPersistMaterialRequest = null,
+  onPersistPaymentRequest = null,
+  onPersistMilestoneSubmission = null,
+  onPersistSiteTicket = null,
+  onPersistDailyReport = null,
+  onPersistChatMessage = null,
+}) {
   const currentWorker = useMemo(() => {
     const worker = workersList.find((entry) => entry?.name || entry?.companyName) || {};
     return {
@@ -321,6 +368,55 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     () => projectsList.find((project) => String(project.id) === String(currentWorker.assignedSiteId)) || null,
     [projectsList, currentWorker.assignedSiteId]
   );
+  const initialStoredSiteTicketsRef = useRef(null);
+  const initialStoredDailyReportsRef = useRef(null);
+  const initialStoredAttendanceRef = useRef(null);
+  const initialStoredPhotoReportsRef = useRef(null);
+  const initialStoredMaterialRequestsRef = useRef(null);
+  const initialStoredPaymentRequestsRef = useRef(null);
+  const initialStoredMilestonesRef = useRef(null);
+
+  if (initialStoredAttendanceRef.current === null) {
+    initialStoredAttendanceRef.current = Array.isArray(loadFromStorage(WORKER_STORAGE_KEYS.attendance, []))
+      ? loadFromStorage(WORKER_STORAGE_KEYS.attendance, [])
+      : [];
+  }
+
+  if (initialStoredPhotoReportsRef.current === null) {
+    initialStoredPhotoReportsRef.current = loadFromStorage(WORKER_STORAGE_KEYS.photoReports, []).map(normalizePhotoSubmissionBatch).filter(Boolean);
+  }
+
+  if (initialStoredMaterialRequestsRef.current === null) {
+    initialStoredMaterialRequestsRef.current = Array.isArray(loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, []))
+      ? loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, [])
+      : [];
+  }
+
+  if (initialStoredPaymentRequestsRef.current === null) {
+    initialStoredPaymentRequestsRef.current = Array.isArray(loadFromStorage(WORKER_STORAGE_KEYS.paymentRequests, []))
+      ? loadFromStorage(WORKER_STORAGE_KEYS.paymentRequests, [])
+      : [];
+  }
+
+  if (initialStoredMilestonesRef.current === null) {
+    initialStoredMilestonesRef.current = Array.isArray(loadFromStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, []))
+      ? loadFromStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, [])
+      : [];
+  }
+
+  if (initialStoredSiteTicketsRef.current === null) {
+    const savedTickets = normalizeSiteTicketList(loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []));
+    initialStoredSiteTicketsRef.current = savedTickets.length
+      ? savedTickets
+      : migrateLegacyIssuesToSiteTickets(loadFromStorage(WORKER_STORAGE_KEYS.issues, []), {
+          currentProject: getPreferredProject(projectsList, currentProject),
+          projectsList,
+        });
+  }
+
+  if (initialStoredDailyReportsRef.current === null) {
+    initialStoredDailyReportsRef.current = normalizeDailyReportList(loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
+  }
 
   const locale = language === 'TH' ? 'th-TH' : language === 'LA' ? 'lo-LA' : 'en-GB';
   const localCopy = language === 'TH'
@@ -418,19 +514,34 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         compactAddCancel: 'ยกเลิก',
         photoFlowHelper: 'โฟลว์มือถือแบบย่อ: เลือกหมวดงาน, พื้นที่, แนบรูป, ส่งงาน',
         projectAutoSelected: 'เลือกโครงการจากไซต์ที่รับผิดชอบให้อัตโนมัติ เพื่อลดขั้นตอนบนมือถือ',
-        quickSubmitTitle: 'อัปเดตส่งงาน',
-        quickIssueTitle: 'แจ้งปัญหาของขาด',
-        quickDeliveryTitle: 'ส่งสินค้าเข้าไซต์งาน',
-        quickEquipmentTitle: 'ขอเบิกอุปกรณ์ / เครื่องมือ',
+        quickSubmitTitle: 'อัปเดตงาน',
+        quickReportsTitle: 'รายงานงาน',
+        quickIssueTitle: 'แจ้งปัญหาหน้างาน',
+        quickDeliveryTitle: 'แจ้งรับของเข้าไซต์',
+        quickEquipmentTitle: 'ขอเบิกวัสดุ / เครื่องมือ',
         quickPaymentTitle: 'ขอเบิกเงิน',
-        quickMilestoneTitle: 'ส่งงานงวดงาน',
-        quickDailyReportTitle: 'รายงานประจำวัน',
-        quickIssueHelper: 'แจ้งของขาดหรือปัญหาหน้างานทันที',
-        quickDeliveryHelper: 'บันทึกรับสินค้าหรือของเข้าไซต์งาน',
-        quickEquipmentHelper: 'ขอเบิกอุปกรณ์หรือเครื่องมือสำหรับงาน',
+        quickMilestoneTitle: 'ส่งความคืบหน้างวดงาน',
+        quickDailyReportTitle: 'สรุปรายวัน',
+        quickReportsHelper: 'เลือกอัปเดตงาน สรุปรายวัน หรือส่งความคืบหน้างวดงาน',
+        quickIssueHelper: 'แจ้งปัญหาหน้างานหรือของขาดได้ทันที',
+        quickDeliveryHelper: 'บันทึกรับของหรือวัสดุเข้าไซต์งาน',
+        quickEquipmentHelper: 'ขอเบิกวัสดุหรือเครื่องมือสำหรับงาน',
         quickPaymentHelper: 'ส่งคำขอเบิกเงินตามหมวดงานและพื้นที่',
         quickMilestoneHelper: 'ส่งความคืบหน้างวดงานพร้อมรูปและหมายเหตุ',
         quickDailyReportHelper: 'สรุปงานวันนี้พร้อมปัญหาและแผนพรุ่งนี้',
+        quickActivityTitle: 'คำขอและกิจกรรม',
+        quickActivityHelper: 'ดูคำขอล่าสุด สถานะงาน และรายการที่เพิ่งส่ง',
+        quickChatTitle: 'แชท',
+        quickChatHelper: 'คุยกับหัวหน้าหรือทีมโครงการจากหน้างาน',
+        workReportsScreenTitle: 'รายงานงาน',
+        workReportsScreenDesc: 'เลือกประเภทการรายงานให้ตรงกับงานที่ต้องส่งจากหน้างาน',
+        requestsActivityTitle: 'คำขอและกิจกรรม',
+        requestsActivityDesc: 'ดูคำขอที่ส่งแล้ว รายการล่าสุด และเปิดฟอร์มที่ใช้บ่อย',
+        chatScreenTitle: 'แชทโครงการ',
+        chatScreenDesc: 'ดูบทสนทนาล่าสุดและส่งข้อความถึงทีมโครงการ',
+        chatEmpty: 'ยังไม่มีข้อความสำหรับโครงการนี้',
+        chatSendAction: 'ส่งข้อความ',
+        chatUnavailable: 'ยังไม่สามารถส่งข้อความได้ในหน้านี้',
         editableUpdateAction: 'อัปเดตรายการที่เลือก',
         editableSelectedHelper: 'เลือกจากรายการ หรือพิมพ์ค่าใหม่เพื่อเพิ่ม/แก้ได้ทันที',
         subcategoryHelper: 'เลือกหมวดหลักก่อน แล้วจึงเลือกหมวดย่อย',
@@ -442,10 +553,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         requestPhotoHelper: 'แนบรูปประกอบได้เมื่อจำเป็น',
         requestSubmitAction: 'ส่งรายการ',
         requestRecentTitle: 'รายการล่าสุด',
-        requestDeliveryScreenTitle: 'ส่งสินค้าเข้าไซต์งาน',
-        requestDeliveryScreenDesc: 'บันทึกของเข้าไซต์พร้อมหมวดงานและพื้นที่จริง',
-        requestEquipmentScreenTitle: 'ขอเบิกอุปกรณ์ / เครื่องมือ',
-        requestEquipmentScreenDesc: 'ส่งคำขออุปกรณ์พร้อมหมวดงานและพื้นที่ใช้งาน',
+        requestDeliveryScreenTitle: 'แจ้งรับของเข้าไซต์',
+        requestDeliveryScreenDesc: 'บันทึกรับของหรือวัสดุเข้าไซต์พร้อมหมวดงานและพื้นที่จริง',
+        requestEquipmentScreenTitle: 'ขอเบิกวัสดุ / เครื่องมือ',
+        requestEquipmentScreenDesc: 'ส่งคำขอวัสดุหรือเครื่องมือพร้อมหมวดงานและพื้นที่ใช้งาน',
         paymentScreenTitle: 'ขอเบิกเงิน',
         paymentScreenDesc: 'กรอกจำนวน หมวดงาน และพื้นที่ เพื่อส่งคำขอเบิกเงิน',
         paymentAmountLabel: 'จำนวนเงิน',
@@ -453,13 +564,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         paymentSubmitAction: 'ส่งคำขอเบิกเงิน',
         paymentRecentTitle: 'ประวัติขอเบิกเงิน',
         paymentSaved: 'ส่งคำขอเบิกเงินแล้ว',
-        milestoneScreenTitle: 'ส่งงานงวดงาน',
+        milestoneScreenTitle: 'ส่งความคืบหน้างวดงาน',
         milestoneScreenDesc: 'อัปเดตความคืบหน้า พร้อมรูป และหมายเหตุของงวดงาน',
         milestoneProgressLabel: 'ความคืบหน้า (%)',
         milestoneProgressPlaceholder: 'เช่น 45',
-        milestoneSubmitAction: 'ส่งงวดงาน',
-        milestoneRecentTitle: 'ประวัติส่งงวดงาน',
-        milestoneSaved: 'ส่งงวดงานแล้ว',
+        milestoneSubmitAction: 'ส่งความคืบหน้างวดงาน',
+        milestoneRecentTitle: 'ประวัติส่งความคืบหน้างวดงาน',
+        milestoneSaved: 'ส่งความคืบหน้างวดงานแล้ว',
         requestSavedDelivery: 'บันทึกรับสินค้าเข้าไซต์แล้ว',
         requestSavedEquipment: 'ส่งคำขออุปกรณ์ / เครื่องมือแล้ว',
         attachmentPreviewTitle: 'ตัวอย่างก่อนส่ง',
@@ -567,19 +678,34 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           compactAddCancel: 'ຍົກເລີກ',
           photoFlowHelper: 'ໂຟລວ໌ມືຖືແບບຍໍ້: ເລືອກໝວດວຽກ, ພື້ນທີ່, ແນບຮູບ, ສົ່ງງານ',
           projectAutoSelected: 'ເລືອກໂຄງການໃຫ້ອັດຕະໂນມັດຈາກໄຊທ໌ທີ່ຮັບຜິດຊອບ ເພື່ອຫຼຸດຂັ້ນຕອນໃນມືຖື',
-          quickSubmitTitle: 'ອັບເດດສົ່ງງານ',
-          quickIssueTitle: 'ແຈ້ງບັນຫາຂອງຂາດ',
-          quickDeliveryTitle: 'ສົ່ງສິນຄ້າເຂົ້າໄຊງານ',
-          quickEquipmentTitle: 'ຂໍເບີກອຸປະກອນ / ເຄື່ອງມື',
+          quickSubmitTitle: 'ອັບເດດວຽກ',
+          quickReportsTitle: 'ລາຍງານວຽກ',
+          quickIssueTitle: 'ແຈ້ງບັນຫາໜ້າງານ',
+          quickDeliveryTitle: 'ແຈ້ງຮັບຂອງເຂົ້າໄຊ',
+          quickEquipmentTitle: 'ຂໍເບີກວັດສະດຸ / ເຄື່ອງມື',
           quickPaymentTitle: 'ຂໍເບີກເງິນ',
-          quickMilestoneTitle: 'ສົ່ງວຽກຕາມງວດ',
-          quickDailyReportTitle: 'ລາຍງານປະຈຳວັນ',
-          quickIssueHelper: 'ແຈ້ງຂອງຂາດ ຫຼື ບັນຫາໜ້າງານໄດ້ທັນທີ',
-          quickDeliveryHelper: 'ບັນທຶກການຮັບສິນຄ້າເຂົ້າໄຊງານ',
-          quickEquipmentHelper: 'ຂໍເບີກອຸປະກອນ ຫຼື ເຄື່ອງມືສຳລັບວຽກ',
+          quickMilestoneTitle: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດ',
+          quickDailyReportTitle: 'ສະຫຼຸບປະຈຳວັນ',
+          quickReportsHelper: 'ເລືອກອັບເດດວຽກ, ສະຫຼຸບປະຈຳວັນ, ຫຼື ສົ່ງຄວາມຄືບໜ້າຕາມງວດ',
+          quickIssueHelper: 'ແຈ້ງບັນຫາໜ້າງານ ຫຼື ຂອງຂາດໄດ້ທັນທີ',
+          quickDeliveryHelper: 'ບັນທຶກການຮັບຂອງ ຫຼື ວັດສະດຸເຂົ້າໄຊ',
+          quickEquipmentHelper: 'ຂໍເບີກວັດສະດຸ ຫຼື ເຄື່ອງມືສຳລັບວຽກ',
           quickPaymentHelper: 'ສົ່ງຄຳຂໍເບີກເງິນຕາມໝວດວຽກ ແລະ ພື້ນທີ່',
           quickMilestoneHelper: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດພ້ອມຮູບ ແລະ ໝາຍເຫດ',
           quickDailyReportHelper: 'ສະຫຼຸບວຽກມື້ນີ້ພ້ອມບັນຫາ ແລະ ແຜນມື້ອື່ນ',
+          quickActivityTitle: 'ຄຳຂໍ ແລະ ກິດຈະກຳ',
+          quickActivityHelper: 'ເບິ່ງຄຳຂໍລ່າສຸດ, ສະຖານະວຽກ, ແລະ ລາຍການທີ່ສົ່ງແລ້ວ',
+          quickChatTitle: 'ແຊັດ',
+          quickChatHelper: 'ສົນທະນາກັບຫົວໜ້າ ຫຼື ທີມໂຄງການໄດ້ທັນທີ',
+          workReportsScreenTitle: 'ລາຍງານວຽກ',
+          workReportsScreenDesc: 'ເລືອກປະເພດລາຍງານໃຫ້ຕົງກັບວຽກທີ່ຕ້ອງສົ່ງ',
+          requestsActivityTitle: 'ຄຳຂໍ ແລະ ກິດຈະກຳ',
+          requestsActivityDesc: 'ເບິ່ງຄຳຂໍທີ່ສົ່ງແລ້ວ, ລາຍການລ່າສຸດ, ແລະ ເປີດຟອມທີ່ໃຊ້ບ່ອຍ',
+          chatScreenTitle: 'ແຊັດໂຄງການ',
+          chatScreenDesc: 'ເບິ່ງບົດສົນທະນາລ່າສຸດ ແລະ ສົ່ງຂໍ້ຄວາມຫາທີມໂຄງການ',
+          chatEmpty: 'ຍັງບໍ່ມີຂໍ້ຄວາມສຳລັບໂຄງການນີ້',
+          chatSendAction: 'ສົ່ງຂໍ້ຄວາມ',
+          chatUnavailable: 'ຍັງບໍ່ສາມາດສົ່ງຂໍ້ຄວາມໄດ້ໃນໜ້ານີ້',
           editableUpdateAction: 'ອັບເດດລາຍການທີ່ເລືອກ',
           editableSelectedHelper: 'ເລືອກຈາກລາຍການ ຫຼື ພິມຄ່າໃໝ່ເພື່ອເພີ່ມ/ແກ້ໄຂໄດ້ທັນທີ',
           subcategoryHelper: 'ເລືອກໝວດຫຼັກກ່ອນ ແລ້ວຈຶ່ງເລືອກໝວດຍ່ອຍ',
@@ -591,10 +717,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           requestPhotoHelper: 'ສາມາດແນບຮູບເພີ່ມເມື່ອຈຳເປັນ',
           requestSubmitAction: 'ສົ່ງລາຍການ',
           requestRecentTitle: 'ລາຍການຫຼ້າສຸດ',
-          requestDeliveryScreenTitle: 'ສົ່ງສິນຄ້າເຂົ້າໄຊງານ',
-          requestDeliveryScreenDesc: 'ບັນທຶກຂອງເຂົ້າໄຊພ້ອມໝວດວຽກ ແລະ ພື້ນທີ່ຈິງ',
-          requestEquipmentScreenTitle: 'ຂໍເບີກອຸປະກອນ / ເຄື່ອງມື',
-          requestEquipmentScreenDesc: 'ສົ່ງຄຳຂໍອຸປະກອນພ້ອມໝວດວຽກ ແລະ ພື້ນທີ່ໃຊ້ງານ',
+          requestDeliveryScreenTitle: 'ແຈ້ງຮັບຂອງເຂົ້າໄຊ',
+          requestDeliveryScreenDesc: 'ບັນທຶກການຮັບຂອງ ຫຼື ວັດສະດຸເຂົ້າໄຊພ້ອມໝວດວຽກ ແລະ ພື້ນທີ່',
+          requestEquipmentScreenTitle: 'ຂໍເບີກວັດສະດຸ / ເຄື່ອງມື',
+          requestEquipmentScreenDesc: 'ສົ່ງຄຳຂໍວັດສະດຸ ຫຼື ເຄື່ອງມືພ້ອມໝວດວຽກ ແລະ ພື້ນທີ່ໃຊ້ງານ',
           paymentScreenTitle: 'ຂໍເບີກເງິນ',
           paymentScreenDesc: 'ກອກຈຳນວນ ໝວດວຽກ ແລະ ພື້ນທີ່ ເພື່ອສົ່ງຄຳຂໍເບີກເງິນ',
           paymentAmountLabel: 'ຈຳນວນເງິນ',
@@ -602,13 +728,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           paymentSubmitAction: 'ສົ່ງຄຳຂໍເບີກເງິນ',
           paymentRecentTitle: 'ປະຫວັດຂໍເບີກເງິນ',
           paymentSaved: 'ສົ່ງຄຳຂໍເບີກເງິນແລ້ວ',
-          milestoneScreenTitle: 'ສົ່ງວຽກຕາມງວດ',
+          milestoneScreenTitle: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດ',
           milestoneScreenDesc: 'ອັບເດດຄວາມຄືບໜ້າພ້ອມຮູບ ແລະ ໝາຍເຫດຂອງງວດງານ',
           milestoneProgressLabel: 'ຄວາມຄືບໜ້າ (%)',
           milestoneProgressPlaceholder: 'ຕົວຢ່າງ 45',
-          milestoneSubmitAction: 'ສົ່ງງວດງານ',
-          milestoneRecentTitle: 'ປະຫວັດສົ່ງງວດງານ',
-          milestoneSaved: 'ສົ່ງງວດງານແລ້ວ',
+          milestoneSubmitAction: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດ',
+          milestoneRecentTitle: 'ປະຫວັດສົ່ງຄວາມຄືບໜ້າຕາມງວດ',
+          milestoneSaved: 'ສົ່ງຄວາມຄືບໜ້າຕາມງວດແລ້ວ',
           requestSavedDelivery: 'ບັນທຶກສິນຄ້າເຂົ້າໄຊແລ້ວ',
           requestSavedEquipment: 'ສົ່ງຄຳຂໍອຸປະກອນ / ເຄື່ອງມືແລ້ວ',
           attachmentPreviewTitle: 'ຕົວຢ່າງກ່ອນສົ່ງ',
@@ -715,19 +841,34 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           compactAddCancel: 'Cancel',
           photoFlowHelper: 'Simplified mobile flow: choose task category, area, attach photos, submit',
           projectAutoSelected: 'The assigned project is selected automatically to reduce mobile steps',
-          quickSubmitTitle: 'Update Submission',
-          quickIssueTitle: 'Report Missing Items',
-          quickDeliveryTitle: 'Send Goods To Site',
-          quickEquipmentTitle: 'Request Equipment / Tools',
+          quickSubmitTitle: 'Update Work',
+          quickReportsTitle: 'Work Reports',
+          quickIssueTitle: 'Report Site Issue',
+          quickDeliveryTitle: 'Receive Goods at Site',
+          quickEquipmentTitle: 'Request Materials / Tools',
           quickPaymentTitle: 'Request Payment',
-          quickMilestoneTitle: 'Submit Work by Milestone',
-          quickDailyReportTitle: 'Daily Report',
-          quickIssueHelper: 'Report shortages or on-site issues right away',
-          quickDeliveryHelper: 'Log goods and stock moving into the site',
-          quickEquipmentHelper: 'Request equipment or tools needed for work',
+          quickMilestoneTitle: 'Submit Milestone Progress',
+          quickDailyReportTitle: 'Daily Summary',
+          quickReportsHelper: 'Open work update, daily summary, or milestone progress from one place',
+          quickIssueHelper: 'Report on-site issues or shortages right away',
+          quickDeliveryHelper: 'Log incoming goods and materials received at the site',
+          quickEquipmentHelper: 'Request materials or tools needed for work',
           quickPaymentHelper: 'Submit a payment request by task category and work zone',
           quickMilestoneHelper: 'Send milestone progress with photos and notes',
           quickDailyReportHelper: 'Summarize today\'s work, issues, and tomorrow\'s plan',
+          quickActivityTitle: 'Requests & Activity',
+          quickActivityHelper: 'Review recent requests, updates, and submitted items',
+          quickChatTitle: 'Chat',
+          quickChatHelper: 'Open the project conversation with the site team',
+          workReportsScreenTitle: 'Work Reports',
+          workReportsScreenDesc: 'Choose the right report type for the work you need to send from site',
+          requestsActivityTitle: 'Requests & Activity',
+          requestsActivityDesc: 'See recent requests, activity, and open the most-used worker forms',
+          chatScreenTitle: 'Project Chat',
+          chatScreenDesc: 'Review the latest conversation and send a message to the project team',
+          chatEmpty: 'No chat messages for this project yet',
+          chatSendAction: 'Send message',
+          chatUnavailable: 'Chat sending is not available on this screen yet',
           editableUpdateAction: 'Update selected option',
           editableSelectedHelper: 'Pick from the list or type a new value to add/update it instantly',
           subcategoryHelper: 'Select the main category first, then choose the subcategory',
@@ -739,10 +880,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           requestPhotoHelper: 'Attach a supporting photo when needed',
           requestSubmitAction: 'Send entry',
           requestRecentTitle: 'Recent entries',
-          requestDeliveryScreenTitle: 'Send Goods To Site',
-          requestDeliveryScreenDesc: 'Log incoming goods with the real task category and work area',
-          requestEquipmentScreenTitle: 'Request Equipment / Tools',
-          requestEquipmentScreenDesc: 'Send equipment requests with the real task category and work area',
+          requestDeliveryScreenTitle: 'Receive Goods at Site',
+          requestDeliveryScreenDesc: 'Log incoming goods and materials with the real task category and work area',
+          requestEquipmentScreenTitle: 'Request Materials / Tools',
+          requestEquipmentScreenDesc: 'Send material or tool requests with the real task category and work area',
           paymentScreenTitle: 'Request Payment',
           paymentScreenDesc: 'Enter amount, task category, and zone before submitting the payment request',
           paymentAmountLabel: 'Amount',
@@ -750,13 +891,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           paymentSubmitAction: 'Submit payment request',
           paymentRecentTitle: 'Recent payment requests',
           paymentSaved: 'Payment request submitted',
-          milestoneScreenTitle: 'Submit Work by Milestone',
+          milestoneScreenTitle: 'Submit Milestone Progress',
           milestoneScreenDesc: 'Update milestone progress with photos and notes',
           milestoneProgressLabel: 'Progress (%)',
           milestoneProgressPlaceholder: 'Example 45',
-          milestoneSubmitAction: 'Submit milestone',
-          milestoneRecentTitle: 'Recent milestone submissions',
-          milestoneSaved: 'Milestone submitted',
+          milestoneSubmitAction: 'Submit milestone progress',
+          milestoneRecentTitle: 'Recent milestone progress updates',
+          milestoneSaved: 'Milestone progress submitted',
           requestSavedDelivery: 'Goods received at site',
           requestSavedEquipment: 'Equipment / tools request sent',
           attachmentPreviewTitle: 'Preview before submit',
@@ -801,24 +942,19 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const [newAreaZone, setNewAreaZone] = useState('');
   const [newStandardPhrase, setNewStandardPhrase] = useState('');
 
-  const [attendanceRecords, setAttendanceRecords] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.attendance, []));
-  const [photoReports, setPhotoReports] = useState(() =>
-    loadFromStorage(WORKER_STORAGE_KEYS.photoReports, []).map(normalizePhotoSubmissionBatch).filter(Boolean)
-  );
+  const [localAttendanceRecords, setLocalAttendanceRecords] = useState(() => initialStoredAttendanceRef.current || []);
+  const [localPhotoReports, setLocalPhotoReports] = useState(() => initialStoredPhotoReportsRef.current || []);
   const [voiceNotes, setVoiceNotes] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.voiceNotes, []));
   const [issues, setIssues] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.issues, []));
-  const [siteTickets, setSiteTickets] = useState(() => {
-    const savedTickets = loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []);
-    if (Array.isArray(savedTickets) && savedTickets.length) return savedTickets;
-    return migrateLegacyIssuesToSiteTickets(loadFromStorage(WORKER_STORAGE_KEYS.issues, []), {
-      currentProject: getPreferredProject(projectsList, currentProject),
-      projectsList,
-    });
-  });
-  const [dailyReports, setDailyReports] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
-  const [materialRequests, setMaterialRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.materialRequests, []));
-  const [paymentRequests, setPaymentRequests] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.paymentRequests, []));
-  const [milestoneSubmissions, setMilestoneSubmissions] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, []));
+  const [localSiteTickets, setLocalSiteTickets] = useState(() => initialStoredSiteTicketsRef.current || []);
+  const [localDailyReports, setLocalDailyReports] = useState(() => initialStoredDailyReportsRef.current || []);
+  const [localMaterialRequests, setLocalMaterialRequests] = useState(() => initialStoredMaterialRequestsRef.current || []);
+  const [localPaymentRequests, setLocalPaymentRequests] = useState(() => initialStoredPaymentRequestsRef.current || []);
+  const [localMilestoneSubmissions, setLocalMilestoneSubmissions] = useState(() => initialStoredMilestonesRef.current || []);
+  const [chatDraft, setChatDraft] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatError, setChatError] = useState('');
+  const chatContainerRef = useRef(null);
   const [settings, setSettings] = useState(() => ({ ...DATA_SAVER_DEFAULTS, ...loadFromStorage(WORKER_STORAGE_KEYS.settings, {}) }));
   const [tasks, setTasks] = useState(() => {
     const saved = loadFromStorage(WORKER_STORAGE_KEYS.tasks, []);
@@ -858,15 +994,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     && Boolean(navigator.mediaDevices?.getUserMedia)
     && typeof MediaRecorder !== 'undefined';
 
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.attendance, attendanceRecords), [attendanceRecords]);
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.photoReports, photoReports), [photoReports]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.voiceNotes, voiceNotes), [voiceNotes]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.issues, issues), [issues]);
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.siteTickets, siteTickets), [siteTickets]);
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.dailyReports, dailyReports), [dailyReports]);
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.materialRequests, materialRequests), [materialRequests]);
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.paymentRequests, paymentRequests), [paymentRequests]);
-  useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, milestoneSubmissions), [milestoneSubmissions]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.settings, settings), [settings]);
   useEffect(() => saveToStorage(WORKER_STORAGE_KEYS.tasks, tasks), [tasks]);
   useEffect(() => {
@@ -879,12 +1008,279 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   }, [customAreaZones, customStandardPhrases, customSubcategories, customTaskCategories]);
 
   useEffect(() => {
-    setPhotoReports((current) => current.map(normalizePhotoSubmissionBatch).filter(Boolean));
+    setLocalPhotoReports((current) => current.map(normalizePhotoSubmissionBatch).filter(Boolean));
   }, []);
 
   useEffect(() => {
     setTasks(getWorkerTasks(loadFromStorage(WORKER_STORAGE_KEYS.tasks, []), currentWorker.id, siteName));
   }, [currentWorker.id, siteName]);
+
+  const attendanceRecords = useMemo(
+    () => mergeSyncedRecords(sharedAttendanceRecords, localAttendanceRecords, (items) => Array.isArray(items) ? items : []),
+    [sharedAttendanceRecords, localAttendanceRecords]
+  );
+  const photoReports = useMemo(
+    () => mergeSyncedRecords(sharedPhotoReports, localPhotoReports, (items) => (Array.isArray(items) ? items : []).map(normalizePhotoSubmissionBatch).filter(Boolean)),
+    [sharedPhotoReports, localPhotoReports]
+  );
+  const materialRequests = useMemo(
+    () => mergeSyncedRecords(sharedMaterialRequests, localMaterialRequests, (items) => Array.isArray(items) ? items : []),
+    [sharedMaterialRequests, localMaterialRequests]
+  );
+  const paymentRequests = useMemo(
+    () => mergeSyncedRecords(sharedPaymentRequests, localPaymentRequests, (items) => Array.isArray(items) ? items : []),
+    [sharedPaymentRequests, localPaymentRequests]
+  );
+  const milestoneSubmissions = useMemo(
+    () => mergeSyncedRecords(sharedMilestoneSubmissions, localMilestoneSubmissions, (items) => Array.isArray(items) ? items : []),
+    [sharedMilestoneSubmissions, localMilestoneSubmissions]
+  );
+  const siteTickets = useMemo(
+    () => mergeSyncedRecords(sharedSiteTickets, localSiteTickets, normalizeSiteTicketList),
+    [sharedSiteTickets, localSiteTickets]
+  );
+  const dailyReports = useMemo(
+    () => mergeSyncedRecords(sharedDailyReports, localDailyReports, normalizeDailyReportList),
+    [sharedDailyReports, localDailyReports]
+  );
+
+  useEffect(() => {
+    if (onPersistAttendanceRecord) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.attendance, localAttendanceRecords);
+    return undefined;
+  }, [localAttendanceRecords, onPersistAttendanceRecord]);
+
+  useEffect(() => {
+    if (onPersistPhotoReport) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.photoReports, localPhotoReports);
+    return undefined;
+  }, [localPhotoReports, onPersistPhotoReport]);
+
+  useEffect(() => {
+    if (onPersistSiteTicket) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.siteTickets, localSiteTickets);
+    return undefined;
+  }, [localSiteTickets, onPersistSiteTicket]);
+
+  useEffect(() => {
+    if (onPersistDailyReport) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.dailyReports, localDailyReports);
+    return undefined;
+  }, [localDailyReports, onPersistDailyReport]);
+
+  useEffect(() => {
+    if (onPersistMaterialRequest) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.materialRequests, localMaterialRequests);
+    return undefined;
+  }, [localMaterialRequests, onPersistMaterialRequest]);
+
+  useEffect(() => {
+    if (onPersistPaymentRequest) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.paymentRequests, localPaymentRequests);
+    return undefined;
+  }, [localPaymentRequests, onPersistPaymentRequest]);
+
+  useEffect(() => {
+    if (onPersistMilestoneSubmission) return undefined;
+    saveToStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, localMilestoneSubmissions);
+    return undefined;
+  }, [localMilestoneSubmissions, onPersistMilestoneSubmission]);
+
+  useEffect(() => {
+    if (!onPersistSiteTicket) return undefined;
+
+    const bootstrapTickets = normalizeSiteTicketList(initialStoredSiteTicketsRef.current || []);
+    if (!bootstrapTickets.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapTickets.map((ticket) => onPersistSiteTicket(ticket)));
+        if (cancelled) return;
+        initialStoredSiteTicketsRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.siteTickets, []);
+        setLocalSiteTickets((current) => {
+          const migratedIds = new Set(bootstrapTickets.map((ticket) => String(ticket.id || '')));
+          return normalizeSiteTicketList(current).filter((ticket) => !migratedIds.has(String(ticket.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored site tickets:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistSiteTicket]);
+
+  useEffect(() => {
+    if (!onPersistDailyReport) return undefined;
+
+    const bootstrapReports = normalizeDailyReportList(initialStoredDailyReportsRef.current || []);
+    if (!bootstrapReports.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapReports.map((report) => onPersistDailyReport(report)));
+        if (cancelled) return;
+        initialStoredDailyReportsRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.dailyReports, []);
+        setLocalDailyReports((current) => {
+          const migratedIds = new Set(bootstrapReports.map((report) => String(report.id || '')));
+          return normalizeDailyReportList(current).filter((report) => !migratedIds.has(String(report.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored daily reports:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistDailyReport]);
+
+  useEffect(() => {
+    if (!onPersistAttendanceRecord) return undefined;
+
+    const bootstrapAttendance = Array.isArray(initialStoredAttendanceRef.current) ? initialStoredAttendanceRef.current : [];
+    if (!bootstrapAttendance.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapAttendance.map((record) => onPersistAttendanceRecord(record)));
+        if (cancelled) return;
+        initialStoredAttendanceRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.attendance, []);
+        setLocalAttendanceRecords((current) => {
+          const migratedIds = new Set(bootstrapAttendance.map((record) => String(record.id || '')));
+          return current.filter((record) => !migratedIds.has(String(record.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored attendance records:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistAttendanceRecord]);
+
+  useEffect(() => {
+    if (!onPersistPhotoReport) return undefined;
+
+    const bootstrapReports = (Array.isArray(initialStoredPhotoReportsRef.current) ? initialStoredPhotoReportsRef.current : []).map(normalizePhotoSubmissionBatch).filter(Boolean);
+    if (!bootstrapReports.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapReports.map((record) => onPersistPhotoReport(record)));
+        if (cancelled) return;
+        initialStoredPhotoReportsRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.photoReports, []);
+        setLocalPhotoReports((current) => {
+          const migratedIds = new Set(bootstrapReports.map((record) => String(record.id || '')));
+          return current.filter((record) => !migratedIds.has(String(record.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored photo reports:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistPhotoReport]);
+
+  useEffect(() => {
+    if (!onPersistMaterialRequest) return undefined;
+
+    const bootstrapRequests = Array.isArray(initialStoredMaterialRequestsRef.current) ? initialStoredMaterialRequestsRef.current : [];
+    if (!bootstrapRequests.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapRequests.map((record) => onPersistMaterialRequest(record)));
+        if (cancelled) return;
+        initialStoredMaterialRequestsRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.materialRequests, []);
+        setLocalMaterialRequests((current) => {
+          const migratedIds = new Set(bootstrapRequests.map((record) => String(record.id || '')));
+          return current.filter((record) => !migratedIds.has(String(record.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored material requests:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistMaterialRequest]);
+
+  useEffect(() => {
+    if (!onPersistPaymentRequest) return undefined;
+
+    const bootstrapRequests = Array.isArray(initialStoredPaymentRequestsRef.current) ? initialStoredPaymentRequestsRef.current : [];
+    if (!bootstrapRequests.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapRequests.map((record) => onPersistPaymentRequest(record)));
+        if (cancelled) return;
+        initialStoredPaymentRequestsRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.paymentRequests, []);
+        setLocalPaymentRequests((current) => {
+          const migratedIds = new Set(bootstrapRequests.map((record) => String(record.id || '')));
+          return current.filter((record) => !migratedIds.has(String(record.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored payment requests:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistPaymentRequest]);
+
+  useEffect(() => {
+    if (!onPersistMilestoneSubmission) return undefined;
+
+    const bootstrapMilestones = Array.isArray(initialStoredMilestonesRef.current) ? initialStoredMilestonesRef.current : [];
+    if (!bootstrapMilestones.length) return undefined;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await Promise.all(bootstrapMilestones.map((record) => onPersistMilestoneSubmission(record)));
+        if (cancelled) return;
+        initialStoredMilestonesRef.current = [];
+        saveToStorage(WORKER_STORAGE_KEYS.milestoneSubmissions, []);
+        setLocalMilestoneSubmissions((current) => {
+          const migratedIds = new Set(bootstrapMilestones.map((record) => String(record.id || '')));
+          return current.filter((record) => !migratedIds.has(String(record.id || '')));
+        });
+      } catch (error) {
+        console.error('Failed to migrate stored milestone submissions:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onPersistMilestoneSubmission]);
 
   useEffect(() => {
     const preferredProject = getPreferredProject(projectsList, currentProject);
@@ -1049,6 +1445,12 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
   const latestDailyReports = useMemo(
     () => roleVisibleDailyReports.slice(0, 4),
     [roleVisibleDailyReports]
+  );
+  const projectChatMessages = useMemo(
+    () => (Array.isArray(sharedChats) ? sharedChats : [])
+      .filter((entry) => String(entry?.projectId || '') === String(currentWorker.assignedSiteId || currentProject?.id || ''))
+      .sort((left, right) => Number(left?.createdAt || 0) - Number(right?.createdAt || 0)),
+    [currentProject?.id, currentWorker.assignedSiteId, sharedChats]
   );
   const workTypeOptions = useMemo(() => projectBatchOptions.workTypes, [projectBatchOptions.workTypes]);
   const tradeTeamOptions = useMemo(
@@ -1339,6 +1741,45 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const pushToast = (messageKey, fallback) => setToast(localCopy[messageKey] || pickText(t, messageKey, fallback));
 
+  useEffect(() => {
+    if ((activeScreen === SCREEN_CHAT || activeTab === TAB_CHAT) && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [activeScreen, activeTab, projectChatMessages]);
+
+  const handleSendChatMessage = async () => {
+    const text = String(chatDraft || '').trim();
+    if (!text) return;
+    setChatError('');
+    if (!currentWorker.assignedSiteId && !currentProject?.id) {
+      setChatError(localCopy.chatUnavailable);
+      return;
+    }
+    if (typeof onPersistChatMessage !== 'function') {
+      setChatError(localCopy.chatUnavailable);
+      return;
+    }
+
+    setChatBusy(true);
+    try {
+      await onPersistChatMessage({
+        id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        sender: currentWorker.name,
+        senderRole: 'worker',
+        text,
+        audioUrl: '',
+        projectId: String(currentWorker.assignedSiteId || currentProject?.id || ''),
+        time: formatTime(Date.now(), locale),
+        createdAt: Date.now(),
+      });
+      setChatDraft('');
+    } catch (error) {
+      setChatError(String(error?.message || localCopy.chatUnavailable));
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
   const withBusyAction = async (actionKey, callback) => {
     setBusyAction(actionKey);
     try {
@@ -1376,10 +1817,14 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         workerId: currentWorker.id,
         workerName: currentWorker.name,
         siteName,
+        projectId: currentProject?.id ? String(currentProject.id) : '',
         type,
         note: attendanceNote,
       });
-      setAttendanceRecords((current) => [...current, record]);
+      setLocalAttendanceRecords((current) => [...current.filter((item) => item.id !== record.id), record]);
+      Promise.resolve(onPersistAttendanceRecord?.(record)).catch((error) => {
+        console.error('Failed to persist attendance record:', error);
+      });
       setAttendanceNote('');
       setToast(type === 'checkin' ? localCopy.checkinSaved : localCopy.checkoutSaved);
     });
@@ -1576,7 +2021,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         status: nextStatus,
         timestamp,
       });
-      setPhotoReports((current) => [...current, record]);
+      setLocalPhotoReports((current) => [...current.filter((item) => item.id !== record.id), record]);
+      Promise.resolve(onPersistPhotoReport?.(record)).catch((error) => {
+        console.error('Failed to persist photo report:', error);
+      });
       resetPhotoBatchForm();
       setToast(nextStatus === 'draft' ? localCopy.photoBatchSaved : localCopy.photoBatchSubmitted);
     });
@@ -1625,7 +2073,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       status: 'open',
     });
 
-    setSiteTickets((current) => [record, ...current]);
+    setLocalSiteTickets((current) => [record, ...current.filter((ticket) => ticket.id !== record.id)]);
+    Promise.resolve(onPersistSiteTicket?.(record)).catch((error) => {
+      console.error('Failed to persist site ticket:', error);
+    });
     setIssues((current) => [legacyRecord, ...current]);
     setSelectedTicketId(record.id);
     setTicketScreenTab('detail');
@@ -1655,9 +2106,12 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       actor: currentWorker,
     });
 
-    setSiteTickets((current) => current.map((ticket) => (
+    setLocalSiteTickets((current) => current.map((ticket) => (
       ticket.id === updated.id ? updated : ticket
     )));
+    Promise.resolve(onPersistSiteTicket?.(updated)).catch((error) => {
+      console.error('Failed to persist site ticket update:', error);
+    });
     setIsEditingTicket(false);
     setSelectedTicketId(updated.id);
     setToast(siteTicketLabels.ticketUpdated);
@@ -1720,13 +2174,18 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       ticketSnapshot: record.ticketSnapshot,
     });
 
-    setDailyReports((current) => [{
+    const nextReport = {
       ...record,
       id: storageRecord.id,
       createdAt: storageRecord.createdAt,
       updatedAt: storageRecord.updatedAt,
-    }, ...current]);
-    setSelectedDailyReportId(storageRecord.id);
+    };
+
+    setLocalDailyReports((current) => [nextReport, ...current.filter((report) => report.id !== nextReport.id)]);
+    Promise.resolve(onPersistDailyReport?.(nextReport)).catch((error) => {
+      console.error('Failed to persist daily report:', error);
+    });
+    setSelectedDailyReportId(nextReport.id);
     setDailyReportScreenTab('detail');
     createDailyReportForm.reset({
       projectId: currentProject?.id ? String(currentProject.id) : '',
@@ -1750,9 +2209,12 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       relatedTickets: roleVisibleTickets,
     });
 
-    setDailyReports((current) => current.map((report) => (
+    setLocalDailyReports((current) => current.map((report) => (
       report.id === updated.id ? updated : report
     )));
+    Promise.resolve(onPersistDailyReport?.(updated)).catch((error) => {
+      console.error('Failed to persist daily report update:', error);
+    });
     setIsEditingDailyReport(false);
     setSelectedDailyReportId(updated.id);
     setToast(dailyReportLabels.reportUpdated);
@@ -1776,6 +2238,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       workerId: currentWorker.id,
       workerName: currentWorker.name,
       siteName,
+      projectId: currentProject?.id ? String(currentProject.id) : '',
       itemName: requestForm.itemName,
       quantity: Number(requestForm.quantity),
       unit: requestForm.unit,
@@ -1788,7 +2251,19 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       status: 'pending',
     });
 
-    setMaterialRequests((current) => [...current, record]);
+    const nextRequest = {
+      ...record,
+      title: `${requestMode === 'delivery' ? localCopy.quickDeliveryTitle : localCopy.quickEquipmentTitle}: ${String(requestForm.itemName || '').trim().slice(0, 40)}`,
+      requestedBy: currentWorker.name,
+      itemsListText: `${requestForm.itemName} x${requestForm.quantity} ${requestForm.unit}${requestForm.note ? `\n${requestForm.note}` : ''}`,
+      photoUrl: requestForm.imageData || '',
+      date: record.dateKey,
+    };
+
+    setLocalMaterialRequests((current) => [...current.filter((item) => item.id !== nextRequest.id), nextRequest]);
+    Promise.resolve(onPersistMaterialRequest?.(nextRequest)).catch((error) => {
+      console.error('Failed to persist material request:', error);
+    });
     setRequestForm((current) => ({
       ...defaultRequestForm,
       requestType: requestMode,
@@ -1809,6 +2284,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       workerId: currentWorker.id,
       workerName: currentWorker.name,
       siteName,
+      projectId: currentProject?.id ? String(currentProject.id) : '',
       projectName: photoBatchForm.projectName || siteName,
       amount: Number(paymentForm.amount),
       taskCategory: paymentForm.taskCategory,
@@ -1816,7 +2292,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       note: paymentForm.note,
     });
 
-    setPaymentRequests((current) => [...current, record]);
+    setLocalPaymentRequests((current) => [...current.filter((item) => item.id !== record.id), record]);
+    Promise.resolve(onPersistPaymentRequest?.(record)).catch((error) => {
+      console.error('Failed to persist payment request:', error);
+    });
     setPaymentForm((current) => ({
       ...defaultPaymentForm,
       taskCategory: current.taskCategory,
@@ -1872,6 +2351,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         workerId: currentWorker.id,
         workerName: currentWorker.name,
         siteName,
+        projectId: currentProject?.id ? String(currentProject.id) : '',
         projectName: photoBatchForm.projectName || siteName,
         taskCategory: milestoneForm.taskCategory,
         areaZone: milestoneForm.areaZone,
@@ -1886,7 +2366,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
         })),
       });
 
-      setMilestoneSubmissions((current) => [...current, record]);
+      setLocalMilestoneSubmissions((current) => [...current.filter((item) => item.id !== record.id), record]);
+      Promise.resolve(onPersistMilestoneSubmission?.(record)).catch((error) => {
+        console.error('Failed to persist milestone submission:', error);
+      });
       setMilestoneForm((current) => ({
         ...defaultMilestoneForm,
         taskCategory: current.taskCategory,
@@ -1991,7 +2474,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       home: Home,
       tasks: ClipboardList,
       activity: Clock3,
-      profile: UserCircle2,
+      chat: MessageSquare,
     },
   });
 
@@ -2016,9 +2499,13 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       todayMilestoneCount,
       todayDailyReportCount,
       activeScreen,
+      activeTab,
       isRecordingVoice,
       isVoiceProcessing,
       busyAction,
+      tabActivity: TAB_ACTIVITY,
+      tabChat: TAB_CHAT,
+      screenWorkReports: SCREEN_WORK_REPORTS,
       screenPhoto: SCREEN_PHOTO,
       screenVoice: SCREEN_VOICE,
       screenIssue: SCREEN_ISSUE,
@@ -2027,11 +2514,11 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       screenPayment: SCREEN_PAYMENT,
       screenMilestone: SCREEN_MILESTONE,
       screenDailyReport: SCREEN_DAILY_REPORT,
+      screenChat: SCREEN_CHAT,
       roomName: photoBatchForm.areaZone || photoBatchForm.roomName,
     },
     handlers: {
-      onCheckIn: () => handleAttendance('checkin'),
-      onCheckOut: () => handleAttendance('checkout'),
+      onWorkReports: () => openScreen(SCREEN_WORK_REPORTS),
       onPhoto: () => openScreen(SCREEN_PHOTO, localCopy.openPhoto),
       onVoice: () => openScreen(SCREEN_VOICE, localCopy.openVoice),
       onIssue: () => openScreen(SCREEN_ISSUE),
@@ -2040,10 +2527,10 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       onPayment: openPaymentScreen,
       onMilestone: openMilestoneScreen,
       onDailyReport: () => openScreen(SCREEN_DAILY_REPORT),
+      onActivity: () => setTabScreen(TAB_ACTIVITY),
+      onChat: () => setTabScreen(TAB_CHAT),
     },
     icons: {
-      checkin: CheckCircle2,
-      checkout: Clock3,
       photo: Camera,
       voice: Mic,
       issue: AlertTriangle,
@@ -2052,6 +2539,8 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
       payment: Banknote,
       milestone: ClipboardCheck,
       dailyReport: ClipboardCheck,
+      activity: Clock3,
+      chat: MessageSquare,
     },
   });
 
@@ -2089,6 +2578,24 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           />
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
             {isCheckedOut ? localCopy.doneHelper : isCheckedIn ? localCopy.readyHelper : localCopy.gateHelper}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => handleAttendance('checkin')}
+              disabled={Boolean(effectiveAttendance.checkIn) || busyAction === 'checkin'}
+              className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${effectiveAttendance.checkIn ? 'bg-slate-100 text-slate-400' : 'bg-blue-700 text-white'}`}
+            >
+              {busyAction === 'checkin' ? pickText(t, 'auth_loading', 'Loading') : 'Check In'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAttendance('checkout')}
+              disabled={!effectiveAttendance.checkIn || Boolean(effectiveAttendance.checkOut) || busyAction === 'checkout'}
+              className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${!effectiveAttendance.checkIn || effectiveAttendance.checkOut ? 'bg-slate-100 text-slate-400' : 'bg-emerald-600 text-white'}`}
+            >
+              {busyAction === 'checkout' ? pickText(t, 'auth_loading', 'Loading') : 'Check Out'}
+            </button>
           </div>
         </div>
       </section>
@@ -2155,6 +2662,39 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     </div>
   );
 
+  const renderWorkReportsScreen = () => (
+    <SinglePurposeScreen
+      title={localCopy.workReportsScreenTitle}
+      subtitle={localCopy.workReportsScreenDesc}
+      onBack={goBack}
+      t={t}
+    >
+      <div className="grid grid-cols-1 gap-3">
+        <ActionListCard
+          title={localCopy.quickSubmitTitle}
+          helper={localCopy.photoDesc}
+          icon={Camera}
+          tone="slate"
+          onClick={() => openScreen(SCREEN_PHOTO, localCopy.openPhoto)}
+        />
+        <ActionListCard
+          title={localCopy.quickDailyReportTitle}
+          helper={localCopy.quickDailyReportHelper}
+          icon={ClipboardCheck}
+          tone="blue"
+          onClick={() => openScreen(SCREEN_DAILY_REPORT)}
+        />
+        <ActionListCard
+          title={localCopy.quickMilestoneTitle}
+          helper={localCopy.quickMilestoneHelper}
+          icon={ClipboardCheck}
+          tone="emerald"
+          onClick={openMilestoneScreen}
+        />
+      </div>
+    </SinglePurposeScreen>
+  );
+
   const renderTasks = () => (
     <div className="space-y-4">
       <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
@@ -2185,7 +2725,37 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
 
   const renderActivity = () => (
     <div className="space-y-4">
-      <ScreenHeader title={pickText(t, 'worker_activity_title', 'Recent Activity')} subtitle={pickText(t, 'worker_submitted_items', 'Submitted items from this app')} />
+      <ScreenHeader title={localCopy.requestsActivityTitle} subtitle={localCopy.requestsActivityDesc} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <ActionListCard
+          title={localCopy.quickEquipmentTitle}
+          helper={localCopy.quickEquipmentHelper}
+          icon={ClipboardList}
+          tone="amber"
+          onClick={() => openRequestScreen('equipment')}
+        />
+        <ActionListCard
+          title={localCopy.quickDeliveryTitle}
+          helper={localCopy.quickDeliveryHelper}
+          icon={Package}
+          tone="blue"
+          onClick={() => openRequestScreen('delivery')}
+        />
+        <ActionListCard
+          title={localCopy.quickPaymentTitle}
+          helper={localCopy.quickPaymentHelper}
+          icon={Banknote}
+          tone="emerald"
+          onClick={openPaymentScreen}
+        />
+        <ActionListCard
+          title={localCopy.quickChatTitle}
+          helper={localCopy.quickChatHelper}
+          icon={MessageSquare}
+          tone="slate"
+          onClick={() => setTabScreen(TAB_CHAT)}
+        />
+      </div>
       <div className="rounded-[1.6rem] bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
         <div className="space-y-3">
           {activityFeed.length ? (
@@ -2210,6 +2780,59 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
           ) : (
             <EmptyState label={pickText(t, 'worker_no_data', 'No data yet')} />
           )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderChatScreen = () => (
+    <div className="space-y-4">
+      <ScreenHeader title={localCopy.chatScreenTitle} subtitle={localCopy.chatScreenDesc} />
+      <div className="overflow-hidden rounded-[1.6rem] bg-white shadow-sm ring-1 ring-slate-200/80">
+        <div ref={chatContainerRef} className="flex max-h-[52vh] min-h-[38vh] flex-col gap-4 overflow-y-auto bg-slate-50 p-4">
+          {projectChatMessages.length ? projectChatMessages.map((message) => {
+            const isMe = message.senderRole === 'worker';
+            return (
+              <div key={message.id || `${message.createdAt}-${message.sender}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[86%] rounded-2xl p-3 text-sm shadow-sm ${isMe ? 'rounded-tr-sm bg-blue-700 text-white' : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700'}`}>
+                  {!isMe ? <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-blue-600">{message.sender}</div> : null}
+                  {message.audioUrl ? <audio controls src={message.audioUrl} className="max-w-[220px]" /> : message.text}
+                </div>
+                <span className="mt-1 px-1 text-[10px] text-slate-400">{message.time || formatTime(message.createdAt || Date.now(), locale)}</span>
+              </div>
+            );
+          }) : <EmptyState label={localCopy.chatEmpty} />}
+        </div>
+        <div className="border-t border-slate-200 bg-white p-3">
+          {chatError ? <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{chatError}</div> : null}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={chatDraft}
+              onChange={(event) => {
+                setChatDraft(event.target.value);
+                if (chatError) setChatError('');
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  handleSendChatMessage();
+                }
+              }}
+              placeholder={pickText(t, 'chat_placeholder', 'Type message...')}
+              disabled={chatBusy}
+              className="h-11 flex-1 rounded-full bg-slate-100 px-4 text-sm outline-none ring-0 focus:bg-slate-200"
+            />
+            <button
+              type="button"
+              onClick={handleSendChatMessage}
+              disabled={chatBusy || !String(chatDraft || '').trim()}
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition ${chatBusy || !String(chatDraft || '').trim() ? 'bg-slate-100 text-slate-300' : 'bg-blue-700 text-white'}`}
+              aria-label={localCopy.chatSendAction}
+            >
+              {chatBusy ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -3090,6 +3713,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     );
   };
   const renderBody = () => {
+    if (activeScreen === SCREEN_WORK_REPORTS) return renderWorkReportsScreen();
     if (activeScreen === SCREEN_PHOTO) return renderPhotoScreen();
     if (activeScreen === SCREEN_VOICE) return renderVoiceScreen();
     if (activeScreen === SCREEN_DELIVERY) return renderRequestScreen();
@@ -3098,6 +3722,7 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
     if (activeScreen === SCREEN_MILESTONE) return renderMilestoneScreen();
     if (activeScreen === SCREEN_DAILY_REPORT) return renderDailyReportScreen();
     if (activeScreen === SCREEN_ISSUE) return renderIssueScreen();
+    if (activeScreen === SCREEN_CHAT) return renderChatScreen();
     if (activeScreen === SCREEN_TASKS) return renderTasks();
     if (activeScreen === SCREEN_ACTIVITY) return renderActivity();
     if (activeScreen === SCREEN_PROFILE) return renderProfile();
@@ -3117,7 +3742,12 @@ function WorkerAppV2({ onNavigate, t, language = 'TH', workersList = [], project
                 <div className="mt-1 flex items-center gap-1 text-xs text-blue-100/90"><MapPin className="h-3.5 w-3.5" />{siteName}</div>
               </div>
             </div>
-            <button onClick={() => onNavigate('landing')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white/90 active:scale-95">×</button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => openScreen(SCREEN_PROFILE)} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white/90 active:scale-95" aria-label={pickText(t, 'worker_profile_title', 'Profile')}>
+                <UserCircle2 className="h-5 w-5" />
+              </button>
+              <button onClick={() => onNavigate('landing')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white/90 active:scale-95">×</button>
+            </div>
           </div>
           <div className="mt-5 rounded-[1.6rem] border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-center justify-between gap-3">
@@ -3198,6 +3828,35 @@ function FormCard({ title, children }) {
       {title ? <div className="mb-3 text-base font-semibold text-slate-900">{title}</div> : null}
       {children}
     </div>
+  );
+}
+
+function ActionListCard({ title, helper, icon: Icon, tone = 'blue', onClick }) {
+  const toneClass = tone === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+    : tone === 'amber'
+      ? 'border-amber-200 bg-amber-50 text-amber-900'
+      : tone === 'slate'
+        ? 'border-slate-200 bg-slate-50 text-slate-900'
+        : 'border-blue-200 bg-blue-50 text-blue-900';
+  const iconClass = tone === 'emerald'
+    ? 'bg-emerald-600 text-white'
+    : tone === 'amber'
+      ? 'bg-amber-500 text-slate-950'
+      : tone === 'slate'
+        ? 'bg-slate-900 text-white'
+        : 'bg-blue-700 text-white';
+
+  return (
+    <button type="button" onClick={onClick} className={`flex w-full items-center gap-4 rounded-[1.5rem] border p-4 text-left shadow-sm transition hover:shadow-md active:scale-[0.99] ${toneClass}`}>
+      <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${iconClass}`}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-base font-semibold leading-tight">{title}</div>
+        <div className="mt-1 text-sm leading-6 text-slate-600">{helper}</div>
+      </div>
+    </button>
   );
 }
 

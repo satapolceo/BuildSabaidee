@@ -65,14 +65,27 @@ export function mapFirebaseAuthErrorToKey(error) {
   }
 }
 
-export async function signInAdminWithEmail(auth, { email, password }) {
+export async function signInWithEmail(auth, { email, password }) {
   await setPersistence(auth, browserLocalPersistence);
   return signInWithEmailAndPassword(auth, String(email || '').trim(), password);
 }
 
-export async function registerAdminWithEmail(auth, { email, password }) {
+export async function registerWithEmail(auth, { email, password }) {
   await setPersistence(auth, browserLocalPersistence);
   return createUserWithEmailAndPassword(auth, String(email || '').trim(), password);
+}
+
+export async function getAuthTokenResult(user, forceRefresh = false) {
+  if (!user?.getIdTokenResult) return null;
+  return user.getIdTokenResult(forceRefresh);
+}
+
+export async function signInAdminWithEmail(auth, credentials) {
+  return signInWithEmail(auth, credentials);
+}
+
+export async function registerAdminWithEmail(auth, credentials) {
+  return registerWithEmail(auth, credentials);
 }
 
 export async function sendAdminPasswordReset(auth, email) {

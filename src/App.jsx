@@ -3,10 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
-  WORKER_STORAGE_KEYS,
   TASK_STATUS,
-  loadFromStorage,
-  saveToStorage,
   getTodayAttendance,
   createAttendanceRecord,
   createPhotoReport,
@@ -19,12 +16,14 @@ import WorkerAppV2 from './WorkerAppV2';
 import WorkerMobileTestPage from './WorkerMobileTestPage';
 import { buildChatAnalytics, buildChatConversations } from './chatAnalytics';
 import {
+  getAuthTokenResult,
   getRememberedAdminEmail,
   mapFirebaseAuthErrorToKey,
   persistRememberedAdminEmail,
   registerAdminWithEmail,
   sendAdminPasswordReset,
   signInAdminWithEmail,
+  signInWithEmail,
   signOutAdmin,
   subscribeToAdminAuth,
   validateAdminAuthInput,
@@ -58,13 +57,16 @@ import {
   WifiOff, Package, Receipt, CloudRain, HardHat,
   Smartphone, Building, Globe, Menu, X, ChevronRight, ChevronDown,
   LogOut, Play, Check, AlertCircle, Sun, Search, Filter,
-  UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon,
+  UploadCloud, ScanLine, DollarSign, Plus, Inbox, Image as ImageIcon, ClipboardCheck,
   Send, Database, Eye, EyeOff, Printer, Percent, Download, Home
 } from 'lucide-react';
 import OwnerProjectProgressView from './modules/projectProgress/OwnerProjectProgressView';
 import { buildProjectProgressSelectors } from './modules/projectProgress/projectProgressSelectors';
 import { getProjectProgressCopy } from './modules/projectProgress/projectProgressI18n';
-import { buildOwnerDemoSeedBundle, mergeSeededRecords } from './demo/ownerDemoSeed';
+import { buildOwnerDemoSeedBundle } from './demo/ownerDemoSeed';
+import { createTrustedAuthSession } from './services/authRoles';
+import { normalizeSiteTicketList } from './modules/siteTickets/siteTicketModel';
+import { normalizeDailyReportList } from './modules/dailyReports/dailyReportModel';
 
 // ========================================================
 // 🔥 1. FIREBASE CONFIGURATION (ใส่ข้อมูลของคุณที่นี่) 🔥
@@ -85,6 +87,54 @@ const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 const db = isFirebaseConfigured ? getFirestore(app) : null;
 const firebaseAuth = isFirebaseConfigured ? getAuth(app) : null;
 
+const PAYMENT_REVIEW_ALLOWED_STATUSES = new Set(['pending', 'approved', 'rejected']);
+const MILESTONE_REVIEW_ALLOWED_STATUSES = new Set(['submitted', 'approved', 'rejected']);
+
+const createReviewGuardError = (message, reviewErrorKey) => {
+  const error = new Error(message);
+  error.reviewErrorKey = reviewErrorKey;
+  return error;
+};
+
+export const getReviewUpdateErrorKey = (error) => {
+  if (error?.reviewErrorKey) return error.reviewErrorKey;
+  const normalizedCode = String(error?.code || '').toLowerCase();
+  const normalizedMessage = String(error?.message || '').toLowerCase();
+  if (normalizedCode.includes('permission-denied') || normalizedMessage.includes('permission-denied') || normalizedMessage.includes('missing or insufficient permissions')) return 'review_permission_denied';
+  if (normalizedCode.includes('failed-precondition') || normalizedMessage.includes('invalid-status-transition')) return 'review_invalid_transition';
+  return 'auth_generic_error';
+};
+
+const normalizeReviewStatusUpdate = (updates = {}, allowedStatuses) => {
+  const { currentStatus, ...persistedUpdates } = updates || {};
+  if (!Object.prototype.hasOwnProperty.call(persistedUpdates, 'status')) return persistedUpdates;
+  const nextStatus = String(persistedUpdates.status || '').toLowerCase();
+  const previousStatus = String(currentStatus || '').toLowerCase();
+  if (!allowedStatuses.has(nextStatus) || (previousStatus && previousStatus === nextStatus)) {
+    throw createReviewGuardError('invalid-status-transition', 'review_invalid_transition');
+  }
+  return persistedUpdates;
+};
+
+export const updatePaymentRequestReviewInFirestore = async (firestoreDb, requestId, updates = {}) => {
+  if (!firestoreDb || !requestId) return false;
+  const persistedUpdates = normalizeReviewStatusUpdate(updates, PAYMENT_REVIEW_ALLOWED_STATUSES);
+  await updateDoc(doc(firestoreDb, 'paymentRequests', String(requestId)), {
+    ...persistedUpdates,
+    updatedAt: Date.now(),
+  });
+  return true;
+};
+
+export const updateMilestoneSubmissionReviewInFirestore = async (firestoreDb, submissionId, updates = {}) => {
+  if (!firestoreDb || !submissionId) return false;
+  const persistedUpdates = normalizeReviewStatusUpdate(updates, MILESTONE_REVIEW_ALLOWED_STATUSES);
+  await updateDoc(doc(firestoreDb, 'milestoneSubmissions', String(submissionId)), {
+    ...persistedUpdates,
+    updatedAt: Date.now(),
+  });
+  return true;
+};
 // ==========================================
 // 🌟 CUSTOM HOOK: ระบบบันทึกเสียง (แปลงเสียงเป็น Base64 เพื่อเก็บลง Firebase)
 // ==========================================
@@ -351,7 +401,7 @@ const translations = {
     table_project_name: 'ຊື່ໂຄງການ', table_progress: 'ຄວາມຄືບໜ້າ', table_actions: 'ຈັດການ', table_identity_phone: 'ຊື່ - ເບີໂທ', table_role_wage: 'ຕຳແໜ່ງ & ຄ່າແຮງ', table_site: 'ໄຊຕ໌ງານ', table_attendance: 'ການເຂົ້າວຽກ', table_doc_name: 'ຊື່ເອກະສານ', table_doc_amount: 'ຍອດເງິນ', table_project: 'ໂຄງການ', table_sender: 'ຜູ້ສົ່ງ',
     workers_unit: 'ຄົນງານ', attendance_from_app: 'ຈາກ App',
     inventory_all_projects: 'ລວມທຸກໂຄງການ', inventory_central_stock: 'ສະຕັອກກາງ (ບໍ່ໄດ້ລະບຸ)', label_related_project: 'ໂຄງການທີ່ກ່ຽວຂ້ອງ', label_linked_project: 'ໂຄງການທີ່ຜູກ', stock_overview_title: 'ພາບລວມສະຕັອກ', stock_total_items: 'ຈຳນວນລາຍການທັງໝົດ', stock_low_items: 'ລາຍການໃກ້ໝົດ', stock_out_items: 'ລາຍການໝົດສະຕັອກ', stock_recent_movements: 'ຄວາມເຄື່ອນໄຫວສະຕັອກຫຼ້າສຸດ', stock_recent_placeholder: 'ລະບົບຈະສະແດງ movement ຈາກໂມດູນຮັບເຂົ້າ/ເບີກອອກເມື່ອພ້ອມ', stock_status_low: 'ໃກ້ໝົດ', stock_status_out: 'ໝົດສະຕັອກ', stock_status_ok: 'ພ້ອມໃຊ້', stock_movement_updated: 'ອັບເດດລາຍການ', material_catalog_title: 'ລາຍການວັດສະດຸ', material_catalog_description: 'ຄົ້ນຫາ ແລະ ເບິ່ງລາຍລະອຽດວັດສະດຸຈາກຂໍ້ມູນຄັງທີ່ມີຢູ່', material_catalog_search_placeholder: 'ຄົ້ນຫາຊື່ວັດສະດຸ...', material_catalog_filter_all_categories: 'ທຸກໝວດໝູ່', material_catalog_filter_all_statuses: 'ທຸກສະຖານະ', material_catalog_details: 'ລາຍລະອຽດວັດສະດຸ', material_catalog_open_details: 'ເປີດລາຍລະອຽດ', material_catalog_empty: 'ບໍ່ພົບລາຍການວັດສະດຸ', material_catalog_notes: 'ໝາຍເຫດ', inventory_movements_title: 'ຮັບເຂົ້າ / ເບີກອອກ', inventory_movements_description: 'ຕິດຕາມ movement ຂອງວັດສະດຸຈາກຂໍ້ມູນຄັງປະຈຸບັນ', inventory_movements_search_placeholder: 'ຄົ້ນຫາ movement...', inventory_movements_all_types: 'ທຸກປະເພດ', inventory_movements_all_materials: 'ທຸກວັດສະດຸ', inventory_movements_date_all: 'ທຸກວັນ', inventory_movement_type: 'ປະເພດ movement', inventory_movement_inbound: 'ຮັບເຂົ້າ', inventory_movement_outbound: 'ເບີກອອກ', inventory_movement_date: 'ວັນທີ', inventory_movement_reference: 'ໝາຍເຫດ / ອ້າງອີງ', inventory_movement_balance: 'ຍອດຄົງເຫຼືອ', inventory_movement_details: 'ລາຍລະອຽດ movement', inventory_movement_empty: 'ບໍ່ພົບ movement ໃນລະບົບ', warehouse_value_title: 'ມູນຄ່າຄັງວັດສະດຸ', warehouse_value_description: 'ສະຫຼຸບມູນຄ່າຂອງສະຕັອກຈາກຂໍ້ມູນວັດສະດຸປະຈຸບັນ', warehouse_value_total: 'ມູນຄ່າຄັງລວມ', warehouse_value_by_category: 'ມູນຄ່າຕາມໝວດໝູ່', warehouse_value_top_materials: 'ວັດສະດຸມູນຄ່າສູງ', warehouse_value_low_high: 'ໃກ້ໝົດແຕ່ມູນຄ່າສູງ', warehouse_value_out_impact: 'ຜົນກະທົບຈາກສະຕັອກໝົດ', warehouse_value_empty: 'ຍັງບໍ່ມີຂໍ້ມູນວັດສະດຸສຳລັບຄຳນວນ', warehouse_value_items: 'ລາຍການ', warehouse_value_estimated_loss: 'ມູນຄ່າທີ່ຂາດໄປ',
-    requests_intro: 'ຂໍ້ມູນໃນໜ້ານີ້ຈະເຊື່ອມໂຍງແບບ Real-time ກັບສິ່ງທີ່ພະນັກງານສົ່ງມາຈາກ "ແອັບຄົນງານ"', requests_open_worker: 'ຈຳລອງໄປໜ້າຈໍຄົນງານ', requests_project: 'ໂຄງການ', requests_unspecified: 'ບໍ່ໄດ້ລະບຸ', requests_items_title: 'ລາຍການວັດສະດຸທີ່ຂໍເບີກ:', requests_empty: 'ຍັງບໍ່ມີລາຍການຂໍເບີກ',
+    requests_intro: 'ຂໍ້ມູນໃນໜ້ານີ້ຈະເຊື່ອມໂຍງແບບ Real-time ກັບສິ່ງທີ່ພະນັກງານສົ່ງມາຈາກ "ແອັບຄົນງານ"', requests_open_worker: 'ຈຳລອງໄປໜ້າຈໍຄົນງານ', requests_project: 'ໂຄງການ', requests_unspecified: 'ບໍ່ໄດ້ລະບຸ', requests_items_title: 'ລາຍການວັດສະດຸທີ່ຂໍເບີກ:', requests_empty: 'ຍັງບໍ່ມີລາຍການຂໍເບີກ', manager_menu_payment_requests: 'ຄຳຂໍເບີກເງິນ', manager_menu_milestone_submissions: 'ສົ່ງ milestone', payment_requests_title: 'ຄຳຂໍເບີກເງິນຈາກຫນ້າວຽກ', payment_requests_intro: 'ກວດສອບຄຳຂໍເບີກເງິນທີ່ຄົນງານສົ່ງຈາກແອັບ ແລະ ອັບເດດສະຖານະໃນ Firestore ຊຸດດຽວກັນ.', payment_requests_search_placeholder: 'ຄົ້ນຫາຄົນຂໍ, ໂຄງການ ຫຼື ບັນທຶກ...', payment_requests_filter_all_statuses: 'ທຸກສະຖານະ', payment_requests_filter_all_projects: 'ທຸກໂຄງການ', payment_requests_filter_all_requesters: 'ຜູ້ຂໍທັງໝົດ', payment_requests_empty: 'ຍັງບໍ່ມີຄຳຂໍເບີກເງິນ', payment_requests_stat_total: 'ລາຍການທັງໝົດ', payment_requests_stat_pending: 'ລໍຖ້າກວດ', payment_requests_stat_approved: 'ອະນຸມັດແລ້ວ', payment_requests_stat_rejected: 'ຖືກປະຕິເສດ', payment_requests_amount: 'ຈຳນວນເງິນ', payment_requests_requested_at: 'ວັນທີຂໍ', payment_requests_detail: 'ລາຍລະອຽດຄຳຂໍ', payment_requests_work_scope: 'ຂອບເຂດວຽກ', payment_requests_review_note: 'ບັນທຶກການກວດ', payment_requests_review_note_placeholder: 'ເພີ່ມໝາຍເຫດສຳລັບການອະນຸມັດ ຫຼື ຕີກັບ', payment_requests_note_empty: 'ບໍ່ມີບັນທຶກເພີ່ມ', payment_requests_review_meta: 'ຜູ້ກວດຫຼ້າສຸດ', milestone_submissions_title: 'ປະຫວັດການສົ່ງ milestone', milestone_submissions_intro: 'ກວດ milestone ແລະ ຫຼັກຖານຄວາມຄືບໜ້າຈາກ Firestore ຮ່ວມກັນ.', milestone_submissions_search_placeholder: 'ຄົ້ນຫາຄົນງານ, milestone, ໂຊນ ຫຼື ບັນທຶກ...', milestone_submissions_filter_all_statuses: 'ທຸກສະຖານະ', milestone_submissions_filter_all_projects: 'ທຸກໂຄງການ', milestone_submissions_filter_all_workers: 'ຄົນງານທັງໝົດ', milestone_submissions_filter_all_milestones: 'milestone ທັງໝົດ', milestone_submissions_empty: 'ຍັງບໍ່ມີການສົ່ງ milestone', milestone_submissions_stat_total: 'ລາຍການທັງໝົດ', milestone_submissions_stat_submitted: 'ສົ່ງເຂົ້າມາແລ້ວ', milestone_submissions_stat_approved: 'ອະນຸມັດແລ້ວ', milestone_submissions_stat_rejected: 'ຖືກຕີກັບ', milestone_submissions_detail: 'ລາຍລະອຽດ milestone', milestone_submissions_progress: 'ຄວາມຄືບໜ້າ', milestone_submissions_worker: 'ຄົນງານຜູ້ສົ່ງ', milestone_submissions_submitted_at: 'ວັນທີສົ່ງ', milestone_submissions_area: 'ພື້ນທີ່', milestone_submissions_photo_count: 'ຈຳນວນຮູບ', milestone_submissions_evidence: 'ຫຼັກຖານຮູບ', milestone_submissions_review_note: 'ບັນທຶກການກວດ', milestone_submissions_review_note_placeholder: 'ເພີ່ມຄຳແນະນຳ ຫຼື ເຫດຜົນການອະນຸມັດ', milestone_submissions_note_empty: 'ບໍ່ມີບັນທຶກເພີ່ມ', milestone_submissions_review_meta: 'ຜູ້ກວດຫຼ້າສຸດ', review_status_pending: 'ລໍຖ້າກວດ', review_status_submitted: 'ສົ່ງແລ້ວ', review_status_approved: 'ອະນຸມັດແລ້ວ', review_status_rejected: 'ຖືກປະຕິເສດ', review_action_mark_pending: 'ຕັ້ງເປັນລໍຖ້າກວດ', review_action_save_note: 'ບັນທຶກໝາຍເຫດ', owner_payment_requests_title: 'ຄຳຂໍເບີກເງິນຈາກໜ້າວຽກ', owner_payment_requests_desc: 'ສະແດງລາຍການເບີກເງິນລ່າສຸດ ແລະ ສະຖານະການກວດໃນມຸມມອງເຈົ້າຂອງ.', owner_payment_requests_pending: 'ລໍຖ້າກວດ', owner_payment_requests_approved: 'ອະນຸມັດແລ້ວ', owner_payment_requests_empty: 'ຍັງບໍ່ມີຄຳຂໍເບີກເງິນສຳລັບໂຄງການນີ້', owner_approvals_title: 'ການກວດອະນຸມັດທີ່ເກີດຂຶ້ນໃນໜ້າວຽກ', owner_approvals_desc: 'ມຸມມອງອ່ານງ່າຍສຳລັບງວດເງິນ ແລະ milestone ທີ່ຄົນງານສົ່ງເຂົ້າມາ.', owner_approvals_pending_payments: 'ງວດເງິນລໍຖ້າ', owner_approvals_submitted_milestones: 'milestone ລໍຖ້າກວດ', owner_approvals_approved_milestones: 'milestone ອະນຸມັດແລ້ວ', owner_approvals_rejected_milestones: 'milestone ຖືກຕີກັບ', owner_approvals_payment_queue: 'ຄິວການເບີກເງິນ', owner_approvals_milestones: 'ລາຍການ milestone',
     chat_realtime: 'ເຊື່ອມຕໍ່ກັບແອັບຄົນງານ ແລະ ເຈົ້າຂອງບ້ານແບບ Real-time', chat_go_worker: 'ໄປແອັບຄົນງານ', chat_go_owner: 'ໄປແອັບເຈົ້າຂອງ', chat_owner_suffix: '(ເຈົ້າຂອງບ້ານ)', chat_recording: 'ກຳລັງອັດສຽງ...', chat_hold_record: 'ກົດອັດສຽງ', chat_record_start: 'ເລີ່ມອັດ', chat_record_stop: 'ສົ່ງສຽງ', chat_record_cancel: 'ຍົກເລີກການອັດ', chat_mic_not_supported: 'ອຸປະກອນນີ້ບໍ່ຮອງຮັບການອັດສຽງ', chat_mic_permission_denied: 'ບໍ່ໄດ້ອະນຸຍາດໃຊ້ໄມໂຄຣໂຟນ', chat_mic_error_generic: 'ບໍ່ສາມາດເລີ່ມອັດສຽງໄດ້ ກະລຸນາລອງໃໝ່', chat_demo_empty: 'ຍັງບໍ່ມີຂໍ້ຄວາມ ລອງສົ່ງຂໍ້ຄວາມ ຫຼື ສຽງເພື່ອເລີ່ມການສື່ສານ', chat_demo_reply_worker: 'ຮັບຊາບແລ້ວ ທີມຫນ້າງານກຳລັງກວດເບິ່ງ ແລະ ຈະອັບເດດກັບໄປໃນໄມ່ດົນ', chat_demo_reply_owner: 'ຮັບຊາບແລ້ວ ຂໍໃຫ້ອັບເດດຄວາມຄືບໜ້າ ແລະ ລາຍລະອຽດເພີ່ມເຕີມນຳ',
     modal_full_name: 'ຊື່ - ນາມສະກຸນ *', category_construction: 'ວັດສະດຸກໍ່ສ້າງ', category_decor: 'ຕົກແຕ່ງ', category_plumbing: 'ປະປາ/ສຸຂາພິບານ', category_electrical: 'ໄຟຟ້າ', category_other: 'ອື່ນໆ', project_risk_alert: 'ມີຄວາມສ່ຽງຕ້ອງຕິດຕາມ',
   },
@@ -489,7 +539,7 @@ const translations = {
     table_project_name: 'ชื่อโครงการ', table_progress: 'ความคืบหน้า', table_actions: 'จัดการ', table_identity_phone: 'ชื่อ - เบอร์โทร', table_role_wage: 'ตำแหน่ง & ค่าแรง', table_site: 'ไซต์งาน', table_attendance: 'การเข้างาน', table_doc_name: 'ชื่อเอกสาร', table_doc_amount: 'ยอดเงิน', table_project: 'โครงการ', table_sender: 'ผู้ส่ง',
     workers_unit: 'คนงาน', attendance_from_app: 'จาก App',
     inventory_all_projects: 'รวมทุกโครงการ', inventory_central_stock: 'สต็อกกลาง (ไม่ได้ระบุ)', label_related_project: 'โครงการที่เกี่ยวข้อง', label_linked_project: 'โครงการที่ผูก', stock_overview_title: 'ภาพรวมสต็อก', stock_total_items: 'จำนวนรายการทั้งหมด', stock_low_items: 'รายการใกล้หมด', stock_out_items: 'รายการหมดสต็อก', stock_recent_movements: 'ความเคลื่อนไหวสต็อกล่าสุด', stock_recent_placeholder: 'ระบบจะแสดง movement จากโมดูลรับเข้า/เบิกออกเมื่อพร้อมใช้งาน', stock_status_low: 'ใกล้หมด', stock_status_out: 'หมดสต็อก', stock_status_ok: 'พร้อมใช้', stock_movement_updated: 'อัปเดตรายการ', material_catalog_title: 'แคตตาล็อกวัสดุ', material_catalog_description: 'ค้นหาและดูรายละเอียดวัสดุจากข้อมูลคลังที่มีอยู่', material_catalog_search_placeholder: 'ค้นหาชื่อวัสดุ...', material_catalog_filter_all_categories: 'ทุกหมวดหมู่', material_catalog_filter_all_statuses: 'ทุกสถานะ', material_catalog_details: 'รายละเอียดวัสดุ', material_catalog_open_details: 'เปิดรายละเอียด', material_catalog_empty: 'ไม่พบรายการวัสดุ', material_catalog_notes: 'หมายเหตุ', inventory_movements_title: 'รับเข้า / เบิกออก', inventory_movements_description: 'ติดตามรายการเคลื่อนไหวสต็อกจากข้อมูลคลังปัจจุบัน', inventory_movements_search_placeholder: 'ค้นหา movement...', inventory_movements_all_types: 'ทุกประเภท', inventory_movements_all_materials: 'ทุกวัสดุ', inventory_movements_date_all: 'ทุกวัน', inventory_movement_type: 'ประเภท movement', inventory_movement_inbound: 'รับเข้า', inventory_movement_outbound: 'เบิกออก', inventory_movement_date: 'วันที่', inventory_movement_reference: 'หมายเหตุ / อ้างอิง', inventory_movement_balance: 'ยอดคงเหลือ', inventory_movement_details: 'รายละเอียด movement', inventory_movement_empty: 'ไม่พบรายการ movement', warehouse_value_title: 'มูลค่าคลังวัสดุ', warehouse_value_description: 'สรุปมูลค่าสต็อกจากข้อมูลวัสดุปัจจุบัน', warehouse_value_total: 'มูลค่าคลังรวม', warehouse_value_by_category: 'มูลค่าตามหมวดหมู่', warehouse_value_top_materials: 'วัสดุมูลค่าสูง', warehouse_value_low_high: 'ใกล้หมดแต่มูลค่าสูง', warehouse_value_out_impact: 'ผลกระทบจากของหมดสต็อก', warehouse_value_empty: 'ยังไม่มีข้อมูลวัสดุสำหรับคำนวณ', warehouse_value_items: 'รายการ', warehouse_value_estimated_loss: 'มูลค่าที่หายไป',
-    requests_intro: 'ข้อมูลที่แสดงในหน้านี้ จะเชื่อมโยงแบบ Real-time กับสิ่งที่พนักงานกดส่งมาจาก "แอปของคนงาน" ทันที', requests_open_worker: 'จำลองไปหน้าจอคนงาน', requests_project: 'โครงการ', requests_unspecified: 'ไม่ระบุ', requests_items_title: 'รายการวัสดุที่ขอเบิก:', requests_empty: 'ยังไม่มีรายการขอเบิก',
+    requests_intro: 'ข้อมูลที่แสดงในหน้านี้ จะเชื่อมโยงแบบ Real-time กับสิ่งที่พนักงานกดส่งมาจาก "แอปของคนงาน" ทันที', requests_open_worker: 'จำลองไปหน้าจอคนงาน', requests_project: 'โครงการ', requests_unspecified: 'ไม่ระบุ', requests_items_title: 'รายการวัสดุที่ขอเบิก:', requests_empty: 'ยังไม่มีรายการขอเบิก', manager_menu_payment_requests: 'คำขอเบิกเงิน', manager_menu_milestone_submissions: 'ส่ง milestone', payment_requests_title: 'คำขอเบิกเงินจากหน้างาน', payment_requests_intro: 'ตรวจคำขอเบิกเงินที่คนงานส่งจากแอป และอัปเดตสถานะบน Firestore ชุดเดียวกัน', payment_requests_search_placeholder: 'ค้นหาผู้ขอ โครงการ หรือบันทึก...', payment_requests_filter_all_statuses: 'ทุกสถานะ', payment_requests_filter_all_projects: 'ทุกโครงการ', payment_requests_filter_all_requesters: 'ผู้ขอทั้งหมด', payment_requests_empty: 'ยังไม่มีคำขอเบิกเงิน', payment_requests_stat_total: 'รายการทั้งหมด', payment_requests_stat_pending: 'รอตรวจ', payment_requests_stat_approved: 'อนุมัติแล้ว', payment_requests_stat_rejected: 'ปฏิเสธแล้ว', payment_requests_amount: 'จำนวนเงิน', payment_requests_requested_at: 'วันที่ขอ', payment_requests_detail: 'รายละเอียดคำขอ', payment_requests_work_scope: 'ขอบเขตงาน', payment_requests_review_note: 'บันทึกการตรวจ', payment_requests_review_note_placeholder: 'เพิ่มหมายเหตุประกอบการอนุมัติหรือการตีกลับ', payment_requests_note_empty: 'ไม่มีบันทึกเพิ่มเติม', payment_requests_review_meta: 'ผู้ตรวจล่าสุด', milestone_submissions_title: 'ประวัติการส่ง milestone', milestone_submissions_intro: 'ตรวจ milestone และหลักฐานความคืบหน้าจาก Firestore ชุดเดียวกัน', milestone_submissions_search_placeholder: 'ค้นหาคนงาน milestone โซน หรือบันทึก...', milestone_submissions_filter_all_statuses: 'ทุกสถานะ', milestone_submissions_filter_all_projects: 'ทุกโครงการ', milestone_submissions_filter_all_workers: 'คนงานทั้งหมด', milestone_submissions_filter_all_milestones: 'milestone ทั้งหมด', milestone_submissions_empty: 'ยังไม่มีการส่ง milestone', milestone_submissions_stat_total: 'รายการทั้งหมด', milestone_submissions_stat_submitted: 'ส่งเข้ามาแล้ว', milestone_submissions_stat_approved: 'อนุมัติแล้ว', milestone_submissions_stat_rejected: 'ตีกลับแล้ว', milestone_submissions_detail: 'รายละเอียด milestone', milestone_submissions_progress: 'ความคืบหน้า', milestone_submissions_worker: 'ผู้ส่ง', milestone_submissions_submitted_at: 'วันที่ส่ง', milestone_submissions_area: 'พื้นที่', milestone_submissions_photo_count: 'จำนวนรูป', milestone_submissions_evidence: 'หลักฐานรูป', milestone_submissions_review_note: 'บันทึกการตรวจ', milestone_submissions_review_note_placeholder: 'เพิ่มคำแนะนำหรือเหตุผลการอนุมัติ', milestone_submissions_note_empty: 'ไม่มีบันทึกเพิ่มเติม', milestone_submissions_review_meta: 'ผู้ตรวจล่าสุด', review_status_pending: 'รอตรวจ', review_status_submitted: 'ส่งแล้ว', review_status_approved: 'อนุมัติแล้ว', review_status_rejected: 'ปฏิเสธแล้ว', review_action_mark_pending: 'ตั้งเป็นรอตรวจ', review_action_save_note: 'บันทึกหมายเหตุ', owner_payment_requests_title: 'คำขอเบิกเงินจากหน้างาน', owner_payment_requests_desc: 'แสดงรายการเบิกเงินล่าสุดและสถานะการตรวจในมุมมองเจ้าของโครงการ', owner_payment_requests_pending: 'รอตรวจ', owner_payment_requests_approved: 'อนุมัติแล้ว', owner_payment_requests_empty: 'ยังไม่มีคำขอเบิกเงินสำหรับโครงการนี้', owner_approvals_title: 'รายการอนุมัติจากหน้างาน', owner_approvals_desc: 'มุมมองอ่านง่ายสำหรับงวดเงินและ milestone ที่คนงานส่งเข้ามา', owner_approvals_pending_payments: 'งวดเงินรอตรวจ', owner_approvals_submitted_milestones: 'milestone รอตรวจ', owner_approvals_approved_milestones: 'milestone อนุมัติแล้ว', owner_approvals_rejected_milestones: 'milestone ตีกลับ', owner_approvals_payment_queue: 'คิวคำขอเบิกเงิน', owner_approvals_milestones: 'รายการ milestone',
     chat_realtime: 'เชื่อมต่อกับแอปคนงานและเจ้าของบ้านแบบ Real-time', chat_go_worker: 'ไปแอปคนงาน', chat_go_owner: 'ไปแอปเจ้าของ', chat_owner_suffix: '(เจ้าของบ้าน)', chat_recording: 'กำลังอัดเสียง...', chat_hold_record: 'กดอัดเสียง', chat_record_start: 'เริ่มอัด', chat_record_stop: 'ส่งเสียง', chat_record_cancel: 'ยกเลิกการอัด', chat_mic_not_supported: 'อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการอัดเสียง', chat_mic_permission_denied: 'ยังไม่ได้อนุญาตการใช้ไมโครโฟน', chat_mic_error_generic: 'ไม่สามารถเริ่มอัดเสียงได้ กรุณาลองใหม่', chat_demo_empty: 'ยังไม่มีข้อความ ลองส่งข้อความหรือเสียงเพื่อเริ่มการสื่อสาร', chat_demo_reply_worker: 'รับทราบครับ ทีมหน้างานกำลังตรวจสอบและจะอัปเดตกลับภายในไม่กี่นาที', chat_demo_reply_owner: 'รับทราบค่ะ รบกวนอัปเดตความคืบหน้าและรายละเอียดเพิ่มเติมในรอบถัดไป',
     modal_full_name: 'ชื่อ - นามสกุล *', category_construction: 'วัสดุก่อสร้าง', category_decor: 'วัสดุตกแต่ง', category_plumbing: 'ประปา/สุขาภิบาล', category_electrical: 'ไฟฟ้า', category_other: 'อื่นๆ', project_risk_alert: 'มีความเสี่ยงต้องติดตาม',
   },
@@ -627,7 +677,7 @@ const translations = {
     table_project_name: 'Project Name', table_progress: 'Progress', table_actions: 'Actions', table_identity_phone: 'Name - Phone', table_role_wage: 'Role & Wage', table_site: 'Site', table_attendance: 'Attendance', table_doc_name: 'Document Name', table_doc_amount: 'Amount', table_project: 'Project', table_sender: 'Sender',
     workers_unit: 'workers', attendance_from_app: 'from App',
     inventory_all_projects: 'All Projects Combined', inventory_central_stock: 'Central stock (unassigned)', label_related_project: 'Related Project', label_linked_project: 'Linked Project', stock_overview_title: 'Stock Overview', stock_total_items: 'Total Items', stock_low_items: 'Low Stock Items', stock_out_items: 'Out of Stock Items', stock_recent_movements: 'Recent Stock Movements', stock_recent_placeholder: 'Movement history will connect here when inbound/outbound stock modules are ready', stock_status_low: 'Low', stock_status_out: 'Out of Stock', stock_status_ok: 'Available', stock_movement_updated: 'Item updated', material_catalog_title: 'Material Catalog', material_catalog_description: 'Search and review material details from the current inventory dataset', material_catalog_search_placeholder: 'Search materials...', material_catalog_filter_all_categories: 'All categories', material_catalog_filter_all_statuses: 'All statuses', material_catalog_details: 'Material Details', material_catalog_open_details: 'Open Details', material_catalog_empty: 'No materials found', material_catalog_notes: 'Notes', inventory_movements_title: 'Inbound / Outbound', inventory_movements_description: 'Track stock movement records from the current inventory dataset', inventory_movements_search_placeholder: 'Search movements...', inventory_movements_all_types: 'All types', inventory_movements_all_materials: 'All materials', inventory_movements_date_all: 'All dates', inventory_movement_type: 'Movement Type', inventory_movement_inbound: 'Inbound', inventory_movement_outbound: 'Outbound', inventory_movement_date: 'Date', inventory_movement_reference: 'Note / Reference', inventory_movement_balance: 'Stock Balance', inventory_movement_details: 'Movement Details', inventory_movement_empty: 'No movement records found', warehouse_value_title: 'Warehouse Value', warehouse_value_description: 'Summarize stock value from the current inventory dataset', warehouse_value_total: 'Total Warehouse Value', warehouse_value_by_category: 'Value by Category', warehouse_value_top_materials: 'Highest Value Materials', warehouse_value_low_high: 'Low Stock but High Value', warehouse_value_out_impact: 'Out of Stock Value Impact', warehouse_value_empty: 'No material data available for valuation', warehouse_value_items: 'Items', warehouse_value_estimated_loss: 'Estimated Value Gap',
-    requests_intro: 'This page reflects worker submissions from the worker app in real time', requests_open_worker: 'Open Worker Screen', requests_project: 'Project', requests_unspecified: 'Unspecified', requests_items_title: 'Requested materials:', requests_empty: 'No material requests yet',
+    requests_intro: 'This page reflects worker submissions from the worker app in real time', requests_open_worker: 'Open Worker Screen', requests_project: 'Project', requests_unspecified: 'Unspecified', requests_items_title: 'Requested materials:', requests_empty: 'No material requests yet', manager_menu_payment_requests: 'Payment Requests', manager_menu_milestone_submissions: 'Milestone Submissions', payment_requests_title: 'Worker Payment Requests', payment_requests_intro: 'Review shared worker payment requests and update their status on the same Firestore records.', payment_requests_search_placeholder: 'Search requester, project, or note...', payment_requests_filter_all_statuses: 'All statuses', payment_requests_filter_all_projects: 'All projects', payment_requests_filter_all_requesters: 'All requesters', payment_requests_empty: 'No payment requests yet', payment_requests_stat_total: 'Total Requests', payment_requests_stat_pending: 'Pending Review', payment_requests_stat_approved: 'Approved', payment_requests_stat_rejected: 'Rejected', payment_requests_amount: 'Amount', payment_requests_requested_at: 'Requested Date', payment_requests_detail: 'Request Detail', payment_requests_work_scope: 'Work Scope', payment_requests_review_note: 'Review Note', payment_requests_review_note_placeholder: 'Add a note for approval, rejection, or follow-up', payment_requests_note_empty: 'No extra note was submitted', payment_requests_review_meta: 'Latest Reviewer', milestone_submissions_title: 'Milestone Submission Review', milestone_submissions_intro: 'Review shared milestone submissions and evidence from the same Firestore-backed records.', milestone_submissions_search_placeholder: 'Search worker, milestone, zone, or note...', milestone_submissions_filter_all_statuses: 'All statuses', milestone_submissions_filter_all_projects: 'All projects', milestone_submissions_filter_all_workers: 'All workers', milestone_submissions_filter_all_milestones: 'All milestones', milestone_submissions_empty: 'No milestone submissions yet', milestone_submissions_stat_total: 'Total Submissions', milestone_submissions_stat_submitted: 'Submitted', milestone_submissions_stat_approved: 'Approved', milestone_submissions_stat_rejected: 'Rejected', milestone_submissions_detail: 'Submission Detail', milestone_submissions_progress: 'Progress', milestone_submissions_worker: 'Submitted By', milestone_submissions_submitted_at: 'Submitted Date', milestone_submissions_area: 'Area', milestone_submissions_photo_count: 'Photos', milestone_submissions_evidence: 'Evidence Photos', milestone_submissions_review_note: 'Review Note', milestone_submissions_review_note_placeholder: 'Add guidance or a review note for this submission', milestone_submissions_note_empty: 'No extra note was submitted', milestone_submissions_review_meta: 'Latest Reviewer', review_status_pending: 'Pending Review', review_status_submitted: 'Submitted', review_status_approved: 'Approved', review_status_rejected: 'Rejected', review_action_mark_pending: 'Mark Pending', review_action_save_note: 'Save Note', owner_payment_requests_title: 'Site Payment Requests', owner_payment_requests_desc: 'Show the latest worker payment requests and their review state in a simple owner view.', owner_payment_requests_pending: 'Pending Review', owner_payment_requests_approved: 'Approved', owner_payment_requests_empty: 'No payment requests are available for this project yet.', owner_approvals_title: 'Site Approval Activity', owner_approvals_desc: 'A clear owner-facing view for payment requests and milestone submissions from the site team.', owner_approvals_pending_payments: 'Pending Payments', owner_approvals_submitted_milestones: 'Submitted Milestones', owner_approvals_approved_milestones: 'Approved Milestones', owner_approvals_rejected_milestones: 'Rejected Milestones', owner_approvals_payment_queue: 'Payment Request Queue', owner_approvals_milestones: 'Milestone Submissions',
     chat_realtime: 'Connected to worker and homeowner apps in real time', chat_go_worker: 'Go to Worker App', chat_go_owner: 'Go to Owner App', chat_owner_suffix: '(owner)', chat_recording: 'Recording audio...', chat_hold_record: 'Record voice', chat_record_start: 'Start Recording', chat_record_stop: 'Send Voice', chat_record_cancel: 'Cancel Recording', chat_mic_not_supported: 'This browser or device does not support voice recording', chat_mic_permission_denied: 'Microphone permission was denied', chat_mic_error_generic: 'Could not start voice recording. Please try again.', chat_demo_empty: 'No messages yet. Send a text or voice note to start the conversation.', chat_demo_reply_worker: 'Received. The site team is checking it now and will send an update shortly.', chat_demo_reply_owner: 'Acknowledged. Please share the next progress update and any cost impact when available.',
     modal_full_name: 'Full Name *', category_construction: 'Construction Materials', category_decor: 'Decorative Materials', category_plumbing: 'Plumbing / Sanitary', category_electrical: 'Electrical', category_other: 'Other', project_risk_alert: 'Risk detected and requires follow-up',
   }
@@ -6214,6 +6264,12 @@ export default function BuildSabaideeApp() {
   const [globalRequests, setGlobalRequests] = useState([]);
   const [globalIssues, setGlobalIssues] = useState([]);
   const [globalChats, setGlobalChats] = useState([]);
+  const [siteTicketsList, setSiteTicketsList] = useState([]);
+  const [dailyReportsList, setDailyReportsList] = useState([]);
+  const [attendanceList, setAttendanceList] = useState([]);
+  const [photoReportsList, setPhotoReportsList] = useState([]);
+  const [paymentRequestsList, setPaymentRequestsList] = useState([]);
+  const [milestoneSubmissionsList, setMilestoneSubmissionsList] = useState([]);
 
   useEffect(() => {
     if (!db) return; // หากยังไม่ใส่ Config ให้หยุดทำงาน
@@ -6226,19 +6282,32 @@ export default function BuildSabaideeApp() {
       { name: 'inventory', setter: setInventoryList },
       { name: 'requests', setter: setGlobalRequests },
       { name: 'issues', setter: setGlobalIssues },
-      { name: 'chats', setter: setGlobalChats }
+      { name: 'chats', setter: setGlobalChats },
+      { name: 'siteTickets', setter: setSiteTicketsList },
+      { name: 'dailyReports', setter: setDailyReportsList },
+      { name: 'attendance', setter: setAttendanceList },
+      { name: 'photoReports', setter: setPhotoReportsList },
+      { name: 'paymentRequests', setter: setPaymentRequestsList },
+      { name: 'milestoneSubmissions', setter: setMilestoneSubmissionsList },
     ];
 
     collectionsToSync.forEach(col => {
        const unsub = onSnapshot(collection(db, col.name), (snapshot) => {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const normalizedData = col.name === 'siteTickets'
+            ? normalizeSiteTicketList(data)
+            : col.name === 'dailyReports'
+              ? normalizeDailyReportList(data)
+              : data;
           // เรียงลำดับแชทตามเวลาจากเก่าไปใหม่ อันอื่นใหม่ไปเก่า
           if (col.name === 'chats') {
-             data.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+             normalizedData.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+          } else if (col.name === 'siteTickets' || col.name === 'dailyReports') {
+             normalizedData.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
           } else {
-             data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+             normalizedData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           }
-          col.setter(data);
+          col.setter(normalizedData);
        });
        unsubs.push(unsub);
     });
@@ -6352,7 +6421,7 @@ export default function BuildSabaideeApp() {
 
   useEffect(() => {
     try {
-      if (authSession && authSession.role !== 'admin') {
+      if (authSession && authSession.authSource !== 'firebase') {
         window.localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(authSession));
       } else {
         window.localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
@@ -6365,26 +6434,40 @@ export default function BuildSabaideeApp() {
   useEffect(() => {
     if (!firebaseAuth) {
       setIsAdminAuthReady(true);
-      setAuthSession((prev) => (prev?.role === 'admin' ? null : prev));
+      setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
       return;
     }
 
-    const unsubscribe = subscribeToAdminAuth(firebaseAuth, (user) => {
+    const unsubscribe = subscribeToAdminAuth(firebaseAuth, async (user) => {
       setIsAdminAuthReady(true);
 
       if (!user) {
-        setAuthSession((prev) => (prev?.role === 'admin' ? null : prev));
+        setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
         return;
       }
 
-      setAuthSession((prev) => ({
-        role: 'admin',
-        email: String(user.email || '').trim().toLowerCase(),
-        displayName: user.displayName || prev?.displayName || 'Platform Owner',
-        uid: user.uid,
-        signedInAt: Date.now(),
-      }));
-      setAuthErrorKey('');
+      try {
+        const tokenResult = await getAuthTokenResult(user);
+        const trustedSession = createTrustedAuthSession({
+          user,
+          idTokenResult: tokenResult,
+          fallbackDisplayName: 'BuildSabaidee User',
+        });
+
+        if (!trustedSession) {
+          setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
+          return;
+        }
+
+        setAuthSession((prev) => ({
+          ...prev,
+          ...trustedSession,
+        }));
+        setAuthErrorKey('');
+      } catch (error) {
+        console.error('Failed to resolve Firebase role claims:', error);
+        setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
+      }
     });
 
     return () => unsubscribe();
@@ -6445,7 +6528,7 @@ export default function BuildSabaideeApp() {
     const requestedRole = normalizedTarget.role || VIEW_ROLE_MAP[nextView] || 'user';
 
     if (nextView === 'logout') {
-      if ((normalizedTarget.role || authSession?.role) === 'admin' && firebaseAuth) {
+      if (firebaseAuth && authSession?.authSource === 'firebase') {
         signOutAdmin(firebaseAuth).catch(() => {});
       }
       setAuthSession(null);
@@ -6483,54 +6566,72 @@ export default function BuildSabaideeApp() {
 
   const handleRoleLogin = async ({ role, email, password, rememberEmail }) => {
     const normalizedRole = role || loginRole;
-    if (normalizedRole === 'admin') {
-      const validationKey = validateAdminAuthInput({ email, password });
-      if (validationKey) {
-        setAuthErrorKey(validationKey);
-        return { ok: false, errorKey: validationKey };
-      }
+
+    const signInTrustedFirebaseRole = async ({ requestedRole }) => {
       if (!firebaseAuth) {
         setAuthErrorKey('firebase_config_warning');
         return { ok: false, errorKey: 'firebase_config_warning' };
       }
 
       try {
-        const credential = await signInAdminWithEmail(firebaseAuth, { email, password });
-        persistRememberedAdminEmail(email, rememberEmail);
-        setAuthSession({
-          role: 'admin',
-          email: String(credential.user.email || email || '').trim().toLowerCase(),
-          displayName: credential.user.displayName || 'Platform Owner',
-          uid: credential.user.uid,
-          signedInAt: Date.now(),
+        const credential = requestedRole === 'admin'
+          ? await signInAdminWithEmail(firebaseAuth, { email, password })
+          : await signInWithEmail(firebaseAuth, { email, password });
+        const tokenResult = await getAuthTokenResult(credential.user, true);
+        const trustedSession = createTrustedAuthSession({
+          user: credential.user,
+          idTokenResult: tokenResult,
+          fallbackDisplayName: credential.user.displayName || requestedRole,
         });
+
+        if (!trustedSession || trustedSession.role !== requestedRole) {
+          await signOutAdmin(firebaseAuth).catch(() => {});
+          setAuthErrorKey('auth_guard_message');
+          return { ok: false, errorKey: 'auth_guard_message' };
+        }
+
+        if (requestedRole === 'admin') {
+          persistRememberedAdminEmail(email, rememberEmail);
+        }
+
+        setAuthSession(trustedSession);
         setAuthErrorKey('');
-        setCurrentView(ROLE_HOME_VIEW.admin);
+        setCurrentView(ROLE_HOME_VIEW[trustedSession.role] || 'landing');
         window.scrollTo(0, 0);
-        return { ok: true, successKey: 'auth_admin_sign_in_success' };
+        return { ok: true, successKey: requestedRole === 'admin' ? 'auth_admin_sign_in_success' : undefined };
       } catch (error) {
         const errorKey = mapFirebaseAuthErrorToKey(error);
         setAuthErrorKey(errorKey);
         return { ok: false, errorKey };
       }
+    };
+
+    if (normalizedRole === 'admin') {
+      const validationKey = validateAdminAuthInput({ email, password });
+      if (validationKey) {
+        setAuthErrorKey(validationKey);
+        return { ok: false, errorKey: validationKey };
+      }
+      return signInTrustedFirebaseRole({ requestedRole: 'admin' });
     }
 
     const account = DEMO_AUTH_ACCOUNTS[normalizedRole];
-    if (!account || account.email !== String(email || '').trim().toLowerCase() || account.password !== password) {
-      setAuthErrorKey('auth_invalid_credentials');
-      return { ok: false, errorKey: 'auth_invalid_credentials' };
+    if (account && account.email === String(email || '').trim().toLowerCase() && account.password === password) {
+      setAuthSession({
+        role: normalizedRole,
+        email: account.email,
+        displayName: account.displayName,
+        signedInAt: Date.now(),
+        authSource: 'demo',
+        roleSource: 'demo',
+      });
+      setAuthErrorKey('');
+      setCurrentView(ROLE_HOME_VIEW[normalizedRole] || 'landing');
+      window.scrollTo(0, 0);
+      return { ok: true };
     }
 
-    setAuthSession({
-      role: normalizedRole,
-      email: account.email,
-      displayName: account.displayName,
-      signedInAt: Date.now(),
-    });
-    setAuthErrorKey('');
-    setCurrentView(ROLE_HOME_VIEW[normalizedRole] || 'landing');
-    window.scrollTo(0, 0);
-    return { ok: true };
+    return signInTrustedFirebaseRole({ requestedRole: normalizedRole });
   };
 
   const handleAdminRegister = async ({ email, password, rememberEmail }) => {
@@ -6546,14 +6647,21 @@ export default function BuildSabaideeApp() {
 
     try {
       const credential = await registerAdminWithEmail(firebaseAuth, { email, password });
-      persistRememberedAdminEmail(email, rememberEmail);
-      setAuthSession({
-        role: 'admin',
-        email: String(credential.user.email || email || '').trim().toLowerCase(),
-        displayName: credential.user.displayName || 'Platform Owner',
-        uid: credential.user.uid,
-        signedInAt: Date.now(),
+      const tokenResult = await getAuthTokenResult(credential.user, true);
+      const trustedSession = createTrustedAuthSession({
+        user: credential.user,
+        idTokenResult: tokenResult,
+        fallbackDisplayName: 'Platform Owner',
       });
+
+      if (!trustedSession || trustedSession.role !== 'admin') {
+        await signOutAdmin(firebaseAuth).catch(() => {});
+        setAuthErrorKey('auth_guard_message');
+        return { ok: false, errorKey: 'auth_guard_message' };
+      }
+
+      persistRememberedAdminEmail(email, rememberEmail);
+      setAuthSession(trustedSession);
       setAuthErrorKey('');
       setCurrentView(ROLE_HOME_VIEW.admin);
       window.scrollTo(0, 0);
@@ -6647,6 +6755,22 @@ export default function BuildSabaideeApp() {
         <WorkerAppV2 
           onNavigate={navigateTo} t={t} 
           workersList={workersList} projectsList={projectsList} language={language}
+          sharedAttendanceRecords={attendanceList}
+          sharedPhotoReports={photoReportsList}
+          sharedMaterialRequests={globalRequests}
+          sharedPaymentRequests={paymentRequestsList}
+          sharedMilestoneSubmissions={milestoneSubmissionsList}
+          sharedSiteTickets={siteTicketsList}
+          sharedDailyReports={dailyReportsList}
+          sharedChats={globalChats}
+          onPersistAttendanceRecord={persistAttendanceRecord}
+          onPersistPhotoReport={persistPhotoReport}
+          onPersistMaterialRequest={persistMaterialRequest}
+          onPersistPaymentRequest={persistPaymentRequest}
+          onPersistMilestoneSubmission={persistMilestoneSubmission}
+          onPersistSiteTicket={persistSiteTicket}
+          onPersistDailyReport={persistDailyReport}
+          onPersistChatMessage={persistChatMessage}
         />
       )}
       {currentView === 'worker_mobile_test' && (
@@ -6664,6 +6788,10 @@ export default function BuildSabaideeApp() {
           dashboardRole="user"
           authSession={authSession}
           projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
+          paymentRequestsList={paymentRequestsList}
+          milestoneSubmissionsList={milestoneSubmissionsList}
+          onUpdatePaymentRequestReview={handleUpdatePaymentRequestReview}
+          onUpdateMilestoneSubmissionReview={handleUpdateMilestoneSubmissionReview}
           companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
           quotationDraft={quotationDraft} setQuotationDraft={setQuotationDraft}
           agreementDraft={agreementDraft} setAgreementDraft={setAgreementDraft}
@@ -6693,6 +6821,10 @@ export default function BuildSabaideeApp() {
           adminNavOnly={true}
           authSession={authSession}
           projectsList={projectsList} workersList={workersList} docsList={docsList} inventoryList={inventoryList} globalRequests={globalRequests} globalIssues={globalIssues} globalChats={globalChats}
+          paymentRequestsList={paymentRequestsList}
+          milestoneSubmissionsList={milestoneSubmissionsList}
+          onUpdatePaymentRequestReview={handleUpdatePaymentRequestReview}
+          onUpdateMilestoneSubmissionReview={handleUpdateMilestoneSubmissionReview}
           companyProfile={companyProfile} setCompanyProfile={setCompanyProfile}
           quotationDraft={quotationDraft} setQuotationDraft={setQuotationDraft}
           agreementDraft={agreementDraft} setAgreementDraft={setAgreementDraft}
@@ -6735,6 +6867,11 @@ export default function BuildSabaideeApp() {
           workersList={workersList}
           docsList={docsList}
           globalChats={globalChats}
+          photoReportsList={photoReportsList}
+          paymentRequestsList={paymentRequestsList}
+          milestoneSubmissionsList={milestoneSubmissionsList}
+          siteTicketsList={siteTicketsList}
+          dailyReportsList={dailyReportsList}
         />
       )}
     </div>
@@ -8043,7 +8180,7 @@ function WorkerApp({ onNavigate, t, globalRequests, globalIssues, docsList, work
 // ==========================================
 // 3. MANAGER DASHBOARD SIMULATOR 
 // ==========================================
-function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onToggleKioskMode, dashboardRole = 'user', adminNavOnly = false, authSession = null, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
+function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onToggleKioskMode, dashboardRole = 'user', adminNavOnly = false, authSession = null, projectsList, workersList, docsList, inventoryList, globalRequests, globalIssues, globalChats, paymentRequestsList = [], milestoneSubmissionsList = [], onUpdatePaymentRequestReview, onUpdateMilestoneSubmissionReview, companyProfile, setCompanyProfile, quotationDraft, setQuotationDraft, agreementDraft, setAgreementDraft, documentTemplateSettings, setDocumentTemplateSettings, supplierDirectory, setSupplierDirectory, purchaseOrders, setPurchaseOrders, supplierCategories, setSupplierCategories, supplierAgreements, setSupplierAgreements, commissionBillingRecords, setCommissionBillingRecords, settlementRecords, setSettlementRecords, adminPlatformSettings, setAdminPlatformSettings, pricingPackages, setPricingPackages }) {
   const isPlatformAdmin = dashboardRole === 'admin' || dashboardRole === 'platform_owner';
   const [activeTab, setActiveTab] = useState(adminNavOnly ? 'admin_overview' : 'overview');
   const [weatherState, setWeatherState] = useState({ status: 'loading', data: null, errorKey: '' });
@@ -8097,6 +8234,25 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const [editingDocId, setEditingDocId] = useState(null);
   const todayDate = new Date().toISOString().split('T')[0];
   const [docFormData, setDocFormData] = useState({ type: 'invoice', title: '', amount: 0, date: todayDate, projectId: '', status: 'pending', submittedBy: t('manager_default_submitter') });
+  const [paymentRequestSearchQuery, setPaymentRequestSearchQuery] = useState('');
+  const [paymentRequestStatusFilter, setPaymentRequestStatusFilter] = useState('all');
+  const [paymentRequestProjectFilter, setPaymentRequestProjectFilter] = useState('all');
+  const [paymentRequestRequesterFilter, setPaymentRequestRequesterFilter] = useState('all');
+  const [paymentRequestDateFilter, setPaymentRequestDateFilter] = useState('');
+  const [selectedPaymentRequestId, setSelectedPaymentRequestId] = useState('');
+  const [paymentReviewNotesDraft, setPaymentReviewNotesDraft] = useState({});
+  const [paymentReviewSavingId, setPaymentReviewSavingId] = useState('');
+  const [paymentReviewErrorKey, setPaymentReviewErrorKey] = useState('');
+  const [milestoneSubmissionSearchQuery, setMilestoneSubmissionSearchQuery] = useState('');
+  const [milestoneSubmissionStatusFilter, setMilestoneSubmissionStatusFilter] = useState('all');
+  const [milestoneSubmissionProjectFilter, setMilestoneSubmissionProjectFilter] = useState('all');
+  const [milestoneSubmissionWorkerFilter, setMilestoneSubmissionWorkerFilter] = useState('all');
+  const [milestoneSubmissionMilestoneFilter, setMilestoneSubmissionMilestoneFilter] = useState('all');
+  const [milestoneSubmissionDateFilter, setMilestoneSubmissionDateFilter] = useState('');
+  const [selectedMilestoneSubmissionId, setSelectedMilestoneSubmissionId] = useState('');
+  const [milestoneReviewNotesDraft, setMilestoneReviewNotesDraft] = useState({});
+  const [milestoneReviewSavingId, setMilestoneReviewSavingId] = useState('');
+  const [milestoneReviewErrorKey, setMilestoneReviewErrorKey] = useState('');
 
   const [invSearchQuery, setInvSearchQuery] = useState('');
   const [invProjectFilter, setInvProjectFilter] = useState('all');
@@ -8401,8 +8557,10 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       supplier_directory: 'procurement',
       purchase_orders: 'procurement',
       order_status: 'procurement',
+      milestone_submissions: 'operations',
       inventory: 'inventory',
       docs: 'finance',
+      payment_requests: 'finance',
       company_profile: 'settings',
       document_settings: 'settings',
       email_signature: 'settings',
@@ -8946,14 +9104,13 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         setDoc(doc(db, 'docs', item.id), item)
       )));
 
-      saveToStorage(
-        WORKER_STORAGE_KEYS.siteTickets,
-        mergeSeededRecords(loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []), seedBundle.siteTickets),
-      );
-      saveToStorage(
-        WORKER_STORAGE_KEYS.dailyReports,
-        mergeSeededRecords(loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []), seedBundle.dailyReports),
-      );
+      await Promise.all(seedBundle.siteTickets.map((ticket) => (
+        setDoc(doc(db, 'siteTickets', ticket.id), ticket)
+      )));
+
+      await Promise.all(seedBundle.dailyReports.map((report) => (
+        setDoc(doc(db, 'dailyReports', report.id), report)
+      )));
 
       alert(t('seed_success'));
     } catch(e) {
@@ -8965,6 +9122,65 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   const handleUpdateDocStatus = async (id, newStatus) => {
     if(!db) return; await updateDoc(doc(db, 'docs', id), { status: newStatus });
   };
+
+  const persistSiteTicket = async (ticket) => {
+    if (!db || !ticket?.id) return;
+    await setDoc(doc(db, 'siteTickets', String(ticket.id)), normalizeSiteTicketList([ticket])[0]);
+  };
+
+  const persistDailyReport = async (report) => {
+    if (!db || !report?.id) return;
+    await setDoc(doc(db, 'dailyReports', String(report.id)), normalizeDailyReportList([report])[0]);
+  };
+
+  const persistAttendanceRecord = async (record) => {
+    if (!db || !record?.id) return;
+    await setDoc(doc(db, 'attendance', String(record.id)), record);
+    if (record.workerId) {
+      await setDoc(doc(db, 'workers', String(record.workerId)), {
+        attendanceRate: record.type === 'checkout' ? 0 : 100,
+      }, { merge: true });
+    }
+  };
+
+  const persistPhotoReport = async (report) => {
+    if (!db || !report?.id) return;
+    await setDoc(doc(db, 'photoReports', String(report.id)), report);
+  };
+
+  const persistMaterialRequest = async (request) => {
+    if (!db || !request?.id) return;
+    const normalizedRequest = {
+      ...request,
+      projectId: String(request.projectId || ''),
+      title: request.title || `${request.requestType === 'delivery' ? 'Delivery' : 'Equipment'}: ${String(request.itemName || '').trim().slice(0, 40)}`,
+      requestedBy: request.requestedBy || request.workerName || '',
+      itemsListText: request.itemsListText || `${request.itemName || '-'} x${request.quantity || 0} ${request.unit || ''}${request.note ? `\n${request.note}` : ''}`,
+      photoUrl: request.photoUrl || request.imageData || '',
+      date: request.date || request.dateKey || '',
+      createdAt: Number(request.createdAt || request.requestedAt || Date.now()),
+    };
+    await setDoc(doc(db, 'requests', String(request.id)), normalizedRequest);
+  };
+
+  const persistPaymentRequest = async (request) => {
+    if (!db || !request?.id) return;
+    await setDoc(doc(db, 'paymentRequests', String(request.id)), request);
+  };
+
+  const persistMilestoneSubmission = async (submission) => {
+    if (!db || !submission?.id) return;
+    await setDoc(doc(db, 'milestoneSubmissions', String(submission.id)), submission);
+  };
+
+  const persistChatMessage = async (message) => {
+    if (!db || !message?.id) return;
+    await setDoc(doc(db, 'chats', String(message.id)), message);
+  };
+
+  const handleUpdatePaymentRequestReview = async (requestId, updates = {}) => updatePaymentRequestReviewInFirestore(db, requestId, updates);
+
+  const handleUpdateMilestoneSubmissionReview = async (submissionId, updates = {}) => updateMilestoneSubmissionReviewInFirestore(db, submissionId, updates);
   
   const handleSaveInv = async () => {
     if (!invFormData.name) return;
@@ -9795,6 +10011,206 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
   // Filters & Calculations
   const filteredDocs = docsList.filter(d => (docsFilter === 'all' || d.type === docsFilter) && (d.title?.toLowerCase().includes(docsSearchQuery.toLowerCase())));
+  const normalizedPaymentRequests = useMemo(() => (
+    (Array.isArray(paymentRequestsList) ? paymentRequestsList : [])
+      .map((request) => ({
+        ...request,
+        id: String(request.id || ''),
+        projectId: String(request.projectId || ''),
+        amount: Number(request.amount || 0),
+        requestedAt: Number(request.requestedAt || request.createdAt || 0),
+        dateKey: request.dateKey || getISODateString(new Date(request.requestedAt || request.createdAt || Date.now())),
+        status: String(request.status || 'pending'),
+      }))
+      .sort((a, b) => Number(b.requestedAt || 0) - Number(a.requestedAt || 0))
+  ), [paymentRequestsList]);
+  const paymentRequesterOptions = useMemo(() => (
+    normalizedPaymentRequests
+      .map((request) => ({
+        value: String(request.workerId || request.workerName || ''),
+        label: request.workerName || request.requestedBy || '-',
+      }))
+      .filter((option) => option.value)
+      .filter((option, index, arr) => arr.findIndex((item) => item.value === option.value) === index)
+  ), [normalizedPaymentRequests]);
+  const filteredPaymentRequests = useMemo(() => {
+    const search = String(paymentRequestSearchQuery || '').trim().toLowerCase();
+    return normalizedPaymentRequests.filter((request) => {
+      const requesterValue = String(request.workerId || request.workerName || '');
+      const requestDate = getISODateString(new Date(request.requestedAt || Date.now()));
+      const matchesSearch = !search || [
+        request.workerName,
+        request.projectName,
+        request.note,
+        request.taskCategory,
+        request.areaZone,
+        String(request.amount || ''),
+      ].some((value) => String(value || '').toLowerCase().includes(search));
+      const matchesStatus = paymentRequestStatusFilter === 'all' || String(request.status || '') === paymentRequestStatusFilter;
+      const matchesProject = paymentRequestProjectFilter === 'all' || String(request.projectId || '') === paymentRequestProjectFilter;
+      const matchesRequester = paymentRequestRequesterFilter === 'all' || requesterValue === paymentRequestRequesterFilter;
+      const matchesDate = !paymentRequestDateFilter || requestDate === paymentRequestDateFilter;
+      return matchesSearch && matchesStatus && matchesProject && matchesRequester && matchesDate;
+    });
+  }, [normalizedPaymentRequests, paymentRequestDateFilter, paymentRequestProjectFilter, paymentRequestRequesterFilter, paymentRequestSearchQuery, paymentRequestStatusFilter]);
+  const selectedPaymentRequest = filteredPaymentRequests.find((request) => request.id === selectedPaymentRequestId) || filteredPaymentRequests[0] || null;
+  const paymentRequestSummary = useMemo(() => ({
+    total: normalizedPaymentRequests.length,
+    pending: normalizedPaymentRequests.filter((request) => ['pending', 'submitted'].includes(String(request.status || ''))).length,
+    approved: normalizedPaymentRequests.filter((request) => String(request.status || '') === 'approved').length,
+    rejected: normalizedPaymentRequests.filter((request) => String(request.status || '') === 'rejected').length,
+  }), [normalizedPaymentRequests]);
+  const normalizedMilestoneSubmissions = useMemo(() => (
+    (Array.isArray(milestoneSubmissionsList) ? milestoneSubmissionsList : [])
+      .map((submission) => ({
+        ...submission,
+        id: String(submission.id || ''),
+        projectId: String(submission.projectId || ''),
+        submittedAt: Number(submission.submittedAt || submission.createdAt || 0),
+        dateKey: submission.dateKey || getISODateString(new Date(submission.submittedAt || submission.createdAt || Date.now())),
+        status: String(submission.status || 'submitted'),
+        photoCount: Number(submission.photoCount || (Array.isArray(submission.photos) ? submission.photos.length : 0) || 0),
+      }))
+      .sort((a, b) => Number(b.submittedAt || 0) - Number(a.submittedAt || 0))
+  ), [milestoneSubmissionsList]);
+  const milestoneWorkerOptions = useMemo(() => (
+    normalizedMilestoneSubmissions
+      .map((submission) => ({
+        value: String(submission.workerId || submission.workerName || ''),
+        label: submission.workerName || '-',
+      }))
+      .filter((option) => option.value)
+      .filter((option, index, arr) => arr.findIndex((item) => item.value === option.value) === index)
+  ), [normalizedMilestoneSubmissions]);
+  const milestoneOptions = useMemo(() => (
+    normalizedMilestoneSubmissions
+      .map((submission) => String(submission.taskCategory || '').trim())
+      .filter(Boolean)
+      .filter((value, index, arr) => arr.indexOf(value) === index)
+  ), [normalizedMilestoneSubmissions]);
+  const filteredMilestoneSubmissions = useMemo(() => {
+    const search = String(milestoneSubmissionSearchQuery || '').trim().toLowerCase();
+    return normalizedMilestoneSubmissions.filter((submission) => {
+      const workerValue = String(submission.workerId || submission.workerName || '');
+      const submissionDate = getISODateString(new Date(submission.submittedAt || Date.now()));
+      const matchesSearch = !search || [
+        submission.workerName,
+        submission.projectName,
+        submission.taskCategory,
+        submission.areaZone,
+        submission.progress,
+        submission.note,
+      ].some((value) => String(value || '').toLowerCase().includes(search));
+      const matchesStatus = milestoneSubmissionStatusFilter === 'all' || String(submission.status || '') === milestoneSubmissionStatusFilter;
+      const matchesProject = milestoneSubmissionProjectFilter === 'all' || String(submission.projectId || '') === milestoneSubmissionProjectFilter;
+      const matchesWorker = milestoneSubmissionWorkerFilter === 'all' || workerValue === milestoneSubmissionWorkerFilter;
+      const matchesMilestone = milestoneSubmissionMilestoneFilter === 'all' || String(submission.taskCategory || '') === milestoneSubmissionMilestoneFilter;
+      const matchesDate = !milestoneSubmissionDateFilter || submissionDate === milestoneSubmissionDateFilter;
+      return matchesSearch && matchesStatus && matchesProject && matchesWorker && matchesMilestone && matchesDate;
+    });
+  }, [milestoneSubmissionDateFilter, milestoneSubmissionMilestoneFilter, milestoneSubmissionProjectFilter, milestoneSubmissionSearchQuery, milestoneSubmissionStatusFilter, milestoneSubmissionWorkerFilter, normalizedMilestoneSubmissions]);
+  const selectedMilestoneSubmission = filteredMilestoneSubmissions.find((submission) => submission.id === selectedMilestoneSubmissionId) || filteredMilestoneSubmissions[0] || null;
+  const milestoneSubmissionSummary = useMemo(() => ({
+    total: normalizedMilestoneSubmissions.length,
+    submitted: normalizedMilestoneSubmissions.filter((submission) => ['submitted', 'pending'].includes(String(submission.status || ''))).length,
+    approved: normalizedMilestoneSubmissions.filter((submission) => String(submission.status || '') === 'approved').length,
+    rejected: normalizedMilestoneSubmissions.filter((submission) => String(submission.status || '') === 'rejected').length,
+  }), [normalizedMilestoneSubmissions]);
+  const getSharedReviewBadgeClass = (status) => {
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (normalizedStatus === 'approved') return 'bg-emerald-100 text-emerald-700';
+    if (normalizedStatus === 'rejected') return 'bg-rose-100 text-rose-700';
+    if (['submitted', 'pending'].includes(normalizedStatus)) return 'bg-amber-100 text-amber-700';
+    return 'bg-slate-200 text-slate-700';
+  };
+  const getSharedReviewStatusLabel = (status) => {
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (normalizedStatus === 'approved') return t('review_status_approved');
+    if (normalizedStatus === 'rejected') return t('review_status_rejected');
+    if (normalizedStatus === 'submitted') return t('review_status_submitted');
+    if (normalizedStatus === 'pending') return t('review_status_pending');
+    return status || '-';
+  };
+  const commitPaymentRequestReview = async (request, nextStatus) => {
+    if (!request?.id || !onUpdatePaymentRequestReview) return;
+    setPaymentReviewErrorKey('');
+    setPaymentReviewSavingId(request.id);
+    try {
+      await onUpdatePaymentRequestReview(request.id, {
+        status: nextStatus,
+        currentStatus: request.status || '',
+        reviewNote: paymentReviewNotesDraft[request.id] ?? request.reviewNote ?? '',
+        reviewedAt: Date.now(),
+        reviewedBy: authSession?.displayName || managerDisplayName,
+        reviewerRole: isPlatformAdmin ? 'admin' : 'manager',
+      });
+      setPaymentReviewErrorKey('');
+    } catch (error) {
+      console.error('Failed to update payment request review:', error);
+      setPaymentReviewErrorKey(getReviewUpdateErrorKey(error));
+    } finally {
+      setPaymentReviewSavingId('');
+    }
+  };
+  const savePaymentRequestReviewNote = async (request) => {
+    if (!request?.id || !onUpdatePaymentRequestReview) return;
+    setPaymentReviewErrorKey('');
+    setPaymentReviewSavingId(request.id);
+    try {
+      await onUpdatePaymentRequestReview(request.id, {
+        reviewNote: paymentReviewNotesDraft[request.id] ?? '',
+        reviewedAt: Date.now(),
+        reviewedBy: authSession?.displayName || managerDisplayName,
+        reviewerRole: isPlatformAdmin ? 'admin' : 'manager',
+      });
+      setPaymentReviewErrorKey('');
+    } catch (error) {
+      console.error('Failed to save payment request review note:', error);
+      setPaymentReviewErrorKey(getReviewUpdateErrorKey(error));
+    } finally {
+      setPaymentReviewSavingId('');
+    }
+  };
+  const commitMilestoneSubmissionReview = async (submission, nextStatus) => {
+    if (!submission?.id || !onUpdateMilestoneSubmissionReview) return;
+    setMilestoneReviewErrorKey('');
+    setMilestoneReviewSavingId(submission.id);
+    try {
+      await onUpdateMilestoneSubmissionReview(submission.id, {
+        status: nextStatus,
+        currentStatus: submission.status || '',
+        reviewNote: milestoneReviewNotesDraft[submission.id] ?? submission.reviewNote ?? '',
+        reviewedAt: Date.now(),
+        reviewedBy: authSession?.displayName || managerDisplayName,
+        reviewerRole: isPlatformAdmin ? 'admin' : 'manager',
+      });
+      setMilestoneReviewErrorKey('');
+    } catch (error) {
+      console.error('Failed to update milestone submission review:', error);
+      setMilestoneReviewErrorKey(getReviewUpdateErrorKey(error));
+    } finally {
+      setMilestoneReviewSavingId('');
+    }
+  };
+  const saveMilestoneSubmissionReviewNote = async (submission) => {
+    if (!submission?.id || !onUpdateMilestoneSubmissionReview) return;
+    setMilestoneReviewErrorKey('');
+    setMilestoneReviewSavingId(submission.id);
+    try {
+      await onUpdateMilestoneSubmissionReview(submission.id, {
+        reviewNote: milestoneReviewNotesDraft[submission.id] ?? '',
+        reviewedAt: Date.now(),
+        reviewedBy: authSession?.displayName || managerDisplayName,
+        reviewerRole: isPlatformAdmin ? 'admin' : 'manager',
+      });
+      setMilestoneReviewErrorKey('');
+    } catch (error) {
+      console.error('Failed to save milestone review note:', error);
+      setMilestoneReviewErrorKey(getReviewUpdateErrorKey(error));
+    } finally {
+      setMilestoneReviewSavingId('');
+    }
+  };
   const getInventoryWarehouseInfo = (item) => {
     const project = projectsList.find((p) => String(p.id) === String(item?.projectId));
     if (!item?.projectId) {
@@ -10318,6 +10734,46 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   }, [selectedProjectId]);
 
   useEffect(() => {
+    if (!filteredPaymentRequests.length) {
+      if (selectedPaymentRequestId) setSelectedPaymentRequestId('');
+      return;
+    }
+
+    if (!filteredPaymentRequests.some((request) => request.id === selectedPaymentRequestId)) {
+      setSelectedPaymentRequestId(filteredPaymentRequests[0].id);
+    }
+  }, [filteredPaymentRequests, selectedPaymentRequestId]);
+
+  useEffect(() => {
+    if (!selectedPaymentRequest?.id) return;
+    setPaymentReviewNotesDraft((prev) => (
+      prev[selectedPaymentRequest.id] !== undefined
+        ? prev
+        : { ...prev, [selectedPaymentRequest.id]: selectedPaymentRequest.reviewNote || '' }
+    ));
+  }, [selectedPaymentRequest]);
+
+  useEffect(() => {
+    if (!filteredMilestoneSubmissions.length) {
+      if (selectedMilestoneSubmissionId) setSelectedMilestoneSubmissionId('');
+      return;
+    }
+
+    if (!filteredMilestoneSubmissions.some((submission) => submission.id === selectedMilestoneSubmissionId)) {
+      setSelectedMilestoneSubmissionId(filteredMilestoneSubmissions[0].id);
+    }
+  }, [filteredMilestoneSubmissions, selectedMilestoneSubmissionId]);
+
+  useEffect(() => {
+    if (!selectedMilestoneSubmission?.id) return;
+    setMilestoneReviewNotesDraft((prev) => (
+      prev[selectedMilestoneSubmission.id] !== undefined
+        ? prev
+        : { ...prev, [selectedMilestoneSubmission.id]: selectedMilestoneSubmission.reviewNote || '' }
+    ));
+  }, [selectedMilestoneSubmission]);
+
+  useEffect(() => {
     if (!filteredSupplierAgreements.length) {
       if (selectedAgreementId) setSelectedAgreementId('');
       return;
@@ -10524,6 +10980,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         { tab: 'projects', labelKey: 'manager_menu_projects', icon: Building },
         { tab: 'workers', labelKey: 'manager_menu_workers', icon: Users },
         { tab: 'chat', labelKey: 'manager_menu_chat', icon: MessageSquare },
+        { tab: 'milestone_submissions', labelKey: 'manager_menu_milestone_submissions', icon: CheckCircle },
       ],
     },
     {
@@ -10559,6 +11016,7 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
       icon: DollarSign,
       items: [
         { tab: 'docs', labelKey: 'manager_menu_docs', icon: DollarSign },
+        { tab: 'payment_requests', labelKey: 'manager_menu_payment_requests', icon: Receipt },
       ],
     },
     {
@@ -10581,6 +11039,8 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         { tab: 'admin_chat_review', labelKey: 'manager_menu_admin_chat_review', icon: MessageSquare },
         { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: HardHat },
         { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
+        { tab: 'payment_requests', labelKey: 'manager_menu_payment_requests', icon: Receipt },
+        { tab: 'milestone_submissions', labelKey: 'manager_menu_milestone_submissions', icon: CheckCircle },
         { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
         { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
         { tab: 'admin_settings', labelKey: 'manager_menu_admin_settings', icon: Database },
@@ -10602,6 +11062,8 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
         { tab: 'admin_chat_review', labelKey: 'manager_menu_admin_chat_review', icon: MessageSquare },
         { tab: 'admin_ai_improvement', labelKey: 'manager_menu_admin_ai_improvement', icon: HardHat },
         { tab: 'admin_commission_billing', labelKey: 'manager_menu_admin_commission_billing', icon: Receipt },
+        { tab: 'payment_requests', labelKey: 'manager_menu_payment_requests', icon: Receipt },
+        { tab: 'milestone_submissions', labelKey: 'manager_menu_milestone_submissions', icon: CheckCircle },
         { tab: 'admin_platform_revenue', labelKey: 'manager_menu_admin_platform_revenue', icon: DollarSign },
         { tab: 'admin_settlements', labelKey: 'manager_menu_admin_settlements', icon: Receipt },
         { tab: 'admin_settings', labelKey: 'manager_menu_admin_settings', icon: Database },
@@ -10630,6 +11092,8 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
     document_settings: t('document_settings_title'),
     email_signature: t('email_signature_title'),
     inventory: t('manager_tab_inv_title'),
+    payment_requests: t('payment_requests_title'),
+    milestone_submissions: t('milestone_submissions_title'),
     supplier_directory: t('supplier_directory_title'),
     purchase_orders: t('purchase_orders_title'),
     order_status: t('order_status_title'),
@@ -14175,6 +14639,376 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
                  })}
                  {globalRequests.length === 0 && (<div className="col-span-full py-12 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200"><Inbox className="w-16 h-16 text-slate-300 mb-4" /><h3 className="text-lg font-bold text-slate-700">{t('requests_empty')}</h3></div>)}
                </div>
+            </div>
+          )}
+
+          {activeTab === 'payment_requests' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('payment_requests_stat_total')} value={formatNumberByLanguage(paymentRequestSummary.total, language)} icon={<Receipt />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('payment_requests_stat_pending')} value={formatNumberByLanguage(paymentRequestSummary.pending, language)} icon={<Clock />} color="text-amber-700" bg="bg-amber-100" />
+                <StatCard title={t('payment_requests_stat_approved')} value={formatNumberByLanguage(paymentRequestSummary.approved, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+                <StatCard title={t('payment_requests_stat_rejected')} value={formatNumberByLanguage(paymentRequestSummary.rejected, language)} icon={<AlertCircle />} color="text-rose-700" bg="bg-rose-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('payment_requests_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('payment_requests_intro')}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="relative xl:col-span-2">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={paymentRequestSearchQuery}
+                        onChange={(event) => setPaymentRequestSearchQuery(event.target.value)}
+                        placeholder={t('payment_requests_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700"
+                      />
+                    </div>
+                    <select value={paymentRequestStatusFilter} onChange={(event) => setPaymentRequestStatusFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('payment_requests_filter_all_statuses')}</option>
+                      <option value="pending">{t('review_status_pending')}</option>
+                      <option value="approved">{t('review_status_approved')}</option>
+                      <option value="rejected">{t('review_status_rejected')}</option>
+                    </select>
+                    <select value={paymentRequestProjectFilter} onChange={(event) => setPaymentRequestProjectFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('payment_requests_filter_all_projects')}</option>
+                      {projectsList.map((project) => <option key={project.id} value={String(project.id)}>{project.name}</option>)}
+                    </select>
+                    <select value={paymentRequestRequesterFilter} onChange={(event) => setPaymentRequestRequesterFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('payment_requests_filter_all_requesters')}</option>
+                      {paymentRequesterOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 md:flex-row">
+                  <div className="relative w-full md:max-w-xs">
+                    <Filter className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="date"
+                      value={paymentRequestDateFilter}
+                      onChange={(event) => setPaymentRequestDateFilter(event.target.value)}
+                      className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="space-y-3">
+                    {filteredPaymentRequests.length > 0 ? filteredPaymentRequests.map((request) => {
+                      const isSelected = selectedPaymentRequest?.id === request.id;
+                      const projectName = projectsList.find((project) => String(project.id) === String(request.projectId))?.name || request.projectName || t('requests_unspecified');
+                      return (
+                        <button
+                          key={request.id}
+                          onClick={() => setSelectedPaymentRequestId(request.id)}
+                          className={`w-full rounded-2xl border p-4 text-left transition ${isSelected ? 'border-emerald-300 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:bg-white'}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-base font-semibold text-slate-900">{request.workerName || '-'}</div>
+                              <div className="mt-1 text-sm text-slate-500">{projectName}</div>
+                            </div>
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getSharedReviewBadgeClass(request.status)}`}>
+                              {getSharedReviewStatusLabel(request.status)}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <div className="text-xs uppercase tracking-wide text-slate-400">{t('payment_requests_amount')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{formatMoneyByLanguage(request.amount, language)}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs uppercase tracking-wide text-slate-400">{t('payment_requests_requested_at')}</div>
+                              <div className="mt-1 font-medium text-slate-700">{formatDateByLanguage(request.requestedAt || Date.now(), language)}</div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }) : (
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">{t('payment_requests_empty')}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  {selectedPaymentRequest ? (
+                    <div className="space-y-5">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('payment_requests_detail')}</div>
+                          <h4 className="mt-2 text-xl font-bold text-slate-900">{selectedPaymentRequest.workerName || '-'}</h4>
+                          <p className="mt-2 text-sm text-slate-600">{selectedPaymentRequest.note || t('payment_requests_note_empty')}</p>
+                        </div>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getSharedReviewBadgeClass(selectedPaymentRequest.status)}`}>
+                          {getSharedReviewStatusLabel(selectedPaymentRequest.status)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('payment_requests_amount')}</div>
+                          <div className="mt-2 text-sm font-semibold text-slate-800">{formatMoneyByLanguage(selectedPaymentRequest.amount, language)}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('table_project')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{projectsList.find((project) => String(project.id) === String(selectedPaymentRequest.projectId))?.name || selectedPaymentRequest.projectName || t('requests_unspecified')}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('payment_requests_work_scope')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{selectedPaymentRequest.taskCategory || '-'}{selectedPaymentRequest.areaZone ? ` · ${selectedPaymentRequest.areaZone}` : ''}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('payment_requests_requested_at')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{formatDateByLanguage(selectedPaymentRequest.requestedAt || Date.now(), language)}</div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{t('payment_requests_review_note')}</label>
+                        <textarea
+                          value={paymentReviewNotesDraft[selectedPaymentRequest.id] ?? ''}
+                          onChange={(event) => {
+                            setPaymentReviewErrorKey('');
+                            setPaymentReviewNotesDraft((prev) => ({ ...prev, [selectedPaymentRequest.id]: event.target.value }));
+                          }}
+                          rows={4}
+                          disabled={paymentReviewSavingId === selectedPaymentRequest.id}
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                          placeholder={t('payment_requests_review_note_placeholder')}
+                        />
+                      </div>
+                      {(paymentReviewSavingId === selectedPaymentRequest.id || paymentReviewErrorKey) && (
+                        <div className={'rounded-xl px-4 py-3 text-sm ' + (paymentReviewErrorKey ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500') }>
+                          {paymentReviewSavingId === selectedPaymentRequest.id ? t('auth_loading') : t(paymentReviewErrorKey)}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                        <button onClick={() => commitPaymentRequestReview(selectedPaymentRequest, 'approved')} disabled={paymentReviewSavingId === selectedPaymentRequest.id} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300">
+                          {t('btn_approve')}
+                        </button>
+                        <button onClick={() => commitPaymentRequestReview(selectedPaymentRequest, 'pending')} disabled={paymentReviewSavingId === selectedPaymentRequest.id} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:bg-amber-100/70 disabled:text-amber-400">
+                          {t('review_action_mark_pending')}
+                        </button>
+                        <button onClick={() => commitPaymentRequestReview(selectedPaymentRequest, 'rejected')} disabled={paymentReviewSavingId === selectedPaymentRequest.id} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-rose-100/70 disabled:text-rose-400">
+                          {t('btn_reject')}
+                        </button>
+                        <button onClick={() => savePaymentRequestReviewNote(selectedPaymentRequest)} disabled={paymentReviewSavingId === selectedPaymentRequest.id} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+                          {paymentReviewSavingId === selectedPaymentRequest.id ? t('auth_loading') : t('review_action_save_note')}
+                        </button>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                        <div className="font-medium text-slate-800">{t('payment_requests_review_meta')}</div>
+                        <div className="mt-2">{selectedPaymentRequest.reviewedBy || '-'}</div>
+                        <div className="mt-1 text-xs text-slate-500">{selectedPaymentRequest.reviewedAt ? formatDateByLanguage(selectedPaymentRequest.reviewedAt, language) : '-'}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">{t('payment_requests_empty')}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'milestone_submissions' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <StatCard title={t('milestone_submissions_stat_total')} value={formatNumberByLanguage(milestoneSubmissionSummary.total, language)} icon={<ClipboardCheck />} color="text-slate-700" bg="bg-slate-200" />
+                <StatCard title={t('milestone_submissions_stat_submitted')} value={formatNumberByLanguage(milestoneSubmissionSummary.submitted, language)} icon={<Clock />} color="text-amber-700" bg="bg-amber-100" />
+                <StatCard title={t('milestone_submissions_stat_approved')} value={formatNumberByLanguage(milestoneSubmissionSummary.approved, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+                <StatCard title={t('milestone_submissions_stat_rejected')} value={formatNumberByLanguage(milestoneSubmissionSummary.rejected, language)} icon={<AlertCircle />} color="text-rose-700" bg="bg-rose-100" />
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t('milestone_submissions_title')}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{t('milestone_submissions_intro')}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="relative xl:col-span-2">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={milestoneSubmissionSearchQuery}
+                        onChange={(event) => setMilestoneSubmissionSearchQuery(event.target.value)}
+                        placeholder={t('milestone_submissions_search_placeholder')}
+                        className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-700"
+                      />
+                    </div>
+                    <select value={milestoneSubmissionStatusFilter} onChange={(event) => setMilestoneSubmissionStatusFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('milestone_submissions_filter_all_statuses')}</option>
+                      <option value="submitted">{t('review_status_submitted')}</option>
+                      <option value="approved">{t('review_status_approved')}</option>
+                      <option value="rejected">{t('review_status_rejected')}</option>
+                    </select>
+                    <select value={milestoneSubmissionProjectFilter} onChange={(event) => setMilestoneSubmissionProjectFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('milestone_submissions_filter_all_projects')}</option>
+                      {projectsList.map((project) => <option key={project.id} value={String(project.id)}>{project.name}</option>)}
+                    </select>
+                    <select value={milestoneSubmissionWorkerFilter} onChange={(event) => setMilestoneSubmissionWorkerFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">{t('milestone_submissions_filter_all_workers')}</option>
+                      {milestoneWorkerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <select value={milestoneSubmissionMilestoneFilter} onChange={(event) => setMilestoneSubmissionMilestoneFilter(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
+                    <option value="all">{t('milestone_submissions_filter_all_milestones')}</option>
+                    {milestoneOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                  <input
+                    type="date"
+                    value={milestoneSubmissionDateFilter}
+                    onChange={(event) => setMilestoneSubmissionDateFilter(event.target.value)}
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr,1.05fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="space-y-3">
+                    {filteredMilestoneSubmissions.length > 0 ? filteredMilestoneSubmissions.map((submission) => {
+                      const isSelected = selectedMilestoneSubmission?.id === submission.id;
+                      const projectName = projectsList.find((project) => String(project.id) === String(submission.projectId))?.name || submission.projectName || t('requests_unspecified');
+                      return (
+                        <button
+                          key={submission.id}
+                          onClick={() => setSelectedMilestoneSubmissionId(submission.id)}
+                          className={`w-full rounded-2xl border p-4 text-left transition ${isSelected ? 'border-sky-300 bg-sky-50' : 'border-slate-200 bg-slate-50 hover:bg-white'}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-base font-semibold text-slate-900">{submission.taskCategory || t('milestone_submissions_title')}</div>
+                              <div className="mt-1 text-sm text-slate-500">{submission.workerName || '-'} · {projectName}</div>
+                            </div>
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getSharedReviewBadgeClass(submission.status)}`}>
+                              {getSharedReviewStatusLabel(submission.status)}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_progress')}</div>
+                              <div className="mt-1 font-semibold text-slate-800">{submission.progress || '-'}</div>
+                            </div>
+                            <div>
+                              <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_photo_count')}</div>
+                              <div className="mt-1 font-medium text-slate-700">{formatNumberByLanguage(submission.photoCount, language)}</div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }) : (
+                      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">{t('milestone_submissions_empty')}</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  {selectedMilestoneSubmission ? (
+                    <div className="space-y-5">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="text-xs uppercase tracking-[0.2em] text-slate-400">{t('milestone_submissions_detail')}</div>
+                          <h4 className="mt-2 text-xl font-bold text-slate-900">{selectedMilestoneSubmission.taskCategory || '-'}</h4>
+                          <p className="mt-2 text-sm text-slate-600">{selectedMilestoneSubmission.note || t('milestone_submissions_note_empty')}</p>
+                        </div>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getSharedReviewBadgeClass(selectedMilestoneSubmission.status)}`}>
+                          {getSharedReviewStatusLabel(selectedMilestoneSubmission.status)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_worker')}</div>
+                          <div className="mt-2 text-sm font-semibold text-slate-800">{selectedMilestoneSubmission.workerName || '-'}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('table_project')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{projectsList.find((project) => String(project.id) === String(selectedMilestoneSubmission.projectId))?.name || selectedMilestoneSubmission.projectName || t('requests_unspecified')}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_progress')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{selectedMilestoneSubmission.progress || '-'}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_submitted_at')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{formatDateByLanguage(selectedMilestoneSubmission.submittedAt || Date.now(), language)}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_area')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{selectedMilestoneSubmission.areaZone || '-'}</div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_photo_count')}</div>
+                          <div className="mt-2 text-sm font-medium text-slate-800">{formatNumberByLanguage(selectedMilestoneSubmission.photoCount, language)}</div>
+                        </div>
+                      </div>
+                      {Array.isArray(selectedMilestoneSubmission.photos) && selectedMilestoneSubmission.photos.length > 0 && (
+                        <div>
+                          <div className="mb-2 text-sm font-medium text-slate-700">{t('milestone_submissions_evidence')}</div>
+                          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                            {selectedMilestoneSubmission.photos.slice(0, 6).map((photo) => (
+                              <div key={photo.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                                {photo.imageData ? (
+                                  <img src={photo.imageData} alt={photo.originalName || 'evidence'} className="h-28 w-full object-cover" />
+                                ) : (
+                                  <div className="flex h-28 items-center justify-center text-xs text-slate-400">{t('milestone_submissions_photo_count')}</div>
+                                )}
+                                <div className="px-3 py-2 text-xs text-slate-500">{photo.originalName || '-'}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{t('milestone_submissions_review_note')}</label>
+                        <textarea
+                          value={milestoneReviewNotesDraft[selectedMilestoneSubmission.id] ?? ''}
+                          onChange={(event) => {
+                            setMilestoneReviewErrorKey('');
+                            setMilestoneReviewNotesDraft((prev) => ({ ...prev, [selectedMilestoneSubmission.id]: event.target.value }));
+                          }}
+                          rows={4}
+                          disabled={milestoneReviewSavingId === selectedMilestoneSubmission.id}
+                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                          placeholder={t('milestone_submissions_review_note_placeholder')}
+                        />
+                      </div>
+                      {(milestoneReviewSavingId === selectedMilestoneSubmission.id || milestoneReviewErrorKey) && (
+                        <div className={'rounded-xl px-4 py-3 text-sm ' + (milestoneReviewErrorKey ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500') }>
+                          {milestoneReviewSavingId === selectedMilestoneSubmission.id ? t('auth_loading') : t(milestoneReviewErrorKey)}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                        <button onClick={() => commitMilestoneSubmissionReview(selectedMilestoneSubmission, 'approved')} disabled={milestoneReviewSavingId === selectedMilestoneSubmission.id} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300">
+                          {t('btn_approve')}
+                        </button>
+                        <button onClick={() => commitMilestoneSubmissionReview(selectedMilestoneSubmission, 'submitted')} disabled={milestoneReviewSavingId === selectedMilestoneSubmission.id} className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:bg-amber-100/70 disabled:text-amber-400">
+                          {t('review_action_mark_pending')}
+                        </button>
+                        <button onClick={() => commitMilestoneSubmissionReview(selectedMilestoneSubmission, 'rejected')} disabled={milestoneReviewSavingId === selectedMilestoneSubmission.id} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-rose-100/70 disabled:text-rose-400">
+                          {t('btn_reject')}
+                        </button>
+                        <button onClick={() => saveMilestoneSubmissionReviewNote(selectedMilestoneSubmission)} disabled={milestoneReviewSavingId === selectedMilestoneSubmission.id} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400">
+                          {milestoneReviewSavingId === selectedMilestoneSubmission.id ? t('auth_loading') : t('review_action_save_note')}
+                        </button>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                        <div className="font-medium text-slate-800">{t('milestone_submissions_review_meta')}</div>
+                        <div className="mt-2">{selectedMilestoneSubmission.reviewedBy || '-'}</div>
+                        <div className="mt-1 text-xs text-slate-500">{selectedMilestoneSubmission.reviewedAt ? formatDateByLanguage(selectedMilestoneSubmission.reviewedAt, language) : '-'}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center text-sm text-slate-500">{t('milestone_submissions_empty')}</div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -18176,7 +19010,21 @@ function OwnerAccess({ onNavigate, t, authSession }) {
   );
 }
 
-function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsList, workersList, docsList, globalChats }) {
+function OwnerDashboardPortal({
+  onNavigate,
+  t,
+  language,
+  authSession,
+  projectsList,
+  workersList,
+  docsList,
+  globalChats,
+  photoReportsList = [],
+  paymentRequestsList = [],
+  milestoneSubmissionsList = [],
+  siteTicketsList = [],
+  dailyReportsList = [],
+}) {
   const [activeTab, setActiveTab] = useState('owner_overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const normalizedProjects = useMemo(() => (
@@ -18185,27 +19033,8 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
   ), [projectsList]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
-  const [ownerSiteTickets, setOwnerSiteTickets] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []));
-  const [ownerDailyReports, setOwnerDailyReports] = useState(() => loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
-
-  useEffect(() => {
-    const syncPortalProjectData = () => {
-      setOwnerSiteTickets(loadFromStorage(WORKER_STORAGE_KEYS.siteTickets, []));
-      setOwnerDailyReports(loadFromStorage(WORKER_STORAGE_KEYS.dailyReports, []));
-    };
-
-    syncPortalProjectData();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', syncPortalProjectData);
-      window.addEventListener('storage', syncPortalProjectData);
-      return () => {
-        window.removeEventListener('focus', syncPortalProjectData);
-        window.removeEventListener('storage', syncPortalProjectData);
-      };
-    }
-
-    return undefined;
-  }, []);
+  const ownerSiteTickets = Array.isArray(siteTicketsList) ? siteTicketsList : [];
+  const ownerDailyReports = Array.isArray(dailyReportsList) ? dailyReportsList : [];
 
   useEffect(() => {
     if (!normalizedProjects.length) {
@@ -18243,6 +19072,24 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
   const activeSection = sectionConfig[activeTab] || sectionConfig.owner_overview;
   const ActiveIcon = activeSection.icon;
   const selectedProject = normalizedProjects.find((project) => String(project.id) === String(selectedProjectId)) || normalizedProjects[0] || null;
+  const selectedOwnerPaymentRequests = (Array.isArray(paymentRequestsList) ? paymentRequestsList : [])
+    .filter((request) => !selectedProject || String(request.projectId || '') === String(selectedProject.id))
+    .map((request) => ({
+      ...request,
+      amount: Number(request.amount || 0),
+      requestedAt: Number(request.requestedAt || request.createdAt || 0),
+      status: String(request.status || 'pending'),
+    }))
+    .sort((a, b) => Number(b.requestedAt || 0) - Number(a.requestedAt || 0));
+  const selectedOwnerMilestones = (Array.isArray(milestoneSubmissionsList) ? milestoneSubmissionsList : [])
+    .filter((submission) => !selectedProject || String(submission.projectId || '') === String(selectedProject.id))
+    .map((submission) => ({
+      ...submission,
+      submittedAt: Number(submission.submittedAt || submission.createdAt || 0),
+      status: String(submission.status || 'submitted'),
+      photoCount: Number(submission.photoCount || (Array.isArray(submission.photos) ? submission.photos.length : 0) || 0),
+    }))
+    .sort((a, b) => Number(b.submittedAt || 0) - Number(a.submittedAt || 0));
   const primaryProject = selectedProject || null;
   const progressValue = Number(primaryProject?.progress) || 0;
   const documentsCount = Array.isArray(docsList) ? docsList.length : 0;
@@ -18252,6 +19099,26 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
   const activeProjectsCount = normalizedProjects.filter((project) => project.status === 'active').length;
   const delayedProjectsCount = normalizedProjects.filter((project) => project.status === 'delayed').length;
   const completedProjectsCount = normalizedProjects.filter((project) => project.status === 'completed').length;
+  const ownerPaymentPendingCount = selectedOwnerPaymentRequests.filter((request) => ['pending', 'submitted'].includes(String(request.status || ''))).length;
+  const ownerPaymentApprovedCount = selectedOwnerPaymentRequests.filter((request) => String(request.status || '') === 'approved').length;
+  const ownerMilestonePendingCount = selectedOwnerMilestones.filter((submission) => ['submitted', 'pending'].includes(String(submission.status || ''))).length;
+  const ownerMilestoneApprovedCount = selectedOwnerMilestones.filter((submission) => String(submission.status || '') === 'approved').length;
+  const ownerMilestoneRejectedCount = selectedOwnerMilestones.filter((submission) => String(submission.status || '') === 'rejected').length;
+  const ownerReviewStatusClass = (status) => {
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (normalizedStatus === 'approved') return 'bg-emerald-100 text-emerald-700';
+    if (normalizedStatus === 'rejected') return 'bg-rose-100 text-rose-700';
+    if (['submitted', 'pending'].includes(normalizedStatus)) return 'bg-amber-100 text-amber-700';
+    return 'bg-slate-200 text-slate-700';
+  };
+  const ownerReviewStatusLabel = (status) => {
+    const normalizedStatus = String(status || '').toLowerCase();
+    if (normalizedStatus === 'approved') return t('review_status_approved');
+    if (normalizedStatus === 'rejected') return t('review_status_rejected');
+    if (normalizedStatus === 'submitted') return t('review_status_submitted');
+    if (normalizedStatus === 'pending') return t('review_status_pending');
+    return status || '-';
+  };
 
   const getProjectStageLabel = (progress) => {
     const safeProgress = Number(progress) || 0;
@@ -18337,11 +19204,13 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
   const ownerProgressData = useMemo(() => buildProjectProgressSelectors({
     projectsList: normalizedProjects,
     workersList,
+    photoReports: photoReportsList,
+    milestoneSubmissions: milestoneSubmissionsList,
     siteTickets: ownerSiteTickets,
     dailyReports: ownerDailyReports,
     selectedProjectId,
     labels: projectProgressLabels,
-  }), [normalizedProjects, workersList, ownerSiteTickets, ownerDailyReports, selectedProjectId, projectProgressLabels]);
+  }), [normalizedProjects, workersList, photoReportsList, milestoneSubmissionsList, ownerSiteTickets, ownerDailyReports, selectedProjectId, projectProgressLabels]);
 
   const placeholderPanel = (
     <div className="space-y-5">
@@ -18607,6 +19476,148 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
           </div>
         </div>
       </div>
+
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h4 className="text-base font-semibold text-slate-900">{t('owner_payment_requests_title')}</h4>
+            <p className="mt-2 text-sm text-slate-600">{t('owner_payment_requests_desc')}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:w-auto">
+            <StatCard title={t('owner_payment_requests_pending')} value={formatNumberByLanguage(ownerPaymentPendingCount, language)} icon={<Clock />} color="text-amber-700" bg="bg-amber-100" />
+            <StatCard title={t('owner_payment_requests_approved')} value={formatNumberByLanguage(ownerPaymentApprovedCount, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+          </div>
+        </div>
+        <div className="mt-4 space-y-3">
+          {selectedOwnerPaymentRequests.length > 0 ? selectedOwnerPaymentRequests.slice(0, 6).map((request) => (
+            <div key={request.id} className="rounded-2xl bg-slate-50 px-4 py-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="font-medium text-slate-900">{request.workerName || '-'}</div>
+                  <div className="mt-1 text-sm text-slate-600">{request.taskCategory || '-'}{request.areaZone ? ` · ${request.areaZone}` : ''}</div>
+                  <div className="mt-1 text-xs text-slate-500">{request.note || t('payment_requests_note_empty')}</div>
+                </div>
+                <div className="text-left sm:text-right">
+                  <div className="text-sm font-semibold text-slate-900">{formatMoneyByLanguage(request.amount, language)}</div>
+                  <div className="mt-1 text-xs text-slate-500">{formatDateByLanguage(request.requestedAt || Date.now(), language)}</div>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${ownerReviewStatusClass(request.status)}`}>
+                  {ownerReviewStatusLabel(request.status)}
+                </span>
+                <div className="text-xs text-slate-500">{request.reviewNote || request.reviewedBy || '-'}</div>
+              </div>
+            </div>
+          )) : (
+            <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_payment_requests_empty')}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
+      {t('owner_metric_no_project')}
+    </div>
+  );
+  const approvalsPanel = selectedProject ? (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t('owner_approvals_title')}</div>
+            <h3 className="mt-2 text-xl font-bold text-slate-900">{selectedProject.name}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t('owner_approvals_desc')}</p>
+          </div>
+          <div className="w-full max-w-sm">
+            <label className="mb-2 block text-sm font-medium text-slate-700">{t('owner_project_select_label')}</label>
+            <select value={selectedProjectId} onChange={(event) => setSelectedProjectId(event.target.value)} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-amber-400">
+              {normalizedProjects.map((project) => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard title={t('owner_approvals_pending_payments')} value={formatNumberByLanguage(ownerPaymentPendingCount, language)} icon={<Receipt />} color="text-amber-700" bg="bg-amber-100" />
+        <StatCard title={t('owner_approvals_submitted_milestones')} value={formatNumberByLanguage(ownerMilestonePendingCount, language)} icon={<ClipboardCheck />} color="text-sky-700" bg="bg-sky-100" />
+        <StatCard title={t('owner_approvals_approved_milestones')} value={formatNumberByLanguage(ownerMilestoneApprovedCount, language)} icon={<CheckCircle />} color="text-emerald-700" bg="bg-emerald-100" />
+        <StatCard title={t('owner_approvals_rejected_milestones')} value={formatNumberByLanguage(ownerMilestoneRejectedCount, language)} icon={<AlertCircle />} color="text-rose-700" bg="bg-rose-100" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.9fr,1.1fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 className="text-base font-semibold text-slate-900">{t('owner_approvals_payment_queue')}</h4>
+          <div className="mt-4 space-y-3">
+            {selectedOwnerPaymentRequests.length > 0 ? selectedOwnerPaymentRequests.slice(0, 4).map((request) => (
+              <div key={request.id} className="rounded-2xl bg-slate-50 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-slate-900">{request.workerName || '-'}</div>
+                    <div className="mt-1 text-sm text-slate-600">{formatMoneyByLanguage(request.amount, language)}</div>
+                  </div>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${ownerReviewStatusClass(request.status)}`}>
+                    {ownerReviewStatusLabel(request.status)}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-slate-500">{request.note || t('payment_requests_note_empty')}</div>
+              </div>
+            )) : (
+              <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('owner_payment_requests_empty')}</div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h4 className="text-base font-semibold text-slate-900">{t('owner_approvals_milestones')}</h4>
+          <div className="mt-4 space-y-3">
+            {selectedOwnerMilestones.length > 0 ? selectedOwnerMilestones.slice(0, 6).map((submission) => (
+              <div key={submission.id} className="rounded-2xl bg-slate-50 px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="font-medium text-slate-900">{submission.taskCategory || '-'}</div>
+                    <div className="mt-1 text-sm text-slate-600">{submission.workerName || '-'}{submission.areaZone ? ` · ${submission.areaZone}` : ''}</div>
+                    <div className="mt-1 text-xs text-slate-500">{submission.note || t('milestone_submissions_note_empty')}</div>
+                  </div>
+                  <div className="sm:text-right">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${ownerReviewStatusClass(submission.status)}`}>
+                      {ownerReviewStatusLabel(submission.status)}
+                    </span>
+                    <div className="mt-2 text-xs text-slate-500">{formatDateByLanguage(submission.submittedAt || Date.now(), language)}</div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_progress')}</div>
+                    <div className="mt-1 font-medium text-slate-800">{submission.progress || '-'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-slate-400">{t('milestone_submissions_photo_count')}</div>
+                    <div className="mt-1 font-medium text-slate-800">{formatNumberByLanguage(submission.photoCount, language)}</div>
+                  </div>
+                </div>
+                {Array.isArray(submission.photos) && submission.photos.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {submission.photos.slice(0, 3).map((photo) => (
+                      <div key={photo.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        {photo.imageData ? (
+                          <img src={photo.imageData} alt={photo.originalName || 'milestone'} className="h-20 w-full object-cover" />
+                        ) : (
+                          <div className="flex h-20 items-center justify-center text-[11px] text-slate-400">{t('milestone_submissions_photo_count')}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )) : (
+              <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">{t('milestone_submissions_empty')}</div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   ) : (
     <div className="rounded-3xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center text-sm text-slate-500">
@@ -18725,7 +19736,7 @@ function OwnerDashboardPortal({ onNavigate, t, language, authSession, projectsLi
             </div>
 
             <div className="mt-6">
-              {activeTab === 'owner_overview' ? overviewPanel : activeTab === 'owner_project_progress' ? progressPanel : activeTab === 'owner_budget_payments' ? budgetPanel : placeholderPanel}
+              {activeTab === 'owner_overview' ? overviewPanel : activeTab === 'owner_project_progress' ? progressPanel : activeTab === 'owner_budget_payments' ? budgetPanel : activeTab === 'owner_approvals' ? approvalsPanel : placeholderPanel}
             </div>
           </main>
         </div>
@@ -20046,6 +21057,8 @@ function SupplierPortal({ onNavigate, t, language, projectsList, supplierDirecto
   );
 }
 
+export { ManagerDashboard, OwnerDashboardPortal };
+
 // ==========================================
 // 4. OWNER PORTAL SIMULATOR (Mobile App View for Homeowner)
 // ==========================================
@@ -20264,4 +21277,15 @@ function ProjectRow({ name, progress, status, workers, hasAlert, t }) {
   );
 
 }
+
+
+
+
+
+
+
+
+
+
+
 

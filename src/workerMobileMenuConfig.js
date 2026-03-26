@@ -1,12 +1,14 @@
 export const TAB_HOME = 'home';
 export const TAB_TASKS = 'tasks';
 export const TAB_ACTIVITY = 'activity';
-export const TAB_PROFILE = 'profile';
+export const TAB_CHAT = 'chat';
 
 export const SCREEN_HOME = 'home';
 export const SCREEN_TASKS = 'tasks';
 export const SCREEN_ACTIVITY = 'activity';
 export const SCREEN_PROFILE = 'profile';
+export const SCREEN_CHAT = 'chat';
+export const SCREEN_WORK_REPORTS = 'work_reports';
 export const SCREEN_PHOTO = 'photo';
 export const SCREEN_VOICE = 'voice';
 export const SCREEN_REQUEST = 'request';
@@ -20,7 +22,7 @@ export const workerNavItemDefs = [
   { id: TAB_HOME, labelKey: 'worker_nav_home', fallback: 'Home', icon: 'home' },
   { id: TAB_TASKS, labelKey: 'worker_nav_tasks', fallback: 'My Tasks', icon: 'tasks' },
   { id: TAB_ACTIVITY, labelKey: 'worker_activity_title', fallback: 'Recent Activity', icon: 'activity' },
-  { id: TAB_PROFILE, labelKey: 'worker_nav_chat', fallback: 'Profile', icon: 'profile' },
+  { id: TAB_CHAT, labelKey: 'worker_nav_chat', fallback: 'Chat', icon: 'chat' },
 ];
 
 const sameLabel = (value) => ({ TH: value, LA: value, EN: value });
@@ -187,60 +189,43 @@ export function createWorkerActionButtons({
     isVoiceProcessing,
     isRecordingVoice,
     busyAction,
+    screenWorkReports,
     screenPhoto,
-    screenVoice,
+    screenChat,
+    activeTab,
+    tabActivity,
+    tabChat,
     roomName,
   } = state;
 
   const photoHistoryHighlight = canOpenWorkerTools && todayPhotoCount > 0;
   const issueHistoryHighlight = canUseWorkActions && Boolean(state.todayIssueCount);
-  const deliveryHistoryHighlight = canUseWorkActions && Boolean(state.todayDeliveryCount);
   const equipmentHistoryHighlight = canUseWorkActions && Boolean(state.todayEquipmentCount);
   const paymentHistoryHighlight = canUseWorkActions && Boolean(state.todayPaymentCount);
   const milestoneHistoryHighlight = canUseWorkActions && Boolean(state.todayMilestoneCount);
   const dailyReportHistoryHighlight = canUseWorkActions && Boolean(state.todayDailyReportCount);
+  const workReportsCount = todayBatchCount + state.todayMilestoneCount + state.todayDailyReportCount;
+  const requestActivityCount = state.todayDeliveryCount + state.todayEquipmentCount + state.todayPaymentCount + state.todayIssueCount;
 
   return [
     {
-      id: 'checkin',
-      label: 'Check In',
-      helper: isCheckedIn ? localCopy.done : localCopy.ready,
-      icon: icons.checkin,
-      tone: 'blue',
-      disabled: isCheckedIn,
-      loading: busyAction === 'checkin',
-      active: !isCheckedIn,
-      onClick: handlers.onCheckIn,
-    },
-    {
-      id: 'checkout',
-      label: 'Check Out',
-      helper: isCheckedOut ? localCopy.done : isCheckedIn ? localCopy.active : localCopy.disabled,
-      icon: icons.checkout,
-      tone: 'emerald',
-      disabled: !isCheckedIn || isCheckedOut,
-      loading: busyAction === 'checkout',
-      active: isCheckedIn && !isCheckedOut,
-      onClick: handlers.onCheckOut,
-    },
-    {
-      id: 'submit',
-      label: localCopy.quickSubmitTitle,
-      helper: todayPhotoCount > 0
-        ? `${todayBatchCount} / ${todayPhotoCount} ${localCopy.photoBatchCount}`
+      id: 'workReports',
+      label: localCopy.quickReportsTitle,
+      helper: workReportsCount > 0
+        ? `${workReportsCount} ${localCopy.done}`
         : !canUseWorkActions
           ? localCopy.disabled
           : isProjectBatchOptionsLoading
             ? localCopy.batchProjectDataLoading
             : hasBatchRoomSelection
-              ? `${localCopy.active} • ${roomName}`
-              : localCopy.batchFilterRoom,
+              ? `${localCopy.quickReportsHelper} • ${roomName}`
+              : localCopy.quickReportsHelper,
       icon: icons.photo,
       tone: 'slate',
       disabled: !canOpenWorkerTools,
       loading: busyAction === 'photo-upload' || busyAction === 'photo-submit' || busyAction === 'photo-draft',
-      active: activeScreen === screenPhoto || photoHistoryHighlight,
-      onClick: handlers.onPhoto,
+      active: activeScreen === screenWorkReports || activeScreen === screenPhoto || milestoneHistoryHighlight || dailyReportHistoryHighlight || photoHistoryHighlight,
+      onClick: handlers.onWorkReports,
     },
     {
       id: 'issue',
@@ -256,21 +241,6 @@ export function createWorkerActionButtons({
       loading: busyAction === 'issue-submit',
       active: activeScreen === state.screenIssue || issueHistoryHighlight,
       onClick: handlers.onIssue,
-    },
-    {
-      id: 'delivery',
-      label: localCopy.quickDeliveryTitle,
-      helper: state.todayDeliveryCount
-        ? `${state.todayDeliveryCount} ${localCopy.done}`
-        : !canUseWorkActions
-          ? localCopy.disabled
-          : localCopy.quickDeliveryHelper,
-      icon: icons.delivery,
-      tone: 'blue',
-      disabled: !canUseWorkActions,
-      loading: busyAction === 'delivery-submit',
-      active: activeScreen === state.screenDelivery || deliveryHistoryHighlight,
-      onClick: handlers.onDelivery,
     },
     {
       id: 'equipment',
@@ -303,36 +273,28 @@ export function createWorkerActionButtons({
       onClick: handlers.onPayment,
     },
     {
-      id: 'milestone',
-      label: localCopy.quickMilestoneTitle,
-      helper: state.todayMilestoneCount
-        ? `${state.todayMilestoneCount} ${localCopy.done}`
-        : !canOpenWorkerTools
-          ? hasBatchRoomSelection
-            ? localCopy.disabled
-            : localCopy.batchFilterRoom
-          : localCopy.quickMilestoneHelper,
-      icon: icons.milestone,
-      tone: 'slate',
-      disabled: !canOpenWorkerTools,
-      loading: busyAction === 'milestone-submit' || busyAction === 'milestone-upload',
-      active: activeScreen === state.screenMilestone || milestoneHistoryHighlight,
-      onClick: handlers.onMilestone,
+      id: 'activity',
+      label: localCopy.quickActivityTitle,
+      helper: requestActivityCount > 0
+        ? `${requestActivityCount} ${localCopy.done}`
+        : localCopy.quickActivityHelper,
+      icon: icons.activity,
+      tone: 'blue',
+      disabled: false,
+      loading: false,
+      active: activeTab === tabActivity,
+      onClick: handlers.onActivity,
     },
     {
-      id: 'dailyReport',
-      label: localCopy.quickDailyReportTitle,
-      helper: state.todayDailyReportCount
-        ? `${state.todayDailyReportCount} ${localCopy.done}`
-        : !canUseWorkActions
-          ? localCopy.disabled
-          : localCopy.quickDailyReportHelper,
-      icon: icons.dailyReport,
-      tone: 'blue',
-      disabled: !canUseWorkActions,
-      loading: busyAction === 'daily-report-submit',
-      active: activeScreen === state.screenDailyReport || dailyReportHistoryHighlight,
-      onClick: handlers.onDailyReport,
+      id: 'chat',
+      label: localCopy.quickChatTitle,
+      helper: localCopy.quickChatHelper,
+      icon: icons.chat,
+      tone: 'emerald',
+      disabled: false,
+      loading: false,
+      active: activeTab === tabChat || activeScreen === screenChat,
+      onClick: handlers.onChat,
     },
   ];
 }

@@ -6,7 +6,8 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "test": "vitest run --reporter=verbose"
+        "test": "vitest run --reporter=verbose",
+        "set:firebase-role": "node scripts/setFirebaseRoleClaim.mjs"
     },
     "dependencies": {
         "firebase": "^12.10.0",
@@ -21,6 +22,7 @@
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",
         "@vitejs/plugin-react": "^5.0.4",
+        "firebase-admin": "^13.4.0",
         "gh-pages": "^6.3.0",
         "jsdom": "^27.0.1",
         "tailwindcss": "^4.2.1",

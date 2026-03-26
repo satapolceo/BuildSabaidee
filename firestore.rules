@@ -1,0 +1,166 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Focused source-controlled rules for review-sensitive shared records.
+    // This repo previously had no checked-in Firestore rules file, so publish
+    // this only after merging it with any broader collection rules already
+    // managed in Firebase Console for unrelated collections.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function authRole() {
+      return !isSignedIn()
+        ? ''
+        : request.auth.token.role is string
+          ? request.auth.token.role
+          : request.auth.token.admin == true || request.auth.token.platformOwner == true
+            ? 'admin'
+            : request.auth.token.email == 'admin@buildsabaidee.app'
+              ? 'admin'
+              : '';
+    }
+
+    function isAuthorizedReviewer() {
+      return authRole() in [
+        'admin',
+        'manager',
+        'project_manager',
+        'site_manager',
+        'supervisor',
+        'contractor'
+      ];
+    }
+
+    function reviewFields() {
+      return ['status', 'reviewNote', 'reviewedAt', 'reviewedBy', 'reviewerRole', 'updatedAt'];
+    }
+
+    function allowedReviewerRoles() {
+      return ['manager', 'admin'];
+    }
+
+    function paymentStatuses() {
+      return ['pending', 'approved', 'rejected'];
+    }
+
+    function milestoneStatuses() {
+      return ['submitted', 'approved', 'rejected'];
+    }
+
+    function paymentRequestKeys() {
+      return [
+        'id', 'workerId', 'workerName', 'siteName', 'projectId', 'projectName',
+        'amount', 'taskCategory', 'areaZone', 'note', 'requestedAt', 'dateKey',
+        'status', 'syncStatus', 'createdAt', 'updatedAt',
+        'reviewNote', 'reviewedAt', 'reviewedBy', 'reviewerRole'
+      ];
+    }
+
+    function milestoneSubmissionKeys() {
+      return [
+        'id', 'workerId', 'workerName', 'siteName', 'projectId', 'projectName',
+        'taskCategory', 'areaZone', 'progress', 'note', 'photos', 'photoCount',
+        'submittedAt', 'dateKey', 'status', 'syncStatus', 'createdAt', 'updatedAt',
+        'reviewNote', 'reviewedAt', 'reviewedBy', 'reviewerRole'
+      ];
+    }
+
+    function reviewRoleValueIsValid() {
+      return !request.resource.data.keys().hasAny(['reviewerRole']) ||
+        request.resource.data.reviewerRole in allowedReviewerRoles();
+    }
+
+    function reviewMetadataShapeIsValid() {
+      return (!request.resource.data.keys().hasAny(['reviewNote']) || request.resource.data.reviewNote is string) &&
+        (!request.resource.data.keys().hasAny(['reviewedBy']) || request.resource.data.reviewedBy is string) &&
+        (!request.resource.data.keys().hasAny(['reviewedAt']) || request.resource.data.reviewedAt is int) &&
+        reviewRoleValueIsValid();
+    }
+
+    function createHasNoReviewFields() {
+      return !request.resource.data.keys().hasAny(['reviewNote', 'reviewedAt', 'reviewedBy', 'reviewerRole']);
+    }
+
+    function reviewOnlyKeysChanged() {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(reviewFields());
+    }
+
+    function reviewUpdateChangesSomethingBeyondTimestamp() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasOnly(['updatedAt']);
+    }
+
+    function paymentStatusTransitionIsValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['status']) || (
+        request.resource.data.status in paymentStatuses() &&
+        request.resource.data.status != resource.data.status
+      );
+    }
+
+    function milestoneStatusTransitionIsValid() {
+      return !request.resource.data.diff(resource.data).changedKeys().hasAny(['status']) || (
+        request.resource.data.status in milestoneStatuses() &&
+        request.resource.data.status != resource.data.status
+      );
+    }
+
+    function validPaymentRequestCreate() {
+      return request.resource.data.keys().hasOnly(paymentRequestKeys()) &&
+        request.resource.data.id == request.resource.id &&
+        request.resource.data.workerId is string &&
+        request.resource.data.workerName is string &&
+        request.resource.data.projectId is string &&
+        request.resource.data.projectName is string &&
+        request.resource.data.amount is number &&
+        request.resource.data.amount >= 0 &&
+        request.resource.data.status == 'pending' &&
+        createHasNoReviewFields() &&
+        reviewMetadataShapeIsValid();
+    }
+
+    function validMilestoneSubmissionCreate() {
+      return request.resource.data.keys().hasOnly(milestoneSubmissionKeys()) &&
+        request.resource.data.id == request.resource.id &&
+        request.resource.data.workerId is string &&
+        request.resource.data.workerName is string &&
+        request.resource.data.projectId is string &&
+        request.resource.data.projectName is string &&
+        request.resource.data.status == 'submitted' &&
+        request.resource.data.photoCount is int &&
+        request.resource.data.photoCount >= 0 &&
+        createHasNoReviewFields() &&
+        reviewMetadataShapeIsValid();
+    }
+
+    function validPaymentReviewUpdate() {
+      return isAuthorizedReviewer() &&
+        reviewOnlyKeysChanged() &&
+        reviewUpdateChangesSomethingBeyondTimestamp() &&
+        reviewMetadataShapeIsValid() &&
+        paymentStatusTransitionIsValid();
+    }
+
+    function validMilestoneReviewUpdate() {
+      return isAuthorizedReviewer() &&
+        reviewOnlyKeysChanged() &&
+        reviewUpdateChangesSomethingBeyondTimestamp() &&
+        reviewMetadataShapeIsValid() &&
+        milestoneStatusTransitionIsValid();
+    }
+
+    match /paymentRequests/{requestId} {
+      allow read: if true;
+      allow create: if validPaymentRequestCreate();
+      allow update: if validPaymentReviewUpdate();
+      allow delete: if false;
+    }
+
+    match /milestoneSubmissions/{submissionId} {
+      allow read: if true;
+      allow create: if validMilestoneSubmissionCreate();
+      allow update: if validMilestoneReviewUpdate();
+      allow delete: if false;
+    }
+  }
+}
