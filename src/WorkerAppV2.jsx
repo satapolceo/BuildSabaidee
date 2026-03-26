@@ -2564,7 +2564,7 @@ function WorkerAppV2({
             </div>
             <div className="rounded-2xl bg-white/10 p-3"><Clock3 className="h-6 w-6" /></div>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+          <div className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-3">
               <div className="text-xs text-blue-100/70">{pickText(t, 'worker_last_checkin', 'Latest check-in')}</div>
               <div className="mt-1 font-medium">{effectiveAttendance.checkIn ? formatTime(effectiveAttendance.checkIn.timestamp, locale) : '-'}</div>
@@ -2585,7 +2585,7 @@ function WorkerAppV2({
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
             {isCheckedOut ? localCopy.doneHelper : isCheckedIn ? localCopy.readyHelper : localCopy.gateHelper}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => handleAttendance('checkin')}
@@ -2606,12 +2606,12 @@ function WorkerAppV2({
         </div>
       </section>
 
-      <section className="pointer-events-auto sticky bottom-4 z-20 -mx-1 rounded-[1.8rem] border border-slate-200/80 bg-white/95 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)] backdrop-blur supports-[backdrop-filter]:bg-white/85">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <section className="rounded-[1.8rem] border border-slate-200/80 bg-white p-4 shadow-sm ring-1 ring-slate-200/70">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="text-base font-semibold text-slate-900">{pickText(t, 'worker_action_primary', 'Quick Actions')}</div>
-          <div className="text-xs text-slate-500">{localCopy.checkoutHelper}</div>
+          <div className="max-w-[14rem] text-xs leading-5 text-slate-500">{localCopy.checkoutHelper}</div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {actionButtons.map((action) => (
             <WorkerActionButton key={action.id} {...action} />
           ))}

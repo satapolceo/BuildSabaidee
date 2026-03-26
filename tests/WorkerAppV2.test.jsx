@@ -307,6 +307,26 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Quick actions update immediately on tap and keep the mobile gate logic intact';
   }));
 
+  it('renders the home attendance and quick-action sections without the old overlapping sticky panel', async () => withFeature('Home layout spacing', async () => {
+    renderWorkerApp('EN');
+
+    const quickActionsHeading = screen.getByText('Quick Actions');
+    const quickActionsSection = quickActionsHeading.closest('section');
+    const attendanceHeading = screen.getByText('Attendance');
+    const attendanceSection = attendanceHeading.closest('section');
+    const checkInButton = getQuickActionButton(/Check In/i);
+    const checkOutButton = getQuickActionButton(/Check Out/i);
+
+    expect(attendanceSection).toBeTruthy();
+    expect(quickActionsSection).toBeTruthy();
+    expect(quickActionsSection?.className).not.toContain('sticky');
+    expect(quickActionsSection?.className).not.toContain('-mx-1');
+    expect(checkInButton).toBeVisible();
+    expect(checkOutButton).toBeVisible();
+    expect(quickActionsHeading.compareDocumentPosition(screen.getByText('Today'))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+    return 'The home layout keeps attendance first, removes the overlapping sticky quick-action panel, and leaves the mobile controls visible';
+  }));
 
 
   it('opens grouped work reports and the restored chat menu', async () => withFeature('Worker menu grouping and chat route', async () => {
@@ -846,6 +866,7 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Compact add labels and worker form labels still switch across EN / TH / LA with the renamed standard-note section';
   }));
 });
+
 
 
 
