@@ -1,6 +1,20 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  deleteDoc,
+  onSnapshot,
+  setDoc,
+  getDocs,
+  limit,
+  query,
+  where,
+  documentId,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
   TASK_STATUS,
@@ -24,6 +38,7 @@ import {
   sendAdminPasswordReset,
   signInAdminWithEmail,
   signInWithEmail,
+  signInWithGoogle,
   signOutAdmin,
   subscribeToAdminAuth,
   validateAdminAuthInput,
@@ -65,6 +80,11 @@ import { buildProjectProgressSelectors } from './modules/projectProgress/project
 import { getProjectProgressCopy } from './modules/projectProgress/projectProgressI18n';
 import { buildOwnerDemoSeedBundle } from './demo/ownerDemoSeed';
 import { createTrustedAuthSession } from './services/authRoles';
+import {
+  createWorkerAuthSession,
+  findWorkerByAuthIdentity,
+  normalizeWorkerProjectMembership,
+} from './services/workerAccess';
 import { normalizeSiteTicketList } from './modules/siteTickets/siteTicketModel';
 import { normalizeDailyReportList } from './modules/dailyReports/dailyReportModel';
 
@@ -2982,6 +3002,8 @@ Object.assign(translations.LA, {
   landing_roles_desc: 'ສຳລັບຜູ້ຮັບເໝາ, supplier ແລະ ເຈົ້າຂອງບ້ານ ທີ່ຕ້ອງການເຫັນວຽກ, ສິນຄ້າ ແລະ ຄວາມຄືບໜ້າໃນທີ່ດຽວ.',
   landing_role_user_title: 'ຜູ້ຮັບເໝາ / ຊ່າງ',
   landing_role_user_desc: 'ເຂົ້າ dashboard ສຳລັບຜູ້ຮັບເໝາ ແລະ ທີມຊ່າງ ເພື່ອຄຸ້ມຄອງໂຄງການ, ຄົນງານ, ເອກະສານ, ຄັງ ແລະ ການຈັດຊື້.',
+  auth_worker_title: 'ຊ່າງ / ຄົນງານ',
+  auth_worker_desc: 'ເຂົ້າ worker app ເພື່ອເຫັນໂຄງການທີ່ຮັບມອບ, ເລືອກໂຄງການປັດຈຸບັນ ແລະ ແຊັດກັບທີມງານ.',
   landing_role_admin_desc: 'ເຂົ້າສ່ວນ platform owner ສຳລັບ supplier, revenue, billing ແລະ settlements.',
   landing_role_supplier_desc: 'ເຂົ້າ supplier portal ສຳລັບສິນຄ້າ, ອໍເດີ ແລະ profile ຂອງ supplier.',
   landing_role_enter: 'ເຂົ້າໃຊ້',
@@ -3001,6 +3023,8 @@ Object.assign(translations.LA, {
   auth_role_label: 'ບົດບາດ',
   auth_email_label: 'ອີເມວ',
   auth_password_label: 'ລະຫັດຜ່ານ',
+  auth_sign_in_with_email: 'ເຂົ້າດ້ວຍ Email',
+  auth_google_sign_in: 'ເຂົ້າດ້ວຍ Google',
   auth_sign_in: 'ເຂົ້າລະບົບ',
   auth_sign_out: 'ອອກຈາກລະບົບ',
   auth_continue: 'ໄປຕໍ່',
@@ -3078,6 +3102,8 @@ Object.assign(translations.TH, {
   landing_roles_desc: 'สำหรับผู้รับเหมา ซัพพลายเออร์ และเจ้าของบ้านที่ต้องการเห็นงาน สินค้า และความคืบหน้าในที่เดียว',
   landing_role_user_title: 'ผู้รับเหมา / ช่าง',
   landing_role_user_desc: 'เข้าสู่ dashboard สำหรับผู้รับเหมาและทีมช่าง เพื่อจัดการโครงการ คนงาน เอกสาร คลังวัสดุ และการจัดซื้อ',
+  auth_worker_title: 'ช่าง / คนงาน',
+  auth_worker_desc: 'เข้าสู่ Worker App เพื่อดูโครงการที่ได้รับมอบหมาย เลือกโครงการปัจจุบัน และแชตในโครงการเดียวกัน',
   landing_role_admin_desc: 'เข้าสู่ส่วน platform owner สำหรับ supplier, revenue, billing และ settlements',
   landing_role_supplier_desc: 'เข้าสู่ supplier portal สำหรับสินค้า ออเดอร์ และโปรไฟล์ซัพพลายเออร์',
   landing_role_enter: 'เข้าสู่ระบบ',
@@ -3097,6 +3123,8 @@ Object.assign(translations.TH, {
   auth_role_label: 'บทบาท',
   auth_email_label: 'อีเมล',
   auth_password_label: 'รหัสผ่าน',
+  auth_sign_in_with_email: 'เข้าสู่ด้วยอีเมล',
+  auth_google_sign_in: 'เข้าสู่ด้วย Google',
   auth_sign_in: 'เข้าสู่ระบบ',
   auth_sign_out: 'ออกจากระบบ',
   auth_continue: 'ไปต่อ',
@@ -3174,6 +3202,8 @@ Object.assign(translations.EN, {
   landing_roles_desc: 'Built for contractors, suppliers, and homeowners who want projects, products, and progress in one place.',
   landing_role_user_title: 'Contractor / Worker',
   landing_role_user_desc: 'Open the main dashboard for contractors and work crews to manage projects, workers, documents, inventory, and procurement.',
+  auth_worker_title: 'Technician / Worker',
+  auth_worker_desc: 'Open the worker app to see assigned projects, switch the current project, and chat inside the correct project conversation.',
   landing_role_admin_desc: 'Open the platform-owner workspace for suppliers, revenue, billing, and settlements.',
   landing_role_supplier_desc: 'Open the supplier portal for products, orders, and supplier profile management.',
   landing_role_enter: 'Open',
@@ -3193,6 +3223,8 @@ Object.assign(translations.EN, {
   auth_role_label: 'Role',
   auth_email_label: 'Email',
   auth_password_label: 'Password',
+  auth_sign_in_with_email: 'Sign in with Email',
+  auth_google_sign_in: 'Sign in with Google',
   auth_sign_in: 'Sign In',
   auth_sign_out: 'Sign Out',
   auth_continue: 'Continue',
@@ -3653,6 +3685,7 @@ const AUTH_SESSION_STORAGE_KEY = 'buildsabaidee_auth_session';
 
 const DASHBOARD_ROLE_MAP = {
   manager: 'user',
+  worker_dashboard: 'worker',
   owner_dashboard: 'owner',
   supplier_dashboard: 'supplier',
   platform_owner_dashboard: 'admin',
@@ -3667,6 +3700,7 @@ const VIEW_ROLE_MAP = {
 
 const ROLE_HOME_VIEW = {
   user: 'manager',
+  worker: 'worker_dashboard',
   owner: 'owner_dashboard',
   supplier: 'supplier_dashboard',
   admin: 'platform_owner_dashboard',
@@ -3674,6 +3708,7 @@ const ROLE_HOME_VIEW = {
 
 const ROLE_ACCESS_VIEW = {
   user: 'role_login',
+  worker: 'role_login',
   owner: 'owner_access',
   supplier: 'supplier_access',
   admin: 'platform_owner_access',
@@ -3684,6 +3719,11 @@ const DEMO_AUTH_ACCOUNTS = {
     email: 'user@buildsabaidee.app',
     password: 'demo123',
     displayName: 'Contractor Demo',
+  },
+  worker: {
+    email: 'worker@buildsabaidee.app',
+    password: 'demo123',
+    displayName: 'Technician Demo',
   },
   owner: {
     email: 'owner@buildsabaidee.app',
@@ -4960,27 +5000,50 @@ function createWorkerEntry() {
 }
 
 function normalizeWorkerEntry(worker) {
+  const normalizedMembership = normalizeWorkerProjectMembership(worker);
   const base = createWorkerEntry();
-  const legacyRole = worker?.role === 'worker'
+  const legacyRole = normalizedMembership?.role === 'worker'
     ? 'general_worker'
-    : worker?.role === 'foreman'
+    : normalizedMembership?.role === 'foreman'
       ? 'foreman'
-      : worker?.role;
-  const normalizedPersonType = PERSON_TYPE_OPTIONS.includes(worker?.personType)
-    ? worker.personType
-    : (worker?.personType === 'labor' ? 'skilled_worker' : 'employee');
+      : normalizedMembership?.role;
+  const normalizedPersonType = PERSON_TYPE_OPTIONS.includes(normalizedMembership?.personType)
+    ? normalizedMembership.personType
+    : (normalizedMembership?.personType === 'labor' ? 'skilled_worker' : 'employee');
   const normalizedRoleOptions = ROLE_OPTIONS_BY_PERSON_TYPE[normalizedPersonType] || CONSTRUCTION_ROLE_OPTIONS;
   const fallbackRole = normalizedRoleOptions.includes(legacyRole) ? legacyRole : normalizedRoleOptions[0] || 'general_worker';
 
   return {
     ...base,
-    ...(worker || {}),
+    ...(normalizedMembership || {}),
     personType: normalizedPersonType,
     role: PERSON_TYPES_WITH_ROLE.has(normalizedPersonType) ? fallbackRole : '',
-    wage: Math.max(Number(worker?.wage ?? base.wage), 0),
-    attendanceRate: Math.max(Number(worker?.attendanceRate ?? base.attendanceRate), 0),
-    status: worker?.status === 'inactive' ? 'inactive' : 'active',
+    wage: Math.max(Number(normalizedMembership?.wage ?? base.wage), 0),
+    attendanceRate: Math.max(Number(normalizedMembership?.attendanceRate ?? base.attendanceRate), 0),
+    status: normalizedMembership?.status === 'inactive' ? 'inactive' : 'active',
   };
+}
+
+async function findWorkerRecordForAuthUser(firestoreDb, user) {
+  if (!firestoreDb || !user) return null;
+
+  const normalizedEmail = String(user.email || '').trim().toLowerCase();
+  const queryCandidates = [
+    user.uid ? query(collection(firestoreDb, 'workers'), where('authUid', '==', user.uid), limit(1)) : null,
+    normalizedEmail ? query(collection(firestoreDb, 'workers'), where('email', '==', normalizedEmail), limit(1)) : null,
+  ].filter(Boolean);
+
+  for (const queryRef of queryCandidates) {
+    const snapshot = await getDocs(queryRef);
+    if (!snapshot.empty) {
+      return normalizeWorkerEntry({
+        id: snapshot.docs[0].id,
+        ...snapshot.docs[0].data(),
+      });
+    }
+  }
+
+  return null;
 }
 
 function getRoleOptionsForPersonType(personType) {
@@ -6270,50 +6333,202 @@ export default function BuildSabaideeApp() {
   const [photoReportsList, setPhotoReportsList] = useState([]);
   const [paymentRequestsList, setPaymentRequestsList] = useState([]);
   const [milestoneSubmissionsList, setMilestoneSubmissionsList] = useState([]);
+  const [workerProfile, setWorkerProfile] = useState(null);
 
   useEffect(() => {
-    if (!db) return; // หากยังไม่ใส่ Config ให้หยุดทำงาน
+    if (!db) return;
 
     const unsubs = [];
-    const collectionsToSync = [
-      { name: 'projects', setter: setProjectsList },
-      { name: 'workers', setter: setWorkersList },
-      { name: 'docs', setter: setDocsList },
-      { name: 'inventory', setter: setInventoryList },
-      { name: 'requests', setter: setGlobalRequests },
-      { name: 'issues', setter: setGlobalIssues },
-      { name: 'chats', setter: setGlobalChats },
-      { name: 'siteTickets', setter: setSiteTicketsList },
-      { name: 'dailyReports', setter: setDailyReportsList },
-      { name: 'attendance', setter: setAttendanceList },
-      { name: 'photoReports', setter: setPhotoReportsList },
-      { name: 'paymentRequests', setter: setPaymentRequestsList },
-      { name: 'milestoneSubmissions', setter: setMilestoneSubmissionsList },
-    ];
+    const scopedWorkerUnsubs = [];
+    let cancelled = false;
 
-    collectionsToSync.forEach(col => {
-       const unsub = onSnapshot(collection(db, col.name), (snapshot) => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          const normalizedData = col.name === 'siteTickets'
-            ? normalizeSiteTicketList(data)
-            : col.name === 'dailyReports'
-              ? normalizeDailyReportList(data)
-              : data;
-          // เรียงลำดับแชทตามเวลาจากเก่าไปใหม่ อันอื่นใหม่ไปเก่า
-          if (col.name === 'chats') {
-             normalizedData.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-          } else if (col.name === 'siteTickets' || col.name === 'dailyReports') {
-             normalizedData.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-          } else {
-             normalizedData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const applyCollectionState = (name, setter, data) => {
+      const normalizedData = name === 'siteTickets'
+        ? normalizeSiteTicketList(data)
+        : name === 'dailyReports'
+          ? normalizeDailyReportList(data)
+          : data;
+
+      if (name === 'chats') {
+        normalizedData.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      } else if (name === 'siteTickets' || name === 'dailyReports') {
+        normalizedData.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      } else {
+        normalizedData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      }
+
+      setter(normalizedData);
+    };
+
+    const subscribeCollection = (name, setter, queryRef = collection(db, name)) => {
+      const unsub = onSnapshot(queryRef, (snapshot) => {
+        const data = snapshot.docs.map((snapshotDoc) => ({ id: snapshotDoc.id, ...snapshotDoc.data() }));
+        applyCollectionState(name, setter, data);
+      });
+      unsubs.push(unsub);
+    };
+
+    const resetWorkerScopedCollections = () => {
+      setProjectsList([]);
+      setWorkersList([]);
+      setDocsList([]);
+      setInventoryList([]);
+      setGlobalRequests([]);
+      setGlobalIssues([]);
+      setGlobalChats([]);
+      setSiteTicketsList([]);
+      setDailyReportsList([]);
+      setAttendanceList([]);
+      setPhotoReportsList([]);
+      setPaymentRequestsList([]);
+      setMilestoneSubmissionsList([]);
+    };
+
+    if (authSession?.role !== 'worker') {
+      setWorkerProfile(null);
+      [
+        ['projects', setProjectsList],
+        ['workers', setWorkersList],
+        ['docs', setDocsList],
+        ['inventory', setInventoryList],
+        ['requests', setGlobalRequests],
+        ['issues', setGlobalIssues],
+        ['chats', setGlobalChats],
+        ['siteTickets', setSiteTicketsList],
+        ['dailyReports', setDailyReportsList],
+        ['attendance', setAttendanceList],
+        ['photoReports', setPhotoReportsList],
+        ['paymentRequests', setPaymentRequestsList],
+        ['milestoneSubmissions', setMilestoneSubmissionsList],
+      ].forEach(([name, setter]) => subscribeCollection(name, setter));
+
+      return () => unsubs.forEach((unsub) => unsub());
+    }
+
+    resetWorkerScopedCollections();
+
+    const syncProjectScopedWorkerListeners = (resolvedWorker) => {
+      scopedWorkerUnsubs.splice(0).forEach((unsub) => unsub());
+
+      const normalizedWorker = normalizeWorkerEntry(resolvedWorker);
+      const membership = normalizeWorkerProjectMembership(normalizedWorker);
+      const projectIds = membership.assignedProjectIds.slice(0, 10);
+
+      setWorkerProfile(membership);
+      setWorkersList([membership]);
+      setDocsList([]);
+      setInventoryList([]);
+      setGlobalIssues([]);
+
+      if (membership.id) {
+        const ownWorkerUnsub = onSnapshot(doc(db, 'workers', String(membership.id)), (snapshot) => {
+          if (!snapshot.exists()) return;
+          const nextWorker = normalizeWorkerEntry({ id: snapshot.id, ...snapshot.data() });
+          const nextMembership = normalizeWorkerProjectMembership(nextWorker);
+          setWorkerProfile(nextMembership);
+          setWorkersList((current) => {
+            const otherWorkers = (Array.isArray(current) ? current : []).filter((item) => String(item?.id || '') !== String(nextMembership.id));
+            return [nextMembership, ...otherWorkers];
+          });
+        });
+        scopedWorkerUnsubs.push(ownWorkerUnsub);
+      }
+
+      const mergeWorkers = (...workerGroups) => {
+        const merged = new Map();
+        workerGroups.flat().forEach((worker) => {
+          if (!worker?.id) return;
+          merged.set(String(worker.id), normalizeWorkerEntry(worker));
+        });
+
+        if (membership.id) merged.set(String(membership.id), membership);
+        setWorkersList(Array.from(merged.values()));
+      };
+
+      if (projectIds.length) {
+        let assignedSiteWorkers = [];
+        let assignedMembershipWorkers = [];
+
+        scopedWorkerUnsubs.push(onSnapshot(
+          query(collection(db, 'projects'), where(documentId(), 'in', projectIds)),
+          (snapshot) => applyCollectionState('projects', setProjectsList, snapshot.docs.map((snapshotDoc) => ({ id: snapshotDoc.id, ...snapshotDoc.data() })))
+        ));
+
+        scopedWorkerUnsubs.push(onSnapshot(
+          query(collection(db, 'workers'), where('assignedSiteId', 'in', projectIds)),
+          (snapshot) => {
+            assignedSiteWorkers = snapshot.docs.map((snapshotDoc) => ({ id: snapshotDoc.id, ...snapshotDoc.data() }));
+            mergeWorkers(assignedSiteWorkers, assignedMembershipWorkers);
           }
-          col.setter(normalizedData);
-       });
-       unsubs.push(unsub);
+        ));
+
+        scopedWorkerUnsubs.push(onSnapshot(
+          query(collection(db, 'workers'), where('assignedProjectIds', 'array-contains-any', projectIds)),
+          (snapshot) => {
+            assignedMembershipWorkers = snapshot.docs.map((snapshotDoc) => ({ id: snapshotDoc.id, ...snapshotDoc.data() }));
+            mergeWorkers(assignedSiteWorkers, assignedMembershipWorkers);
+          }
+        ));
+
+        [
+          ['requests', setGlobalRequests],
+          ['chats', setGlobalChats],
+          ['siteTickets', setSiteTicketsList],
+          ['dailyReports', setDailyReportsList],
+          ['attendance', setAttendanceList],
+          ['photoReports', setPhotoReportsList],
+          ['paymentRequests', setPaymentRequestsList],
+          ['milestoneSubmissions', setMilestoneSubmissionsList],
+        ].forEach(([name, setter]) => {
+          scopedWorkerUnsubs.push(onSnapshot(
+            query(collection(db, name), where('projectId', 'in', projectIds)),
+            (snapshot) => applyCollectionState(name, setter, snapshot.docs.map((snapshotDoc) => ({ id: snapshotDoc.id, ...snapshotDoc.data() })))
+          ));
+        });
+        return;
+      }
+
+      if (membership.id) {
+        [
+          ['requests', setGlobalRequests],
+          ['attendance', setAttendanceList],
+          ['photoReports', setPhotoReportsList],
+          ['paymentRequests', setPaymentRequestsList],
+          ['milestoneSubmissions', setMilestoneSubmissionsList],
+        ].forEach(([name, setter]) => {
+          scopedWorkerUnsubs.push(onSnapshot(
+            query(collection(db, name), where('workerId', '==', String(membership.id))),
+            (snapshot) => applyCollectionState(name, setter, snapshot.docs.map((snapshotDoc) => ({ id: snapshotDoc.id, ...snapshotDoc.data() })))
+          ));
+        });
+      }
+    };
+
+    (async () => {
+      const resolvedWorker = await findWorkerRecordForAuthUser(db, {
+        uid: authSession?.uid,
+        email: authSession?.email,
+      });
+
+      if (cancelled) return;
+
+      if (!resolvedWorker) {
+        setWorkerProfile(null);
+        return;
+      }
+
+      syncProjectScopedWorkerListeners(resolvedWorker);
+    })().catch((error) => {
+      console.error('Failed to start worker-scoped listeners:', error);
+      setWorkerProfile(null);
     });
 
-    return () => unsubs.forEach(unsub => unsub()); // Cleanup listeners เมื่อปิดแอป
-  }, []);
+    return () => {
+      cancelled = true;
+      scopedWorkerUnsubs.forEach((unsub) => unsub());
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [authSession?.email, authSession?.role, authSession?.uid]);
 
   useEffect(() => {
     try {
@@ -6442,6 +6657,7 @@ export default function BuildSabaideeApp() {
       setIsAdminAuthReady(true);
 
       if (!user) {
+        setWorkerProfile(null);
         setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
         return;
       }
@@ -6455,10 +6671,44 @@ export default function BuildSabaideeApp() {
         });
 
         if (!trustedSession) {
-          setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
+          const workerRecord = await findWorkerRecordForAuthUser(db, user);
+          const workerSession = createWorkerAuthSession({
+            user,
+            workerRecord,
+          });
+
+          if (!workerSession) {
+            setWorkerProfile(null);
+            setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
+            return;
+          }
+
+          setWorkerProfile(normalizeWorkerProjectMembership(workerRecord));
+          setAuthSession((prev) => ({
+            ...prev,
+            ...workerSession,
+          }));
+          const normalizedWorker = normalizeWorkerProjectMembership(workerRecord);
+          setDoc(doc(db, 'workerAccess', String(user.uid)), {
+            workerId: String(workerRecord.id),
+            email: String(user.email || '').trim().toLowerCase(),
+            projectIds: normalizedWorker.assignedProjectIds,
+            activeProjectId: normalizedWorker.activeProjectId,
+            updatedAt: Date.now(),
+          }, { merge: true }).catch(() => {});
+
+          if (workerRecord?.id && (!workerRecord.authUid || !workerRecord.email)) {
+            setDoc(doc(db, 'workers', String(workerRecord.id)), {
+              authUid: workerRecord.authUid || user.uid,
+              email: workerRecord.email || String(user.email || '').trim().toLowerCase(),
+            }, { merge: true }).catch(() => {});
+          }
+
+          setAuthErrorKey('');
           return;
         }
 
+        setWorkerProfile(null);
         setAuthSession((prev) => ({
           ...prev,
           ...trustedSession,
@@ -6466,6 +6716,7 @@ export default function BuildSabaideeApp() {
         setAuthErrorKey('');
       } catch (error) {
         console.error('Failed to resolve Firebase role claims:', error);
+        setWorkerProfile(null);
         setAuthSession((prev) => (prev?.authSource === 'firebase' ? null : prev));
       }
     });
@@ -6524,13 +6775,18 @@ export default function BuildSabaideeApp() {
     const requestedView = normalizedTarget.view || 'landing';
     const nextView = requestedView === 'owner'
       ? (authSession?.role === 'owner' ? 'owner_dashboard' : 'owner_access')
+      : requestedView === 'worker'
+        ? (authSession?.role === 'worker' ? 'worker_dashboard' : 'role_login')
       : requestedView;
-    const requestedRole = normalizedTarget.role || VIEW_ROLE_MAP[nextView] || 'user';
+    const requestedRole = requestedView === 'worker'
+      ? 'worker'
+      : (normalizedTarget.role || VIEW_ROLE_MAP[nextView] || 'user');
 
     if (nextView === 'logout') {
       if (firebaseAuth && authSession?.authSource === 'firebase') {
         signOutAdmin(firebaseAuth).catch(() => {});
       }
+      setWorkerProfile(null);
       setAuthSession(null);
       setAuthErrorKey('');
       setLoginRole(normalizedTarget.role || 'user');
@@ -6564,8 +6820,37 @@ export default function BuildSabaideeApp() {
     window.scrollTo(0, 0);
   };
 
-  const handleRoleLogin = async ({ role, email, password, rememberEmail }) => {
+  const handleRoleLogin = async ({ role, email, password, rememberEmail, method = 'password' }) => {
     const normalizedRole = role || loginRole;
+    const normalizedMethod = method === 'google' ? 'google' : 'password';
+
+    const completeWorkerSignIn = async (credential) => {
+      const workerRecord = await findWorkerRecordForAuthUser(db, credential.user);
+      const workerSession = createWorkerAuthSession({
+        user: credential.user,
+        workerRecord,
+      });
+
+      if (!workerSession) {
+        await signOutAdmin(firebaseAuth).catch(() => {});
+        setAuthErrorKey('auth_guard_message');
+        return { ok: false, errorKey: 'auth_guard_message' };
+      }
+
+      setWorkerProfile(normalizeWorkerProjectMembership(workerRecord));
+      setAuthSession(workerSession);
+      await setDoc(doc(db, 'workerAccess', String(credential.user.uid)), {
+        workerId: String(workerRecord.id),
+        email: String(credential.user.email || '').trim().toLowerCase(),
+        projectIds: normalizeWorkerProjectMembership(workerRecord).assignedProjectIds,
+        activeProjectId: normalizeWorkerProjectMembership(workerRecord).activeProjectId,
+        updatedAt: Date.now(),
+      }, { merge: true });
+      setAuthErrorKey('');
+      setCurrentView(ROLE_HOME_VIEW.worker);
+      window.scrollTo(0, 0);
+      return { ok: true };
+    };
 
     const signInTrustedFirebaseRole = async ({ requestedRole }) => {
       if (!firebaseAuth) {
@@ -6574,9 +6859,16 @@ export default function BuildSabaideeApp() {
       }
 
       try {
-        const credential = requestedRole === 'admin'
-          ? await signInAdminWithEmail(firebaseAuth, { email, password })
-          : await signInWithEmail(firebaseAuth, { email, password });
+        const credential = normalizedMethod === 'google'
+          ? await signInWithGoogle(firebaseAuth)
+          : requestedRole === 'admin'
+            ? await signInAdminWithEmail(firebaseAuth, { email, password })
+            : await signInWithEmail(firebaseAuth, { email, password });
+
+        if (requestedRole === 'worker') {
+          return completeWorkerSignIn(credential);
+        }
+
         const tokenResult = await getAuthTokenResult(credential.user, true);
         const trustedSession = createTrustedAuthSession({
           user: credential.user,
@@ -6613,6 +6905,17 @@ export default function BuildSabaideeApp() {
         return { ok: false, errorKey: validationKey };
       }
       return signInTrustedFirebaseRole({ requestedRole: 'admin' });
+    }
+
+    if (normalizedRole === 'worker') {
+      if (normalizedMethod === 'password') {
+        const validationKey = validateAdminAuthInput({ email, password });
+        if (validationKey) {
+          setAuthErrorKey(validationKey);
+          return { ok: false, errorKey: validationKey };
+        }
+      }
+      return signInTrustedFirebaseRole({ requestedRole: 'worker' });
     }
 
     const account = DEMO_AUTH_ACCOUNTS[normalizedRole];
@@ -6806,9 +7109,11 @@ export default function BuildSabaideeApp() {
           isAdminAuthReady={isAdminAuthReady}
         />
       )}
-      {currentView === 'worker' && (
+      {(currentView === 'worker' || currentView === 'worker_dashboard') && (
         <WorkerAppV2 
           onNavigate={navigateTo} t={t} 
+          authSession={authSession}
+          workerProfile={workerProfile}
           workersList={workersList} projectsList={projectsList} language={language}
           sharedAttendanceRecords={attendanceList}
           sharedPhotoReports={photoReportsList}
@@ -6826,6 +7131,21 @@ export default function BuildSabaideeApp() {
           onPersistSiteTicket={persistSiteTicket}
           onPersistDailyReport={persistDailyReport}
           onPersistChatMessage={persistChatMessage}
+          onPersistWorkerProfile={async (workerId, updates = {}) => {
+            if (!db || !workerId) return;
+            await setDoc(doc(db, 'workers', String(workerId)), updates, { merge: true });
+            if (authSession?.uid && workerProfile?.id && String(workerProfile.id) === String(workerId)) {
+              const nextProfile = normalizeWorkerProjectMembership({ ...workerProfile, ...updates, id: workerId });
+              setWorkerProfile(nextProfile);
+              await setDoc(doc(db, 'workerAccess', String(authSession.uid)), {
+                workerId: String(workerId),
+                email: String(nextProfile.email || authSession.email || '').trim().toLowerCase(),
+                projectIds: nextProfile.assignedProjectIds,
+                activeProjectId: nextProfile.activeProjectId,
+                updatedAt: Date.now(),
+              }, { merge: true });
+            }
+          }}
         />
       )}
       {currentView === 'worker_mobile_test' && (
@@ -9323,12 +9643,13 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
   
   const handleSaveWorker = async () => {
     const normalizedWorker = normalizeWorkerEntry(workerFormData);
+    const normalizedMembership = normalizeWorkerProjectMembership(normalizedWorker);
     const requiresPersonName = PERSON_TYPES_WITH_ROLE.has(normalizedWorker.personType);
     if (requiresPersonName && !normalizedWorker.name.trim()) return alert(t('worker_person_required'));
     if (!requiresPersonName && !normalizedWorker.companyName.trim()) return alert(t('worker_company_required'));
     if(!db) return alert(t('firebase_required'));
-    if (editingWorkerId) await updateDoc(doc(db, 'workers', editingWorkerId), normalizedWorker);
-    else await addDoc(collection(db, 'workers'), { ...normalizedWorker, createdAt: Date.now() });
+    if (editingWorkerId) await updateDoc(doc(db, 'workers', editingWorkerId), normalizedMembership);
+    else await addDoc(collection(db, 'workers'), { ...normalizedMembership, createdAt: Date.now() });
     setIsWorkerModalOpen(false);
   };
   const handleDeleteWorker = async (id) => { if(db) await deleteDoc(doc(db, 'workers', id)); setIsWorkerModalOpen(false); };
@@ -18610,8 +18931,18 @@ function ManagerDashboard({ onNavigate, t, language, isKioskMode = false, onTogg
 
 function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordReset, onAdminSignOut, t, role, setRole, authErrorKey, authSession, isAdminAuthReady }) {
   const isAdminRole = role === 'admin';
-  const [email, setEmail] = useState(() => (role === 'admin' ? getRememberedAdminEmail() : (DEMO_AUTH_ACCOUNTS[role]?.email || '')));
-  const [password, setPassword] = useState(() => (role === 'admin' ? '' : (DEMO_AUTH_ACCOUNTS[role]?.password || '')));
+  const [email, setEmail] = useState(() => (
+    role === 'admin'
+      ? getRememberedAdminEmail()
+      : role === 'worker'
+        ? ''
+        : (DEMO_AUTH_ACCOUNTS[role]?.email || '')
+  ));
+  const [password, setPassword] = useState(() => (
+    role === 'admin' || role === 'worker'
+      ? ''
+      : (DEMO_AUTH_ACCOUNTS[role]?.password || '')
+  ));
   const [rememberEmail, setRememberEmail] = useState(() => Boolean(getRememberedAdminEmail()));
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [adminMode, setAdminMode] = useState('sign_in');
@@ -18629,6 +18960,15 @@ function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordRe
       return;
     }
 
+    if (role === 'worker') {
+      setEmail('');
+      setPassword('');
+      setRememberEmail(Boolean(getRememberedAdminEmail()));
+      setAdminMode('sign_in');
+      setStatusMessageKey('');
+      return;
+    }
+
     setEmail(DEMO_AUTH_ACCOUNTS[role]?.email || '');
     setPassword(DEMO_AUTH_ACCOUNTS[role]?.password || '');
     setRememberEmail(Boolean(getRememberedAdminEmail()));
@@ -18638,6 +18978,7 @@ function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordRe
 
   const roleOptions = [
     { key: 'user', title: t('landing_role_user_title'), desc: t('landing_role_user_desc'), icon: Building },
+    { key: 'worker', title: t('auth_worker_title'), desc: t('auth_worker_desc'), icon: HardHat },
     { key: 'owner', title: t('nav_owner_portal'), desc: t('landing_role_owner_desc'), icon: Home },
     { key: 'supplier', title: t('nav_supplier_portal'), desc: t('landing_role_supplier_desc'), icon: Package },
     { key: 'admin', title: t('nav_platform_owner'), desc: t('landing_role_admin_desc'), icon: Database },
@@ -18693,6 +19034,7 @@ function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordRe
   const sessionMatchesRole = authSession?.role === role;
   const showAdminReset = isAdminRole && adminMode === 'sign_in';
   const showAdminRegisterLink = isAdminRole && adminMode === 'sign_in';
+  const showWorkerGoogle = role === 'worker';
 
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-8 sm:px-6 lg:px-8">
@@ -18846,8 +19188,27 @@ function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordRe
                 disabled={isSubmitting || (isAdminRole && !isAdminAuthReady)}
                 className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                {isSubmitting ? t('auth_loading') : (isAdminRole && adminMode === 'register' ? t('auth_admin_mode_register') : t('auth_sign_in'))}
+                {isSubmitting ? t('auth_loading') : (isAdminRole && adminMode === 'register' ? t('auth_admin_mode_register') : role === 'worker' ? t('auth_sign_in_with_email') : t('auth_sign_in'))}
               </button>
+
+              {showWorkerGoogle && (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={async () => {
+                    setStatusMessageKey('');
+                    setIsSubmitting(true);
+                    try {
+                      await onLogin({ role, method: 'google', email: '', password: '', rememberEmail: false });
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
+                  className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                >
+                  {t('auth_google_sign_in')}
+                </button>
+              )}
 
               {showAdminReset && (
                 <button
@@ -18871,7 +19232,7 @@ function RoleLoginPage({ onNavigate, onLogin, onAdminRegister, onAdminPasswordRe
               )}
             </form>
 
-            {!isAdminRole && (
+            {!isAdminRole && role !== 'worker' && (
               <div className="mt-6 rounded-2xl bg-slate-50 p-4">
               <div className="text-sm font-semibold text-slate-800">{t('auth_demo_title')}</div>
               <div className="mt-2 text-xs leading-6 text-slate-600">{t('auth_demo_hint')}</div>

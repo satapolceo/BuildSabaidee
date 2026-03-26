@@ -1,6 +1,7 @@
 export const ATTACHMENT_KIND = {
   photo: 'photo',
   voice: 'voice',
+  file: 'file',
   note: 'note',
 };
 
@@ -46,6 +47,27 @@ export function createVoiceAttachment({
   };
 }
 
+export function createFileAttachment({
+  id = createAttachmentId('attachment_file'),
+  fileData = '',
+  mimeType = 'application/octet-stream',
+  originalName = '',
+  fileSize = 0,
+  uploadedAt = Date.now(),
+  source = 'mobile_composer',
+} = {}) {
+  return {
+    id,
+    kind: ATTACHMENT_KIND.file,
+    fileData,
+    mimeType,
+    originalName,
+    fileSize,
+    uploadedAt,
+    source,
+  };
+}
+
 export function createNoteAttachment({
   id = createAttachmentId('attachment_note'),
   text = '',
@@ -64,6 +86,7 @@ export function createNoteAttachment({
 export function createAttachmentDraft({
   photos = [],
   voiceNote = null,
+  files = [],
   note = '',
   linkedType = 'generic',
   status = 'draft',
@@ -73,6 +96,7 @@ export function createAttachmentDraft({
     status,
     photos,
     voiceNote,
+    files,
     note: String(note || ''),
   };
 }
@@ -85,6 +109,7 @@ export function normalizeAttachmentDraft(input = {}) {
   return createAttachmentDraft({
     photos: normalizedPhotos,
     voiceNote: input.voiceNote?.audioData ? input.voiceNote : null,
+    files: Array.isArray(input.files) ? input.files.filter((item) => item?.fileData) : [],
     note: input.note || '',
     linkedType: input.linkedType || 'generic',
     status: input.status === 'submitted' ? 'submitted' : 'draft',
@@ -105,6 +130,7 @@ export function buildAttachmentPayload({
 
   const attachments = [
     ...normalized.photos,
+    ...normalized.files,
     ...(normalized.voiceNote ? [normalized.voiceNote] : []),
     ...(noteAttachment ? [noteAttachment] : []),
   ];
@@ -116,6 +142,7 @@ export function buildAttachmentPayload({
     createdBy,
     attachmentCount: attachments.length,
     photoCount: normalized.photos.length,
+    fileCount: normalized.files.length,
     hasVoiceNote: Boolean(normalized.voiceNote),
     hasNote: Boolean(noteAttachment),
     attachments,

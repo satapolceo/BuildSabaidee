@@ -347,7 +347,13 @@ describe('WorkerAppV2 mobile automation', () => {
 
     await user.click(screen.getByRole('button', { name: /Chat|แชท|ແຊັດ/i }));
     await waitFor(() => expect(screen.getByText('Project Chat')).toBeInTheDocument());
+    expect(screen.getAllByText('Sky Tower').length).toBeGreaterThan(0);
+    expect(screen.getByText('Project team chat')).toBeInTheDocument();
     expect(screen.getByText('Concrete delivery will arrive at 10:30.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open camera' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Attach image' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Attach file' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Record voice' })).toBeInTheDocument();
 
     const chatInput = screen.getByPlaceholderText('Type message...');
     await user.type(chatInput, 'Need confirmation for tile delivery');
@@ -356,10 +362,12 @@ describe('WorkerAppV2 mobile automation', () => {
     expect(onPersistChatMessage.mock.calls[0][0]).toMatchObject({
       senderRole: 'worker',
       projectId: 'p1',
+      projectName: 'Sky Tower',
+      conversationId: 'project-p1-team',
       text: 'Need confirmation for tile delivery',
     });
 
-    return 'The worker home groups work reports into one hub and the chat nav opens the real project conversation flow';
+    return 'The worker home groups work reports into one hub and the chat route shows project context plus direct camera, image, file, and voice actions';
   }), 15000);
 
   it('adds custom main category, subcategory, zone, and standard phrase inline', async () => withFeature('Compact add preset flow', async () => {
@@ -866,21 +874,4 @@ describe('WorkerAppV2 mobile automation', () => {
     return 'Compact add labels and worker form labels still switch across EN / TH / LA with the renamed standard-note section';
   }));
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

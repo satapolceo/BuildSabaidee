@@ -308,7 +308,8 @@ describe('App review update handlers', () => {
     );
   });
 
-  it('opens the real worker app from landing and keeps worker-mobile-test out of public UI', async () => {
+
+  it('opens worker sign-in from landing and keeps worker-mobile-test out of public UI', async () => {
     const user = userEvent.setup();
 
     render(<App />);
@@ -321,7 +322,8 @@ describe('App review update handlers', () => {
 
     await user.click(workerEntry);
 
-    expect(await screen.findByText('Worker App')).toBeInTheDocument();
-    expect(screen.getByText(/Clock in and update work from one mobile screen|ลงเวลาและอัปเดตงานจากมือถือเครื่องเดียว|ລົງເວລາ ແລະ ອັບເດດວຽກຈາກມືຖືເຄື່ອງດຽວ/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/Technician \/ Worker|ช่าง \/ คนงาน|ຊ່າງ \/ ຄົນງານ/i)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Open the worker app to see assigned projects|เข้าสู่ Worker App เพื่อดูโครงการที่ได้รับมอบหมาย|ເຂົ້າ worker app/i)).toBeInTheDocument();
   });
 });
+

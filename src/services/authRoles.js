@@ -20,6 +20,7 @@ export const TRUSTED_ROLE_TO_BUCKET = {
   owner: 'owner',
   supplier: 'supplier',
   worker: 'worker',
+  technician: 'worker',
   general_worker: 'worker',
   skilled_worker: 'worker',
   foreman: 'worker',

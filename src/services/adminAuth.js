@@ -1,9 +1,11 @@
 import {
   browserLocalPersistence,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
   setPersistence,
+  signInWithPopup,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
@@ -73,6 +75,13 @@ export async function signInWithEmail(auth, { email, password }) {
 export async function registerWithEmail(auth, { email, password }) {
   await setPersistence(auth, browserLocalPersistence);
   return createUserWithEmailAndPassword(auth, String(email || '').trim(), password);
+}
+
+export async function signInWithGoogle(auth) {
+  await setPersistence(auth, browserLocalPersistence);
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return signInWithPopup(auth, provider);
 }
 
 export async function getAuthTokenResult(user, forceRefresh = false) {

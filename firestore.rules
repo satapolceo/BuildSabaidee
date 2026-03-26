@@ -33,6 +33,63 @@ service cloud.firestore {
       ];
     }
 
+    function workerAccessPath(uid) {
+      return /databases/$(database)/documents/workerAccess/$(uid);
+    }
+
+    function hasWorkerAccessProfile() {
+      return isSignedIn() && exists(workerAccessPath(request.auth.uid));
+    }
+
+    function workerAccessProfile() {
+      return get(workerAccessPath(request.auth.uid)).data;
+    }
+
+    function workerProjectIds() {
+      return hasWorkerAccessProfile() && workerAccessProfile().projectIds is list
+        ? workerAccessProfile().projectIds
+        : [];
+    }
+
+    function workerBelongsToProject(projectId) {
+      return hasWorkerAccessProfile()
+        && projectId is string
+        && workerProjectIds().hasAny([projectId]);
+    }
+
+    function workerOwnsRecord(workerId) {
+      return hasWorkerAccessProfile()
+        && workerAccessProfile().workerId is string
+        && workerAccessProfile().workerId == workerId;
+    }
+
+    function canReadWorkerDocument() {
+      return isAuthorizedReviewer()
+        || (hasWorkerAccessProfile()
+          && (
+            workerOwnsRecord(resource.id)
+            || workerBelongsToProject(resource.data.assignedSiteId)
+            || (resource.data.assignedProjectIds is list && resource.data.assignedProjectIds.hasAny(workerProjectIds()))
+          ));
+    }
+
+    function canReadProjectDocument(projectId) {
+      return isAuthorizedReviewer() || workerBelongsToProject(projectId);
+    }
+
+    function canReadProjectScopedRecord(projectId) {
+      return isAuthorizedReviewer() || workerBelongsToProject(projectId);
+    }
+
+    function validWorkerAccessWrite() {
+      return isSignedIn()
+        && request.auth.uid == request.resource.id
+        && request.resource.data.workerId is string
+        && request.resource.data.email is string
+        && request.resource.data.projectIds is list
+        && request.resource.data.activeProjectId is string;
+    }
+
     function reviewFields() {
       return ['status', 'reviewNote', 'reviewedAt', 'reviewedBy', 'reviewerRole', 'updatedAt'];
     }
@@ -150,16 +207,102 @@ service cloud.firestore {
     }
 
     match /paymentRequests/{requestId} {
-      allow read: if true;
-      allow create: if validPaymentRequestCreate();
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.workerId)
+        && workerBelongsToProject(request.resource.data.projectId)
+        && validPaymentRequestCreate();
       allow update: if validPaymentReviewUpdate();
       allow delete: if false;
     }
 
     match /milestoneSubmissions/{submissionId} {
-      allow read: if true;
-      allow create: if validMilestoneSubmissionCreate();
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.workerId)
+        && workerBelongsToProject(request.resource.data.projectId)
+        && validMilestoneSubmissionCreate();
       allow update: if validMilestoneReviewUpdate();
+      allow delete: if false;
+    }
+
+    match /workerAccess/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if validWorkerAccessWrite();
+      allow delete: if false;
+    }
+
+    match /workers/{workerId} {
+      allow read: if canReadWorkerDocument();
+      allow create, update: if isAuthorizedReviewer()
+        || (hasWorkerAccessProfile() && workerOwnsRecord(workerId));
+      allow delete: if false;
+    }
+
+    match /projects/{projectId} {
+      allow read: if canReadProjectDocument(projectId);
+      allow create, update, delete: if isAuthorizedReviewer();
+    }
+
+    match /chats/{chatId} {
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.senderId)
+        && workerBelongsToProject(request.resource.data.projectId);
+      allow update, delete: if isAuthorizedReviewer();
+    }
+
+    match /attendance/{recordId} {
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.workerId)
+        && workerBelongsToProject(request.resource.data.projectId);
+      allow update: if isAuthorizedReviewer();
+      allow delete: if false;
+    }
+
+    match /photoReports/{reportId} {
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.workerId)
+        && workerBelongsToProject(request.resource.data.projectId);
+      allow update: if isAuthorizedReviewer()
+        || (hasWorkerAccessProfile()
+          && workerOwnsRecord(resource.data.workerId)
+          && workerBelongsToProject(resource.data.projectId));
+      allow delete: if false;
+    }
+
+    match /requests/{requestId} {
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.workerId)
+        && workerBelongsToProject(request.resource.data.projectId);
+      allow update: if isAuthorizedReviewer()
+        || (hasWorkerAccessProfile()
+          && workerOwnsRecord(resource.data.workerId)
+          && workerBelongsToProject(resource.data.projectId));
+      allow delete: if false;
+    }
+
+    match /siteTickets/{ticketId} {
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerBelongsToProject(request.resource.data.projectId);
+      allow update: if isAuthorizedReviewer()
+        || (hasWorkerAccessProfile() && workerBelongsToProject(resource.data.projectId));
+      allow delete: if false;
+    }
+
+    match /dailyReports/{reportId} {
+      allow read: if canReadProjectScopedRecord(resource.data.projectId);
+      allow create: if hasWorkerAccessProfile()
+        && workerOwnsRecord(request.resource.data.workerId)
+        && workerBelongsToProject(request.resource.data.projectId);
+      allow update: if isAuthorizedReviewer()
+        || (hasWorkerAccessProfile()
+          && workerOwnsRecord(resource.data.workerId)
+          && workerBelongsToProject(resource.data.projectId));
       allow delete: if false;
     }
   }

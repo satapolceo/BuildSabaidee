@@ -15,6 +15,7 @@ import {
   MapPin,
   MessageSquare,
   Mic,
+  Paperclip,
   Package,
   Plus,
   Send,
@@ -44,6 +45,8 @@ import {
 } from './workerStorage';
 import { compressImageFile, DATA_SAVER_DEFAULTS } from './imageDataSaver';
 import AttachmentComposer from './modules/attachments/AttachmentComposer';
+import { createAttachmentDraft, normalizeAttachmentDraft } from './modules/attachments/attachmentModel';
+import { buildFileAttachmentFromFile } from './modules/attachments/attachmentService';
 import DailyReportDetail from './modules/dailyReports/DailyReportDetail';
 import DailyReportFilters from './modules/dailyReports/DailyReportFilters';
 import DailyReportForm from './modules/dailyReports/DailyReportForm';
@@ -249,12 +252,55 @@ const getPreferredProject = (projects, currentProject) => {
 const normalizeWorkerIdentity = (entry, t) => {
   const rawName = entry?.name ?? entry?.companyName ?? '';
   const name = String(rawName || '').trim() || pickText(t, 'worker_role_worker', 'Worker');
+  const assignedProjectIds = Array.from(new Set([
+    ...(Array.isArray(entry?.assignedProjectIds) ? entry.assignedProjectIds : []),
+    entry?.activeProjectId,
+    entry?.assignedSiteId,
+    entry?.projectId,
+  ].map((value) => String(value || '').trim()).filter(Boolean)));
+  const activeProjectId = assignedProjectIds.includes(String(entry?.activeProjectId || '').trim())
+    ? String(entry?.activeProjectId || '').trim()
+    : (assignedProjectIds[0] || '');
   return {
     id: String(entry?.id || 'worker-local'),
     name,
-    assignedSiteId: String(entry?.assignedSiteId || ''),
+    authUid: String(entry?.authUid || '').trim(),
+    email: String(entry?.email || '').trim().toLowerCase(),
+    assignedSiteId: String(entry?.assignedSiteId || activeProjectId || ''),
+    assignedProjectIds,
+    activeProjectId,
     role: String(entry?.role || 'worker'),
   };
+};
+
+const getWorkerByAuthSession = (workers = [], authSession = null, fallbackT) => {
+  const normalizedWorkers = (Array.isArray(workers) ? workers : []).map((entry) => normalizeWorkerIdentity(entry, fallbackT));
+  if (authSession?.workerId) {
+    const matchedById = normalizedWorkers.find((entry) => String(entry.id) === String(authSession.workerId));
+    if (matchedById) return matchedById;
+  }
+  if (authSession?.uid) {
+    const matchedByUid = normalizedWorkers.find((entry) => String(entry.authUid || '') === String(authSession.uid));
+    if (matchedByUid) return matchedByUid;
+  }
+  if (authSession?.email) {
+    const matchedByEmail = normalizedWorkers.find((entry) => String(entry.email || '').toLowerCase() === String(authSession.email || '').toLowerCase());
+    if (matchedByEmail) return matchedByEmail;
+  }
+  return normalizedWorkers.find((entry) => entry.name) || normalizeWorkerIdentity({}, fallbackT);
+};
+
+const getProjectMemberships = (worker = {}, projects = []) => {
+  const membershipIds = Array.from(new Set([
+    ...(Array.isArray(worker?.assignedProjectIds) ? worker.assignedProjectIds : []),
+    worker?.activeProjectId,
+    worker?.assignedSiteId,
+  ].map((value) => String(value || '').trim()).filter(Boolean)));
+  const membershipProjects = membershipIds
+    .map((projectId) => projects.find((project) => String(project.id) === projectId))
+    .filter(Boolean);
+
+  return membershipProjects;
 };
 
 const prependUniqueOption = (items = [], nextValue = '') => {
@@ -346,6 +392,8 @@ function WorkerAppV2({
   onNavigate,
   t,
   language = 'TH',
+  authSession = null,
+  workerProfile = null,
   workersList = [],
   projectsList = [],
   sharedAttendanceRecords = [],
@@ -364,15 +412,23 @@ function WorkerAppV2({
   onPersistSiteTicket = null,
   onPersistDailyReport = null,
   onPersistChatMessage = null,
+  onPersistWorkerProfile = null,
 }) {
   const currentWorker = useMemo(() => {
-    const normalizedWorkers = (Array.isArray(workersList) ? workersList : []).map((entry) => normalizeWorkerIdentity(entry, t));
-    return normalizedWorkers.find((entry) => entry.name) || normalizeWorkerIdentity({}, t);
-  }, [workersList, t]);
-
+    if (workerProfile?.id) return normalizeWorkerIdentity(workerProfile, t);
+    return getWorkerByAuthSession(workersList, authSession, t);
+  }, [authSession, t, workerProfile, workersList]);
+  const availableProjects = useMemo(
+    () => getProjectMemberships(currentWorker, projectsList),
+    [currentWorker, projectsList]
+  );
+  const [selectedProjectId, setSelectedProjectId] = useState(() => String(currentWorker.activeProjectId || currentWorker.assignedSiteId || availableProjects[0]?.id || ''));
   const currentProject = useMemo(
-    () => projectsList.find((project) => String(project.id) === String(currentWorker.assignedSiteId)) || projectsList[0] || null,
-    [projectsList, currentWorker.assignedSiteId]
+    () => availableProjects.find((project) => String(project.id) === String(selectedProjectId))
+      || availableProjects.find((project) => String(project.id) === String(currentWorker.activeProjectId || currentWorker.assignedSiteId || ''))
+      || availableProjects[0]
+      || null,
+    [availableProjects, currentWorker.activeProjectId, currentWorker.assignedSiteId, selectedProjectId]
   );
   const initialStoredSiteTicketsRef = useRef(null);
   const initialStoredDailyReportsRef = useRef(null);
@@ -548,6 +604,22 @@ function WorkerAppV2({
         chatEmpty: 'ยังไม่มีข้อความสำหรับโครงการนี้',
         chatSendAction: 'ส่งข้อความ',
         chatUnavailable: 'ยังไม่สามารถส่งข้อความได้ในหน้านี้',
+        chatCurrentProject: 'โครงการปัจจุบัน',
+        chatConversationLabel: 'ห้องแชทที่กำลังคุย',
+        chatConversationTitle: 'แชททีมโครงการ',
+        chatProjectSwitchLabel: 'สลับโครงการ',
+        chatAttachFile: 'แนบไฟล์',
+        chatAttachImage: 'แนบรูป',
+        chatOpenCamera: 'ถ่ายจากกล้อง',
+        chatRecordVoice: 'อัดเสียง',
+        chatStopVoice: 'หยุดอัด',
+        chatAttachmentsTitle: 'พร้อมส่งในข้อความนี้',
+        chatAttachmentEmpty: 'ยังไม่มีไฟล์แนบในข้อความนี้',
+        chatAttachmentRemove: 'ลบ',
+        chatAttachmentVoiceReady: 'เสียงพร้อมส่ง',
+        chatAttachmentFileReady: 'ไฟล์พร้อมส่ง',
+        chatAttachmentImageReady: 'รูปพร้อมส่ง',
+        chatSendHint: 'ข้อความและไฟล์แนบจะถูกส่งเข้าแชทของโครงการนี้โดยตรง',
         editableUpdateAction: 'อัปเดตรายการที่เลือก',
         editableSelectedHelper: 'เลือกจากรายการ หรือพิมพ์ค่าใหม่เพื่อเพิ่ม/แก้ได้ทันที',
         subcategoryHelper: 'เลือกหมวดหลักก่อน แล้วจึงเลือกหมวดย่อย',
@@ -712,6 +784,22 @@ function WorkerAppV2({
           chatEmpty: 'ຍັງບໍ່ມີຂໍ້ຄວາມສຳລັບໂຄງການນີ້',
           chatSendAction: 'ສົ່ງຂໍ້ຄວາມ',
           chatUnavailable: 'ຍັງບໍ່ສາມາດສົ່ງຂໍ້ຄວາມໄດ້ໃນໜ້ານີ້',
+          chatCurrentProject: 'ໂຄງການປັດຈຸບັນ',
+          chatConversationLabel: 'ຫ້ອງແຊັດທີ່ກຳລັງໃຊ້',
+          chatConversationTitle: 'ແຊັດທີມໂຄງການ',
+          chatProjectSwitchLabel: 'ປ່ຽນໂຄງການ',
+          chatAttachFile: 'ແນບໄຟລ໌',
+          chatAttachImage: 'ແນບຮູບ',
+          chatOpenCamera: 'ຖ່າຍຈາກກ້ອງ',
+          chatRecordVoice: 'ອັດສຽງ',
+          chatStopVoice: 'ຢຸດອັດ',
+          chatAttachmentsTitle: 'ພ້ອມສົ່ງໃນຂໍ້ຄວາມນີ້',
+          chatAttachmentEmpty: 'ຍັງບໍ່ມີໄຟລ໌ແນບໃນຂໍ້ຄວາມນີ້',
+          chatAttachmentRemove: 'ລຶບ',
+          chatAttachmentVoiceReady: 'ສຽງພ້ອມສົ່ງ',
+          chatAttachmentFileReady: 'ໄຟລ໌ພ້ອມສົ່ງ',
+          chatAttachmentImageReady: 'ຮູບພ້ອມສົ່ງ',
+          chatSendHint: 'ຂໍ້ຄວາມ ແລະ ໄຟລ໌ແນບຈະຖືກສົ່ງເຂົ້າແຊັດຂອງໂຄງການນີ້ໂດຍກົງ',
           editableUpdateAction: 'ອັບເດດລາຍການທີ່ເລືອກ',
           editableSelectedHelper: 'ເລືອກຈາກລາຍການ ຫຼື ພິມຄ່າໃໝ່ເພື່ອເພີ່ມ/ແກ້ໄຂໄດ້ທັນທີ',
           subcategoryHelper: 'ເລືອກໝວດຫຼັກກ່ອນ ແລ້ວຈຶ່ງເລືອກໝວດຍ່ອຍ',
@@ -875,6 +963,22 @@ function WorkerAppV2({
           chatEmpty: 'No chat messages for this project yet',
           chatSendAction: 'Send message',
           chatUnavailable: 'Chat sending is not available on this screen yet',
+          chatCurrentProject: 'Current project',
+          chatConversationLabel: 'Current conversation',
+          chatConversationTitle: 'Project team chat',
+          chatProjectSwitchLabel: 'Switch project',
+          chatAttachFile: 'Attach file',
+          chatAttachImage: 'Attach image',
+          chatOpenCamera: 'Open camera',
+          chatRecordVoice: 'Record voice',
+          chatStopVoice: 'Stop voice',
+          chatAttachmentsTitle: 'Ready to send in this message',
+          chatAttachmentEmpty: 'No attachments added to this message yet',
+          chatAttachmentRemove: 'Remove',
+          chatAttachmentVoiceReady: 'Voice ready',
+          chatAttachmentFileReady: 'File ready',
+          chatAttachmentImageReady: 'Image ready',
+          chatSendHint: 'Messages and attachments are sent directly into this project conversation',
           editableUpdateAction: 'Update selected option',
           editableSelectedHelper: 'Pick from the list or type a new value to add/update it instantly',
           subcategoryHelper: 'Select the main category first, then choose the subcategory',
@@ -958,9 +1062,13 @@ function WorkerAppV2({
   const [localPaymentRequests, setLocalPaymentRequests] = useState(() => initialStoredPaymentRequestsRef.current || []);
   const [localMilestoneSubmissions, setLocalMilestoneSubmissions] = useState(() => initialStoredMilestonesRef.current || []);
   const [chatDraft, setChatDraft] = useState('');
+  const [chatAttachments, setChatAttachments] = useState(() => createAttachmentDraft({ linkedType: 'chat' }));
   const [chatBusy, setChatBusy] = useState(false);
   const [chatError, setChatError] = useState('');
   const chatContainerRef = useRef(null);
+  const chatCameraInputRef = useRef(null);
+  const chatImageInputRef = useRef(null);
+  const chatFileInputRef = useRef(null);
   const [settings, setSettings] = useState(() => ({ ...DATA_SAVER_DEFAULTS, ...loadFromStorage(WORKER_STORAGE_KEYS.settings, {}) }));
   const [tasks, setTasks] = useState(() => {
     const saved = loadFromStorage(WORKER_STORAGE_KEYS.tasks, []);
@@ -1020,6 +1128,24 @@ function WorkerAppV2({
   useEffect(() => {
     setTasks(getWorkerTasks(loadFromStorage(WORKER_STORAGE_KEYS.tasks, []), currentWorker.id, siteName));
   }, [currentWorker.id, siteName]);
+
+  useEffect(() => {
+    const preferredProjectId = String(currentWorker.activeProjectId || currentWorker.assignedSiteId || availableProjects[0]?.id || '');
+    setSelectedProjectId((current) => {
+      if (availableProjects.some((project) => String(project.id) === String(current))) return current;
+      return preferredProjectId;
+    });
+  }, [availableProjects, currentWorker.activeProjectId, currentWorker.assignedSiteId]);
+
+  useEffect(() => {
+    if (!currentWorker.id || !currentProject?.id) return;
+    if (String(currentWorker.activeProjectId || '') === String(currentProject.id)) return;
+    if (typeof onPersistWorkerProfile !== 'function') return;
+    onPersistWorkerProfile(currentWorker.id, {
+      activeProjectId: String(currentProject.id),
+      assignedProjectIds: availableProjects.map((project) => String(project.id)),
+    }).catch(() => {});
+  }, [availableProjects, currentProject?.id, currentWorker.activeProjectId, currentWorker.id, onPersistWorkerProfile]);
 
   const attendanceRecords = useMemo(
     () => mergeSyncedRecords(sharedAttendanceRecords, localAttendanceRecords, (items) => Array.isArray(items) ? items : []),
@@ -1406,9 +1532,9 @@ function WorkerAppV2({
     () => getVisibleSiteTickets(siteTickets, {
       role: currentWorker.role,
       currentUserId: currentWorker.id,
-      projectId: currentWorker.assignedSiteId || currentProject?.id || '',
+      projectId: currentProject?.id || '',
     }),
-    [currentProject?.id, currentWorker.assignedSiteId, currentWorker.id, currentWorker.role, siteTickets]
+    [currentProject?.id, currentWorker.id, currentWorker.role, siteTickets]
   );
   const filteredSiteTickets = useMemo(
     () => sortSiteTickets(filterSiteTickets(roleVisibleTickets, ticketFilters)),
@@ -1423,9 +1549,9 @@ function WorkerAppV2({
     () => getVisibleDailyReports(dailyReports, {
       role: currentWorker.role,
       currentUserId: currentWorker.id,
-      projectId: currentWorker.assignedSiteId || currentProject?.id || '',
+      projectId: currentProject?.id || '',
     }),
-    [currentProject?.id, currentWorker.assignedSiteId, currentWorker.id, currentWorker.role, dailyReports]
+    [currentProject?.id, currentWorker.id, currentWorker.role, dailyReports]
   );
   const filteredDailyReports = useMemo(
     () => sortDailyReports(filterDailyReports(roleVisibleDailyReports, dailyReportFilters)),
@@ -1452,11 +1578,15 @@ function WorkerAppV2({
     () => roleVisibleDailyReports.slice(0, 4),
     [roleVisibleDailyReports]
   );
+  const projectConversationId = useMemo(
+    () => currentProject?.id ? `project-${String(currentProject.id)}-team` : '',
+    [currentProject?.id]
+  );
   const projectChatMessages = useMemo(
     () => (Array.isArray(sharedChats) ? sharedChats : [])
-      .filter((entry) => String(entry?.projectId || '') === String(currentWorker.assignedSiteId || currentProject?.id || ''))
+      .filter((entry) => String(entry?.projectId || '') === String(currentProject?.id || ''))
       .sort((left, right) => Number(left?.createdAt || 0) - Number(right?.createdAt || 0)),
-    [currentProject?.id, currentWorker.assignedSiteId, sharedChats]
+    [currentProject?.id, sharedChats]
   );
   const workTypeOptions = useMemo(() => projectBatchOptions.workTypes, [projectBatchOptions.workTypes]);
   const tradeTeamOptions = useMemo(
@@ -1753,11 +1883,128 @@ function WorkerAppV2({
     }
   }, [activeScreen, activeTab, projectChatMessages]);
 
+  const updateChatAttachments = (updater) => {
+    setChatAttachments((current) => normalizeAttachmentDraft(typeof updater === 'function' ? updater(current) : updater));
+  };
+
+  const handleAddChatFiles = async (files = [], mode = 'file') => {
+    const nextFiles = Array.from(files || []).filter(Boolean);
+    if (!nextFiles.length) return;
+
+    setChatError('');
+
+    try {
+      if (mode === 'image' || mode === 'camera') {
+        const nextPhotos = [];
+        for (const file of nextFiles) {
+          const { imageData, stats } = await compressImageFile(file, settings);
+          nextPhotos.push({
+            id: `chat-photo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            kind: 'photo',
+            imageData,
+            imageMeta: stats,
+            originalName: file.name || '',
+            capturedAt: Date.now(),
+            source: mode === 'camera' ? 'chat_camera' : 'chat_gallery',
+          });
+        }
+        updateChatAttachments((current) => ({
+          ...current,
+          photos: [...current.photos, ...nextPhotos],
+        }));
+        return;
+      }
+
+      const nextAttachments = [];
+      for (const file of nextFiles) {
+        nextAttachments.push(await buildFileAttachmentFromFile(file));
+      }
+      updateChatAttachments((current) => ({
+        ...current,
+        files: [...(current.files || []), ...nextAttachments],
+      }));
+    } catch (error) {
+      setChatError(String(error?.message || localCopy.chatUnavailable));
+    }
+  };
+
+  const handleStartChatVoiceRecording = async () => {
+    if (!canRecordVoice) {
+      setChatError(localCopy.voiceFallback);
+      return;
+    }
+
+    setChatError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recordingStartedAtRef.current = Date.now();
+      setIsRecordingVoice(true);
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        setIsRecordingVoice(false);
+        setIsVoiceProcessing(true);
+        try {
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+          const audioData = await readBlobAsDataUrl(blob);
+          updateChatAttachments((current) => ({
+            ...current,
+            voiceNote: {
+              id: `chat-voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              kind: 'voice',
+              audioData,
+              durationMs: Math.max(0, Date.now() - recordingStartedAtRef.current),
+              mimeType: recorder.mimeType || 'audio/webm',
+              recordedAt: Date.now(),
+              source: 'chat_voice',
+            },
+          }));
+        } catch (error) {
+          setChatError(localCopy.voiceProcessing);
+        } finally {
+          setIsVoiceProcessing(false);
+          stream.getTracks().forEach((track) => track.stop());
+          mediaRecorderRef.current = null;
+          mediaStreamRef.current = null;
+          audioChunksRef.current = [];
+        }
+      };
+
+      recorder.start();
+    } catch (error) {
+      setChatError(localCopy.voicePermission);
+      setIsRecordingVoice(false);
+    }
+  };
+
+  const handleStopChatVoiceRecording = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const handleRemoveChatAttachment = (kind, id = '') => {
+    updateChatAttachments((current) => ({
+      ...current,
+      photos: kind === 'photo' ? current.photos.filter((item) => item.id !== id) : current.photos,
+      files: kind === 'file' ? (current.files || []).filter((item) => item.id !== id) : (current.files || []),
+      voiceNote: kind === 'voice' ? null : current.voiceNote,
+    }));
+  };
+
   const handleSendChatMessage = async () => {
     const text = String(chatDraft || '').trim();
-    if (!text) return;
+    const hasAttachments = chatAttachments.photos.length > 0 || (chatAttachments.files || []).length > 0 || Boolean(chatAttachments.voiceNote);
+    if (!text && !hasAttachments) return;
     setChatError('');
-    if (!currentWorker.assignedSiteId && !currentProject?.id) {
+    if (!currentProject?.id) {
       setChatError(localCopy.chatUnavailable);
       return;
     }
@@ -1773,12 +2020,22 @@ function WorkerAppV2({
         sender: currentWorker.name,
         senderRole: 'worker',
         text,
-        audioUrl: '',
-        projectId: String(currentWorker.assignedSiteId || currentProject?.id || ''),
+        audioUrl: chatAttachments.voiceNote?.audioData || '',
+        attachments: [
+          ...chatAttachments.photos,
+          ...(chatAttachments.files || []),
+          ...(chatAttachments.voiceNote ? [chatAttachments.voiceNote] : []),
+        ],
+        projectId: String(currentProject?.id || ''),
+        projectName: currentProject?.name || '',
+        conversationId: projectConversationId,
+        senderId: currentWorker.id,
+        senderUid: authSession?.uid || '',
         time: formatTime(Date.now(), locale),
         createdAt: Date.now(),
       });
       setChatDraft('');
+      setChatAttachments(createAttachmentDraft({ linkedType: 'chat' }));
     } catch (error) {
       setChatError(String(error?.message || localCopy.chatUnavailable));
     } finally {
@@ -2795,14 +3052,68 @@ function WorkerAppV2({
     <div className="space-y-4">
       <ScreenHeader title={localCopy.chatScreenTitle} subtitle={localCopy.chatScreenDesc} />
       <div className="overflow-hidden rounded-[1.6rem] bg-white shadow-sm ring-1 ring-slate-200/80">
+        <div className="border-b border-slate-200 bg-slate-50/90 p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{localCopy.chatCurrentProject}</div>
+              <div className="mt-1 text-sm font-semibold text-slate-900">{currentProject?.name || siteName}</div>
+            </div>
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{localCopy.chatConversationLabel}</div>
+              <div className="mt-1 text-sm font-semibold text-slate-900">{localCopy.chatConversationTitle}</div>
+            </div>
+          </div>
+          {availableProjects.length > 1 ? (
+            <div className="mt-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{localCopy.chatProjectSwitchLabel}</div>
+              <div className="flex flex-wrap gap-2">
+                {availableProjects.map((project) => (
+                  <button
+                    key={project.id}
+                    type="button"
+                    onClick={() => setSelectedProjectId(String(project.id))}
+                    className={`rounded-full px-3 py-2 text-xs font-semibold ${String(currentProject?.id || '') === String(project.id) ? 'bg-blue-700 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}
+                  >
+                    {project.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
         <div ref={chatContainerRef} className="flex max-h-[52vh] min-h-[38vh] flex-col gap-4 overflow-y-auto bg-slate-50 p-4">
           {projectChatMessages.length ? projectChatMessages.map((message) => {
             const isMe = message.senderRole === 'worker';
+            const photoAttachments = Array.isArray(message.attachments) ? message.attachments.filter((item) => item?.kind === 'photo' && item?.imageData) : [];
+            const fileAttachments = Array.isArray(message.attachments) ? message.attachments.filter((item) => item?.kind === 'file' && item?.fileData) : [];
             return (
               <div key={message.id || `${message.createdAt}-${message.sender}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-[86%] rounded-2xl p-3 text-sm shadow-sm ${isMe ? 'rounded-tr-sm bg-blue-700 text-white' : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700'}`}>
                   {!isMe ? <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-blue-600">{message.sender}</div> : null}
-                  {message.audioUrl ? <audio controls src={message.audioUrl} className="max-w-[220px]" /> : message.text}
+                  {message.text ? <div>{message.text}</div> : null}
+                  {message.audioUrl ? <audio controls src={message.audioUrl} className="mt-2 max-w-[220px]" /> : null}
+                  {photoAttachments.length ? (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {photoAttachments.map((item) => (
+                        <img key={item.id} src={item.imageData} alt={item.originalName || 'chat attachment'} className="h-24 w-full rounded-xl object-cover" />
+                      ))}
+                    </div>
+                  ) : null}
+                  {fileAttachments.length ? (
+                    <div className="mt-2 space-y-2">
+                      {fileAttachments.map((item) => (
+                        <a
+                          key={item.id}
+                          href={item.fileData}
+                          download={item.originalName || 'attachment'}
+                          className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${isMe ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'}`}
+                        >
+                          <Paperclip className="h-3.5 w-3.5" />
+                          {item.originalName || localCopy.chatAttachFile}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <span className="mt-1 px-1 text-[10px] text-slate-400">{message.time || formatTime(message.createdAt || Date.now(), locale)}</span>
               </div>
@@ -2810,7 +3121,66 @@ function WorkerAppV2({
           }) : <EmptyState label={localCopy.chatEmpty} />}
         </div>
         <div className="border-t border-slate-200 bg-white p-3">
+          <input ref={chatCameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => handleAddChatFiles(event.target.files, 'camera')} />
+          <input ref={chatImageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handleAddChatFiles(event.target.files, 'image')} />
+          <input ref={chatFileInputRef} type="file" className="hidden" onChange={(event) => handleAddChatFiles(event.target.files, 'file')} />
           {chatError ? <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{chatError}</div> : null}
+          <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <button type="button" onClick={() => chatCameraInputRef.current?.click()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+              <Camera className="h-4 w-4" />
+              {localCopy.chatOpenCamera}
+            </button>
+            <button type="button" onClick={() => chatImageInputRef.current?.click()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+              <FileImage className="h-4 w-4" />
+              {localCopy.chatAttachImage}
+            </button>
+            <button type="button" onClick={() => chatFileInputRef.current?.click()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700">
+              <Paperclip className="h-4 w-4" />
+              {localCopy.chatAttachFile}
+            </button>
+            <button type="button" onClick={isRecordingVoice ? handleStopChatVoiceRecording : handleStartChatVoiceRecording} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-3 text-xs font-semibold ${isRecordingVoice ? 'bg-rose-600 text-white' : 'border border-slate-200 bg-white text-slate-700'}`}>
+              <Mic className="h-4 w-4" />
+              {isRecordingVoice ? localCopy.chatStopVoice : localCopy.chatRecordVoice}
+            </button>
+          </div>
+          <div className="mb-3 rounded-2xl bg-slate-50 p-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{localCopy.chatAttachmentsTitle}</div>
+            <div className="mt-3 space-y-2">
+              {chatAttachments.photos.map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2">
+                  <img src={item.imageData} alt={item.originalName || 'chat preview'} className="h-12 w-12 rounded-xl object-cover" />
+                  <div className="min-w-0 flex-1 text-sm text-slate-700">
+                    <div className="truncate font-medium">{item.originalName || localCopy.chatAttachmentImageReady}</div>
+                    <div className="text-xs text-slate-500">{localCopy.chatAttachmentImageReady}</div>
+                  </div>
+                  <button type="button" onClick={() => handleRemoveChatAttachment('photo', item.id)} className="text-xs font-semibold text-rose-600">{localCopy.chatAttachmentRemove}</button>
+                </div>
+              ))}
+              {(chatAttachments.files || []).map((item) => (
+                <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2">
+                  <div className="rounded-xl bg-slate-100 p-3 text-slate-600"><Paperclip className="h-4 w-4" /></div>
+                  <div className="min-w-0 flex-1 text-sm text-slate-700">
+                    <div className="truncate font-medium">{item.originalName || localCopy.chatAttachmentFileReady}</div>
+                    <div className="text-xs text-slate-500">{localCopy.chatAttachmentFileReady}</div>
+                  </div>
+                  <button type="button" onClick={() => handleRemoveChatAttachment('file', item.id)} className="text-xs font-semibold text-rose-600">{localCopy.chatAttachmentRemove}</button>
+                </div>
+              ))}
+              {chatAttachments.voiceNote ? (
+                <div className="rounded-2xl bg-white px-3 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium text-slate-700">{localCopy.chatAttachmentVoiceReady}</div>
+                    <button type="button" onClick={() => handleRemoveChatAttachment('voice')} className="text-xs font-semibold text-rose-600">{localCopy.chatAttachmentRemove}</button>
+                  </div>
+                  <audio controls src={chatAttachments.voiceNote.audioData} className="mt-2 w-full" />
+                </div>
+              ) : null}
+              {!chatAttachments.photos.length && !(chatAttachments.files || []).length && !chatAttachments.voiceNote ? (
+                <div className="text-sm text-slate-500">{localCopy.chatAttachmentEmpty}</div>
+              ) : null}
+            </div>
+          </div>
+          <div className="mb-3 text-xs text-slate-500">{localCopy.chatSendHint}</div>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -2826,14 +3196,14 @@ function WorkerAppV2({
                 }
               }}
               placeholder={pickText(t, 'chat_placeholder', 'Type message...')}
-              disabled={chatBusy}
+              disabled={chatBusy || isVoiceProcessing}
               className="h-11 flex-1 rounded-full bg-slate-100 px-4 text-sm outline-none ring-0 focus:bg-slate-200"
             />
             <button
               type="button"
               onClick={handleSendChatMessage}
-              disabled={chatBusy || !String(chatDraft || '').trim()}
-              className={`flex h-11 w-11 items-center justify-center rounded-full transition ${chatBusy || !String(chatDraft || '').trim() ? 'bg-slate-100 text-slate-300' : 'bg-blue-700 text-white'}`}
+              disabled={chatBusy || isVoiceProcessing || (!String(chatDraft || '').trim() && !chatAttachments.photos.length && !(chatAttachments.files || []).length && !chatAttachments.voiceNote)}
+              className={`flex h-11 w-11 items-center justify-center rounded-full transition ${chatBusy || isVoiceProcessing || (!String(chatDraft || '').trim() && !chatAttachments.photos.length && !(chatAttachments.files || []).length && !chatAttachments.voiceNote) ? 'bg-slate-100 text-slate-300' : 'bg-blue-700 text-white'}`}
               aria-label={localCopy.chatSendAction}
             >
               {chatBusy ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
@@ -2850,6 +3220,8 @@ function WorkerAppV2({
         <div className="text-lg font-semibold text-slate-900">{currentWorker.name}</div>
         <div className="mt-1 text-sm text-slate-500">{siteName}</div>
         <div className="mt-4 grid grid-cols-2 gap-3">
+          <MetricCard label={localCopy.chatCurrentProject} value={currentProject?.name || '-'} />
+          <MetricCard label={localCopy.chatProjectSwitchLabel} value={`${availableProjects.length}`} />
           <MetricCard label={pickText(t, 'worker_recent_attendance', 'Recent attendance')} value={`${todayAttendance.records.length}`} />
           <MetricCard label={pickText(t, 'worker_sync_queue', 'Sync queue')} value={`${photoReports.filter((entry) => entry.status === 'draft').length}`} />
         </div>

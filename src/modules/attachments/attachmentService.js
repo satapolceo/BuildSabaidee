@@ -1,5 +1,6 @@
 import { compressImageFile } from '../../imageDataSaver';
 import {
+  createFileAttachment,
   createPhotoAttachment,
   createVoiceAttachment,
   normalizeAttachmentDraft,
@@ -52,6 +53,16 @@ export async function buildVoiceAttachmentFromBlob({
   });
 }
 
+export async function buildFileAttachmentFromFile(file) {
+  return createFileAttachment({
+    fileData: await readBlobAsDataUrl(file),
+    mimeType: file?.type || 'application/octet-stream',
+    originalName: file?.name || '',
+    fileSize: Number(file?.size || 0),
+    uploadedAt: Date.now(),
+  });
+}
+
 export function getAttachmentPreviewItems(draft = {}) {
   const normalized = normalizeAttachmentDraft(draft);
   const photoItems = normalized.photos.map((photo, index) => ({
@@ -70,6 +81,14 @@ export function getAttachmentPreviewItems(draft = {}) {
     audioData: normalized.voiceNote.audioData,
     text: '',
   }] : [];
+  const fileItems = normalized.files.map((file, index) => ({
+    id: file.id,
+    kind: file.kind,
+    title: file.originalName || `File ${index + 1}`,
+    imageData: '',
+    audioData: '',
+    text: '',
+  }));
   const noteItems = normalized.note.trim() ? [{
     id: 'note-preview',
     kind: 'note',
@@ -79,5 +98,5 @@ export function getAttachmentPreviewItems(draft = {}) {
     text: normalized.note.trim(),
   }] : [];
 
-  return [...photoItems, ...voiceItems, ...noteItems];
+  return [...photoItems, ...fileItems, ...voiceItems, ...noteItems];
 }
